@@ -1,0 +1,51 @@
+#[derive(Debug, Clone, PartialEq)]
+pub enum EntityType {
+    Player,
+    Npc,
+    Companion,
+    Empty,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Timestamp {
+    pub hour: u8,
+    pub minute: u8,
+    pub second: u8,
+    pub millis: u16,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct CombatEvent {
+    pub line_number: usize,
+    pub timestamp: Timestamp,
+    pub source_entity_id: Option<String>,
+    pub source_entity_type: Option<EntityType>,
+    pub source_coordinates: Option<String>,
+    pub source_entity_name: Option<String>,
+    pub source_health: Option<i64>,
+    pub source_max_health: Option<i64>,
+    pub target_entity_id: Option<String>,
+    pub target_entity_type: Option<EntityType>,
+    pub target_entity_name: Option<String>,
+    pub target_coordinates: Option<String>,
+    pub target_health: Option<i64>,
+    pub target_max_health: Option<i64>,
+    pub action_id: Option<String>,
+    pub action_name: Option<String>,
+    pub effect_type_id: Option<String>,
+    pub effect_type_name: Option<String>,
+    pub effect_id: Option<String>,
+    pub effect_name: Option<String>,
+    pub charges: Option<i64>,
+    pub damage: Option<i64>,
+    pub effective_damage: Option<i64>,
+    pub damage_type_id: Option<String>,
+    pub is_critical: Option<bool>,
+    pub is_reflected: Option<bool>,
+    pub threat: Option<f64>,
+    pub reduction_class_id: Option<String>,
+    pub damage_reduced: Option<String>,
+    pub reduction_type_id: Option<String>,
+    pub heal: Option<i64>,
+    pub effective_heal: Option<i64>,
+}
