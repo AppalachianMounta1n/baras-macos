@@ -106,7 +106,7 @@ fn parse_entity(input: &str) -> Option<(&str, Entity)> {
     let segment_start_pos = memchr(b'[', bytes)?;
     let segment_end_pos = memchr(b']', bytes)?;
     let self_target_pos = memchr(b'=', bytes);
-    if segment_end_pos <= 1 {
+    if segment_end_pos <= 2 && self_target_pos.is_none() {
         return Some((
             &input[segment_end_pos + 1..],
             Entity {
