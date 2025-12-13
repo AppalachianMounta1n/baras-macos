@@ -13,7 +13,6 @@ fn main() {
 
     println!("Parsed {} events in {:?}", events.len(), duration);
 
-    // Print first few events for debugging
     for event in events.iter().take(5) {
         println!("{:?}", event);
     }
