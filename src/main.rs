@@ -1,19 +1,39 @@
 use std::time::Instant;
 
+use clap::{Parser, Subcommand};
+
 use baras::parse_log_file;
 
+#[derive(Parser)]
+#[command(version, about = "test")]
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// test command
+    ParseFile {
+        #[arg(short, long)]
+        path: String,
+    },
+}
+
 fn main() {
-    let path = "test-log-files/50mb/combat_2025-12-10_18_12_15_087604.txt";
+    let cli = Cli::parse();
 
-    println!("Parsing: {}", path);
-
-    let start = Instant::now();
-    let events = parse_log_file(path).expect("Failed to parse log file");
-    let duration = start.elapsed();
-
-    println!("Parsed {} events in {:?}", events.len(), duration);
-
-    for event in events.iter().take(4) {
-        println!("{:?}", event);
+    match &cli.command {
+        Some(Commands::ParseFile { path }) => {
+            if !path.is_empty() {
+                let timer = Instant::now();
+                let data = parse_log_file(path).expect("failed to parse log file {path}");
+                let ms = timer.elapsed().as_millis();
+                println!("parsed {} events in {}ms", data.len(), ms);
+            } else {
+                println!("invalid path");
+            }
+        }
+        None => {}
     }
 }
