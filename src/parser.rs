@@ -7,6 +7,9 @@ use std::fs::File;
 use std::option::Option;
 use std::path::Path;
 
+#[cfg(test)]
+mod tests;
+
 macro_rules! parse_i64 {
     ($s:expr) => {
         $s.parse::<i64>().unwrap_or_default()
@@ -103,7 +106,7 @@ fn parse_entity(input: &str) -> Option<(&str, Entity)> {
     let segment_start_pos = memchr(b'[', bytes)?;
     let segment_end_pos = memchr(b']', bytes)?;
     let self_target_pos = memchr(b'=', bytes);
-    if segment_end_pos <= 2 {
+    if segment_end_pos <= 1 {
         return Some((
             &input[segment_end_pos + 1..],
             Entity {
@@ -112,7 +115,7 @@ fn parse_entity(input: &str) -> Option<(&str, Entity)> {
         ));
     }
 
-    if self_target_pos.is_some_and(|x| x == 2) {
+    if self_target_pos.is_some() {
         return Some((
             &input[segment_end_pos + 1..],
             Entity {
