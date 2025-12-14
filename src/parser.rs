@@ -1,4 +1,4 @@
-use crate::event_models::*;
+use crate::combat_event::*;
 use crate::log_ids::{effect_id, effect_type_id};
 use memchr::memchr;
 use memchr::memchr_iter;
