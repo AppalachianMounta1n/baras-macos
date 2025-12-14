@@ -64,13 +64,13 @@ async fn respond(line: &str, state: Arc<RwLock<AppState>>) -> Result<bool, Strin
         Some(Commands::ParseFile { path }) => {
             let timer = Instant::now();
             let (events, end_pos) = read_log_file(path).expect("failed to parse log file {path}");
+            let ms = timer.elapsed().as_millis();
             {
                 let mut s = state.write().await;
+                println!("parsed {} events in {}ms", events.len(), ms);
                 s.current_byte = Some(end_pos);
                 s.events = events.clone();
             }
-            let ms = timer.elapsed().as_millis();
-            println!("parsed {} events in {}ms", events.len(), ms);
 
             let state_clone = Arc::clone(&state);
             let path_clone = path.clone();

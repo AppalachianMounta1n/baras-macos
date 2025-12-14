@@ -1,3 +1,5 @@
+use time::Time;
+
 #[derive(Debug, Clone, Default)]
 pub struct Action {
     pub name: String,
@@ -15,14 +17,6 @@ pub enum EntityType {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Timestamp {
-    pub hour: u8,
-    pub minute: u8,
-    pub second: u8,
-    pub millis: u16,
-}
-
-#[derive(Debug, Clone, Default)]
 pub struct Entity {
     pub name: String,
     pub class_id: i64,
@@ -31,10 +25,10 @@ pub struct Entity {
     pub health: (i32, i32),
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct CombatEvent {
     pub line_number: u64,
-    pub timestamp: Timestamp,
+    pub timestamp: Time,
     pub source_entity: Entity,
     pub target_entity: Entity,
     pub action: Action,

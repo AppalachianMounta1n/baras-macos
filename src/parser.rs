@@ -2,6 +2,7 @@ use crate::event_models::*;
 use crate::log_ids::{effect_id, effect_type_id};
 use memchr::memchr;
 use memchr::memchr_iter;
+use time::Time;
 
 #[cfg(test)]
 mod tests;
@@ -57,7 +58,7 @@ pub fn parse_line(line_number: u64, _line: &str) -> Option<CombatEvent> {
 }
 
 // parse HH:MM:SS.mmm
-fn parse_timestamp(segment: &str) -> Option<Timestamp> {
+fn parse_timestamp(segment: &str) -> Option<Time> {
     let b = segment.as_bytes();
     if b.len() != 12 || b[2] != b':' || b[5] != b':' || b[8] != b'.' {
         return None;
@@ -68,12 +69,7 @@ fn parse_timestamp(segment: &str) -> Option<Timestamp> {
     let second = (b[6] - b'0') * 10 + (b[7] - b'0');
     let millis = (b[9] - b'0') as u16 * 100 + (b[10] - b'0') as u16 * 10 + (b[11] - b'0') as u16;
 
-    Some(Timestamp {
-        hour,
-        minute,
-        second,
-        millis,
-    })
+    Time::from_hms_milli(hour, minute, second, millis).ok()
 }
 
 fn parse_entity(segment: &str) -> Option<Entity> {
