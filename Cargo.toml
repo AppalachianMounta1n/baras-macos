@@ -8,7 +8,9 @@ clap = { version = "4.5.53", features = ["derive"] }
 confy = { version = "2.0.0", default-features = false, features = [
   "yaml_conf",
 ] }
+hashbrown = "0.16.1"
 memchr = "2.7.6"
+notify = "8.2"
 memmap2 = "0.9.9"
 rayon = "1.11.0"
 serde = { version = "1.0.228", features = ["derive"] }

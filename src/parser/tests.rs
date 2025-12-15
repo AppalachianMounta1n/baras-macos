@@ -90,7 +90,7 @@ fn test_parse_charges_ten() {
 #[test]
 fn test_parse_details_damage_basic() {
     let input = " (5765 energy {836045448940874}) <5765.0>";
-    let result = parse_details(input, effect_id::DAMAGE);
+    let result = parse_details(input, effect_id::DAMAGE, effect_type_id::APPLYEFFECT);
     assert!(result.is_some());
 
     let details = result.unwrap();

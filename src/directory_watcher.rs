@@ -1,11 +1,13 @@
 use crate::app_state::AppState;
 use crate::commands;
-use crate::directory_index::LogFileIndex;
+use crate::directory_index::{LogFileIndex, extract_character_name};
 use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use tokio::sync::mpsc::{self, Receiver};
+use std::time::Duration;
 use tokio::sync::RwLock;
+use tokio::sync::mpsc::{self, Receiver};
+use tokio::time::{Instant, sleep};
 
 pub struct DirectoryWatcher {
     _watcher: RecommendedWatcher,
@@ -93,8 +95,39 @@ fn is_combat_log(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
+const NEW_FILE_TIMEOUT: Duration = Duration::from_secs(30);
+const NEW_FILE_POLL_INTERVAL: Duration = Duration::from_millis(500);
+
 async fn handle_new_file(path: PathBuf, state: Arc<RwLock<AppState>>) {
     println!("New log file detected: {}", path.display());
+
+    // Wait for file to have content (DisciplineChanged event)
+    let start = Instant::now();
+    let mut has_content = false;
+
+    while start.elapsed() < NEW_FILE_TIMEOUT {
+        match extract_character_name(&path) {
+            Ok(Some(_)) => {
+                has_content = true;
+                break;
+            }
+            Ok(None) => {
+                // File exists but no DisciplineChanged yet, keep waiting
+                sleep(NEW_FILE_POLL_INTERVAL).await;
+            }
+            Err(_) => {
+                // File might still be locked/being created, keep waiting
+                sleep(NEW_FILE_POLL_INTERVAL).await;
+            }
+        }
+    }
+
+    if !has_content {
+        println!(
+            "Warning: Timed out waiting for content in {}",
+            path.display()
+        );
+    }
 
     // Add to index
     {
