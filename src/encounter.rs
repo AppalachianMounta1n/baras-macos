@@ -74,6 +74,12 @@ impl Encounter {
         }
     }
 
+    pub fn with_player(id: u64, player: PlayerInfo) -> Self {
+        let mut enc = Self::new(id);
+        enc.players.insert(player.id, player);
+        enc
+    }
+
     pub fn set_entity_death(&mut self, entity_id: i64, entity_type: &EntityType, timestamp: Time) {
         match entity_type {
             EntityType::Player => {

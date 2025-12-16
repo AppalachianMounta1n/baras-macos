@@ -270,8 +270,15 @@ impl SessionCache {
 
     fn push_new_encounter(&mut self) {
         let id = self.next_encounter_id;
+
+        let encounter = if self.player_initialized {
+            Encounter::with_player(id, self.player.clone())
+        } else {
+            Encounter::new(id)
+        };
+
         self.next_encounter_id += 1;
-        self.encounters.push_back(Encounter::new(id));
+        self.encounters.push_back(encounter);
     }
 
     /// Keep only the last 3 encounters
