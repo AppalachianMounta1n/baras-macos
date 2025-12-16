@@ -1,45 +1,35 @@
-use crate::app_state::AppState;
-use crate::directory_watcher;
-use crate::reader::Reader;
+use baras_core::app_state::AppState;
+use baras_core::file_handler;
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::Instant;
 use tokio::sync::RwLock;
 
+use crate::dir_watcher;
+
 pub async fn parse_file(path: &str, state: Arc<RwLock<AppState>>) {
-    let timer = Instant::now();
+    // Set new path
     let mut s = state.write().await;
     s.set_active_file(path);
     let active_path = s.active_file.clone().expect("invalid file given");
 
-    let state_clone = Arc::clone(&state);
+    // Stop any current tailing task
     if let Some(active_tail) = s.log_tail_task.take() {
         active_tail.abort();
     }
-
     drop(s);
-    let reader = Reader::from(active_path.clone(), state_clone);
 
-    let (events, end_pos) = reader
-        .read_log_file()
-        .expect("failed to parse log file {path}");
+    let state_clone = Arc::clone(&state);
+    let result = file_handler::parse_file(path, state_clone).await.expect("");
 
     println!(
         "parsed {} events in {}ms",
-        events.len(),
-        timer.elapsed().as_millis()
+        result.events_count, result.elapsed_ms
     );
 
-    {
-        let mut s = state.write().await;
-        s.current_byte = Some(end_pos);
-        s.process_events(events);
-    }
-
-    println!("tailing file: {}", active_path.display());
+    println!("Beginning file tail: {}", active_path.display());
     let handle = tokio::spawn(async move {
-        reader.tail_log_file().await.ok();
+        result.reader.tail_log_file().await.ok();
     });
     state.write().await.log_tail_task = Some(handle);
 }
@@ -93,23 +83,6 @@ pub async fn show_stats(state: Arc<RwLock<AppState>>) {
         .last_combat_encounter()
         .unwrap();
     enc.show_dps();
-
-    // let dmg: Vec<(String, i32, i32)> = enc
-    //     .events
-    //     .clone()
-    //     .into_iter()
-    //     .filter(|e| e.effect.effect_id == effect_id::DAMAGE)
-    //     .map(|e| {
-    //         (
-    //             e.source_entity.name,
-    //             e.details.dmg_effective,
-    //             e.details.dmg_amount,
-    //         )
-    //     })
-    //     .collect();
-    // for entry in dmg {
-    //     println!("{}, effective: {}, actual: {}", entry.0, entry.1, entry.2);
-    // }
 }
 
 pub fn exit() {
@@ -263,7 +236,7 @@ pub async fn set_directory(new_directory: &str, state: Arc<RwLock<AppState>>) {
     }
 
     //initiate new watcher task
-    if let Some(handle) = directory_watcher::init_watcher(Arc::clone(&state)).await {
+    if let Some(handle) = dir_watcher::init_watcher(Arc::clone(&state)).await {
         state.write().await.watcher_task = Some(handle);
     }
 }

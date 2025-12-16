@@ -2,6 +2,7 @@ use crate::CombatEvent;
 use crate::Entity;
 use crate::EntityType;
 use crate::log_ids::effect_id;
+use crate::swtor_ids::SHIELD_EFFECT_IDS;
 use hashbrown::HashMap;
 use time::{OffsetDateTime, Time};
 
@@ -57,6 +58,7 @@ pub struct EntityStatistics {
     pub ehps: i32,
     pub dtps: i32,
     pub abs: i32,
+    pub total_healing: i64,
     pub apm: f32,
 }
 
@@ -71,6 +73,7 @@ struct StatAccumulator {
     healing_received: i64,
     hit_count: u32,
     actions: u32,
+    shielding_given: i64,
 }
 
 #[derive(Debug, Clone)]
@@ -238,6 +241,7 @@ impl Encounter {
     // -- Effect Instance Handling
 
     pub fn apply_effect(&mut self, event: &CombatEvent) {
+        let is_shield = SHIELD_EFFECT_IDS.contains(&event.effect.effect_id);
         self.effects
             .entry(event.target_entity.log_id)
             .or_default()
@@ -246,7 +250,7 @@ impl Encounter {
                 source_id: event.source_entity.log_id,
                 target_id: event.target_entity.log_id,
                 applied_at: event.timestamp,
-                is_shield: false,
+                is_shield,
                 removed_at: None,
             })
     }
@@ -291,6 +295,44 @@ impl Encounter {
             {
                 acc.actions += 1;
             }
+            // absorbed dmg logic
+            if event.details.dmg_absorbed > 0
+                && (event.details.avoid_type.is_empty() || event.details.avoid_type == "shield")
+            {
+                println!(
+                    "[DEBUG] Absorption: enc_id={}, target={}, mitigation={}, absorbed={}, time={}, effects_count={:?}",
+                    self.id,
+                    event.target_entity.log_id,
+                    event.details.avoid_type,
+                    event.details.dmg_absorbed,
+                    event.timestamp,
+                    self.effects
+                        .get(&event.target_entity.log_id)
+                        .map(|v| v.len())
+                );
+
+                // TODO: This code is hacky with an arbitrary time cutoff
+                if let Some(effects) = self.effects.get(&event.target_entity.log_id) {
+                    let earliest_shield_effect = effects
+                        .iter()
+                        .filter(|e| {
+                            e.is_shield
+                                && e.applied_at < event.timestamp
+                                && (e.removed_at.is_none_or(|t| t >= event.timestamp)
+                                    || e.removed_at
+                                        .unwrap()
+                                        .duration_until(event.timestamp)
+                                        .whole_milliseconds()
+                                        <= 750)
+                        })
+                        .min_by_key(|e| e.applied_at);
+                    if let Some(shield) = earliest_shield_effect {
+                        let shield_source_acc = accumulators.entry(shield.source_id).or_default();
+                        shield_source_acc.shielding_given += event.details.dmg_absorbed as i64;
+                    }
+                }
+            }
+
             // Target received damage
             let target_acc = accumulators.entry(event.target_entity.log_id).or_default();
             target_acc.damage_received += event.details.dmg_effective as i64;
@@ -307,9 +349,10 @@ impl Encounter {
                 dps: (acc.damage_dealt / duration) as i32,
                 edps: (acc.damage_dealt_effective / duration) as i32,
                 ehps: (acc.healing_effective / duration) as i32,
+                total_healing: acc.healing_done,
                 hps: (acc.healing_done / duration) as i32,
                 dtps: (acc.damage_received / duration) as i32,
-                abs: (acc.damage_absorbed / duration) as i32,
+                abs: (acc.shielding_given / duration) as i32,
                 apm: (acc.actions as f32 / duration as f32) * 60.0,
             })
             .collect();
@@ -317,17 +360,19 @@ impl Encounter {
         stats.sort_by(|a, b| b.dps.cmp(&a.dps));
         Some(stats)
     }
+
     pub fn show_dps(&self) {
         let stats = self.calculate_entity_statistics().unwrap_or_default();
 
         println!("{}", self.duration_seconds().unwrap());
         for entity in stats {
             println!(
-                "      [{}: {} dps | {} edps | {} dtps || {} hps | {} ehps | {} abs | {} apm] ",
+                "      [{}: {} dps | {} edps | {} total_abs || {} total heals | {} hps | {} ehps | {} abs | {} apm] ",
                 entity.name,
                 entity.dps,
                 entity.edps,
                 entity.dtps,
+                entity.total_healing,
                 entity.hps,
                 entity.ehps,
                 entity.abs,

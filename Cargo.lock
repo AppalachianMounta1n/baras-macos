@@ -59,10 +59,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "baras"
+name = "baras-cli"
 version = "0.1.0"
 dependencies = [
+ "baras-core",
  "clap",
+ "shlex",
+ "time",
+ "tokio",
+]
+
+[[package]]
+name = "baras-core"
+version = "0.1.0"
+dependencies = [
  "confy",
  "hashbrown",
  "memchr",
@@ -71,7 +81,6 @@ dependencies = [
  "phf",
  "rayon",
  "serde",
- "shlex",
  "time",
  "tokio",
 ]

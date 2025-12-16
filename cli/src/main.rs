@@ -1,10 +1,9 @@
-use baras::commands;
-use baras::directory_watcher;
+use baras_cli::commands;
+use baras_cli::dir_watcher;
+use baras_cli::readline;
+use baras_core::app_state::AppState;
 use clap::{Parser, Subcommand};
 use std::io::Write;
-
-use baras::app_state::AppState;
-use baras::repl::readline;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -13,7 +12,7 @@ async fn main() -> Result<(), String> {
     let state = Arc::new(RwLock::new(AppState::new()));
 
     // Initialize file index and start directory watcher
-    if let Some(handle) = directory_watcher::init_watcher(Arc::clone(&state)).await {
+    if let Some(handle) = dir_watcher::init_watcher(Arc::clone(&state)).await {
         state.write().await.watcher_task = Some(handle);
     }
 
