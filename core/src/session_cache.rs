@@ -7,6 +7,9 @@ use crate::{
 };
 use std::collections::VecDeque;
 
+const CACHE_DEEFAULT_CAPACITY: usize = 3;
+
+#[derive(Debug, Clone, Default)]
 pub struct SessionCache {
     // Session metadata
 
@@ -34,7 +37,7 @@ impl SessionCache {
             player: PlayerInfo::default(),
             player_initialized: false,
             current_area: AreaInfo::default(),
-            encounters: VecDeque::with_capacity(3),
+            encounters: VecDeque::with_capacity(CACHE_DEEFAULT_CAPACITY),
             next_encounter_id: 0,
             post_combat_threshold_ms: 5000,
             last_exit_combat_time: None,
@@ -119,6 +122,8 @@ impl SessionCache {
     }
 
     fn route_event_to_encounter(&mut self, event: CombatEvent) {
+        const COMBAT_TIMEOUT_SECONDS: i64 = 120;
+        const COMBAT_RESTART_GAP_SECONDS: i64 = 15;
         let effect_id = event.effect.effect_id;
         let effect_type_id = event.effect.type_id;
         let timestamp = event.timestamp;
@@ -169,7 +174,7 @@ impl SessionCache {
                     let should_start = match self.last_exit_combat_time {
                         None => true,
                         Some(last_exit) => {
-                            timestamp.signed_duration_since(last_exit).num_seconds() > 15
+                            timestamp.signed_duration_since(last_exit).num_seconds() > COMBAT_RESTART_GAP_SECONDS
                         }
                     };
                     if should_start && let Some(enc) = self.current_encounter_mut() {
@@ -198,7 +203,7 @@ impl SessionCache {
                     && let Some(last_activity) = enc.last_combat_activity_time
                 {
                     let elapsed = timestamp.signed_duration_since(last_activity).num_seconds();
-                    if elapsed >= 120 {
+                    if elapsed >= COMBAT_TIMEOUT_SECONDS {
                         // End combat at last_activity_time, not current timestamp
                         if let Some(enc) = self.current_encounter_mut() {
                             enc.exit_combat_time = Some(last_activity);

@@ -13,6 +13,8 @@ use tokio::io::{AsyncBufReadExt, AsyncSeekExt, BufReader};
 use tokio::sync::RwLock;
 use tokio::time::{Duration, sleep};
 
+const TAIL_SLEEP_DURATION: Duration = Duration::from_millis(100);
+
 pub struct Reader {
     path: PathBuf,
     state: Arc<RwLock<AppState>>,
@@ -87,7 +89,7 @@ impl Reader {
         loop {
             match reader.read_line(&mut line).await {
                 Ok(0) => {
-                    sleep(Duration::from_millis(100)).await;
+                    sleep(TAIL_SLEEP_DURATION).await;
                     continue;
                 }
                 Ok(_) => {

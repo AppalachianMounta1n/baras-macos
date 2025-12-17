@@ -189,12 +189,13 @@ pub fn parse_log_filename(filename: &str) -> Option<(NaiveDate, NaiveDateTime)> 
     Some((date_stamp.date(), date_stamp))
 }
 
+const CHECK_N_LINES: usize = 25;
 pub fn extract_character_name(path: &Path, session_date: NaiveDateTime) -> Result<Option<String>> {
     let file = File::open(path)?;
     let reader = BufReader::new(file);
 
     //take first 25 lines. If not in first 25 something is probably wrong
-    for (idx, line) in reader.lines().take(25).enumerate() {
+    for (idx, line) in reader.lines().take(CHECK_N_LINES).enumerate() {
         let line = line?;
         let parser = LogParser::new(session_date);
         if let Some(event) = &parser.parse_line(idx as u64, &line)
