@@ -199,8 +199,8 @@ impl Renderer {
                     draw_glyph_to_pixmap(
                         &mut pixmap,
                         &image.data,
-                        image.placement.width as u32,
-                        image.placement.height as u32,
+                        image.placement.width,
+                        image.placement.height,
                         glyph_x,
                         glyph_y,
                         text_color,
