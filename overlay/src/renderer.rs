@@ -133,33 +133,6 @@ impl Renderer {
         pixmap.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
     }
 
-    /// Draw a horizontal progress bar
-    pub fn draw_progress_bar(
-        &self,
-        buffer: &mut [u8],
-        width: u32,
-        height: u32,
-        x: f32,
-        y: f32,
-        w: f32,
-        h: f32,
-        progress: f32,
-        bg_color: Color,
-        fill_color: Color,
-        radius: f32,
-    ) {
-        // Draw background
-        self.fill_rounded_rect(buffer, width, height, x, y, w, h, radius, bg_color);
-
-        // Draw fill
-        let fill_width = w * progress.clamp(0.0, 1.0);
-        if fill_width > 0.0 {
-            self.fill_rounded_rect(
-                buffer, width, height, x, y, fill_width, h, radius, fill_color,
-            );
-        }
-    }
-
     /// Draw text at the specified position
     pub fn draw_text(
         &mut self,
