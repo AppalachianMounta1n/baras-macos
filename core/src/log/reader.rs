@@ -59,8 +59,9 @@ impl Reader {
             .par_iter()
             .enumerate()
             .filter_map(|(idx, &(start, end))| {
-                let line = unsafe { std::str::from_utf8_unchecked(&bytes[start..end]) };
-                parser.parse_line(idx as u64 + 1, line)
+                // Use lossy conversion to handle any non-UTF8 bytes safely
+                let line = String::from_utf8_lossy(&bytes[start..end]);
+                parser.parse_line(idx as u64 + 1, &line)
             })
             .collect();
 
