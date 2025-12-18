@@ -1,5 +1,4 @@
-use baras_core::context::{AppConfig, BackgroundTasks, ParsingSession};
-use baras_core::context::DirectoryIndex;
+use baras_core::context::{AppConfig, BackgroundTasks, DirectoryIndex, ParsingSession};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};

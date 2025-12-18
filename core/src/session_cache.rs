@@ -2,6 +2,7 @@ use chrono::NaiveDateTime;
 
 use crate::{
     combat_event::*,
+    context::resolve,
     encounter::*,
     swtor_ids::{effect_id, effect_type_id},
 };
@@ -90,11 +91,11 @@ impl SessionCache {
             .entry(event.source_entity.log_id)
             .or_insert(PlayerInfo {
                 id: event.source_entity.log_id,
-                name: event.source_entity.name.clone(),
+                name: event.source_entity.name,
                 class_id: event.effect.effect_id,
-                class_name: event.effect.effect_name.clone(),
+                class_name: resolve(event.effect.effect_name).to_string(),
                 discipline_id: event.effect.discipline_id,
-                discipline_name: event.effect.discipline_name.clone(),
+                discipline_name: resolve(event.effect.discipline_name).to_string(),
                 is_dead: false,
                 death_time: None,
             });
@@ -103,20 +104,20 @@ impl SessionCache {
     fn update_primary_player(&mut self, event: &CombatEvent) {
         // First DisciplineChanged sets player identity, subsequent ones update discipline
         if !self.player_initialized {
-            self.player.name = event.source_entity.name.clone();
+            self.player.name = event.source_entity.name;
             self.player.id = event.source_entity.log_id;
             self.player_initialized = true;
         }
         // Always update discipline from the event
-        self.player.class_name = event.effect.effect_name.clone();
+        self.player.class_name = resolve(event.effect.effect_name).to_string();
         self.player.class_id = event.effect.effect_id;
         self.player.discipline_id = event.effect.discipline_id;
-        self.player.discipline_name = event.effect.discipline_name.clone();
+        self.player.discipline_name = resolve(event.effect.discipline_name).to_string();
     }
 
     fn update_area_from_event(&mut self, event: &CombatEvent) {
         // Extract area info from the event - adjust field access based on actual data
-        self.current_area.area_name = event.effect.effect_name.clone();
+        self.current_area.area_name = resolve(event.effect.effect_name).to_string();
         self.current_area.area_id = event.effect.effect_id;
         self.current_area.entered_at = Some(event.timestamp);
     }
@@ -366,10 +367,11 @@ impl SessionCache {
 
     /// Print session and encounter metadata (excludes event lists)
     pub fn print_metadata(&self) {
+        let name = resolve(self.player.name);
         println!("=== Session Metadata ===");
 
         println!("--- Player Info ---");
-        println!("  Name: {}", self.player.name);
+        println!("  Name: {}", name);
         println!("  ID: {}", self.player.id);
         println!(
             "  Class: {} (id: {})",
@@ -422,7 +424,7 @@ impl SessionCache {
             for (id, player) in &enc.players {
                 println!(
                     "      [{}: {}] alive={}, death_time={}",
-                    player.name,
+                    resolve(player.name),
                     id,
                     !player.is_dead,
                     player
@@ -432,14 +434,13 @@ impl SessionCache {
                 );
             }
             println!("    Npcs ({}):", enc.npcs.len());
-            for (id, player) in &enc.npcs {
+            for (id, npc) in &enc.npcs {
                 println!(
                     "      [{}: {}] alive={}, death_time={}",
-                    player.name,
+                    resolve(npc.name),
                     id,
-                    !player.is_dead,
-                    player
-                        .death_time
+                    !npc.is_dead,
+                    npc.death_time
                         .map(|t| t.to_string())
                         .unwrap_or_else(|| "N/A".to_string())
                 );

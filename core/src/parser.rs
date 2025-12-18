@@ -1,4 +1,5 @@
 use crate::combat_event::*;
+use crate::context::intern;
 use crate::swtor_ids::{effect_id, effect_type_id};
 use chrono::{Days, NaiveDateTime};
 use memchr::memchr;
@@ -40,8 +41,8 @@ impl LogParser {
         let details_segment = &_line[end_brackets[4] + 1..];
 
         let timestamp = self.parse_timestamp(time_segment)?;
-        let source_entity = LogParser::parse_entity(source_entity_segment)?;
-        let target_entity = LogParser::parse_entity(target_entity_segment)?;
+        let source_entity = self.parse_entity(source_entity_segment)?;
+        let target_entity = self.parse_entity(target_entity_segment)?;
         let action = LogParser::parse_action(action_segment)?;
 
         let target_entity = if target_entity.entity_type == EntityType::SelfReference {
@@ -104,7 +105,7 @@ impl LogParser {
         None
     }
 
-    fn parse_entity(segment: &str) -> Option<Entity> {
+    fn parse_entity(&self, segment: &str) -> Option<Entity> {
         let bytes = segment.as_bytes();
         let self_target_pos = memchr(b'=', bytes);
 
@@ -131,7 +132,7 @@ impl LogParser {
         let health = LogParser::parse_entity_health(health_segment)?;
 
         Some(Entity {
-            name: name.to_string(),
+            name: intern(name),
             class_id,
             log_id,
             entity_type,
@@ -205,7 +206,7 @@ impl LogParser {
         let action_id = parse_i64!(segment[brace? + 1..end_brace?]);
 
         Some(Action {
-            name: action_name,
+            name: intern(&action_name),
             action_id,
         })
     }
@@ -221,28 +222,28 @@ impl LogParser {
             });
         }
 
-        let type_name = segment[..braces[0]].trim().to_string();
+        let type_name = intern(segment[..braces[0]].trim());
         let type_id = parse_i64!(&segment[braces[0] + 1..end_braces[0]]);
-        let effect_name = segment[end_braces[0] + 2..braces[1] - 1].trim().to_string();
+        let effect_name = intern(segment[end_braces[0] + 2..braces[1] - 1].trim());
         let effect_id = parse_i64!(&segment[braces[1] + 1..end_braces[1]]);
 
         let (difficulty_name, difficulty_id) =
             if type_id == effect_type_id::AREAENTERED && braces.len() == 3 {
                 (
-                    segment[end_braces[1] + 1..braces[2]].trim().to_string(),
+                    intern(segment[end_braces[1] + 1..braces[2]].trim()),
                     parse_i64!(segment[braces[2] + 1..end_braces[2]]),
                 )
             } else {
-                (String::new(), 0)
+                (intern(""), 0)
             };
 
         let (discipline_name, discipline_id) = if type_id == effect_type_id::DISCIPLINECHANGED {
             (
-                segment[slash? + 1..braces[2]].trim().to_string(),
+                intern(segment[slash? + 1..braces[2]].trim()),
                 parse_i64!(segment[braces[2] + 1..end_braces[2]]),
             )
         } else {
-            (String::new(), 0)
+                (intern(""), 0)
         };
 
         Some(Effect {
@@ -298,7 +299,7 @@ impl LogParser {
         if inner.trim() == "0 -" {
             return Some(Details {
                 dmg_amount: 0,
-                avoid_type: String::from("reflected"),
+                avoid_type: intern("reflected"),
                 is_reflect: true,
                 threat,
                 ..Default::default()
@@ -321,14 +322,14 @@ impl LogParser {
                     .map(|e| start + e)
                     .unwrap_or_default();
                 if end != 0 {
-                    inner[start..end].trim().to_string()
+                    intern(inner[start..end].trim())
                 } else {
-                    String::new()
+                    intern("")
                 }
             })
             .unwrap_or_default()
         } else {
-            String::new()
+            intern("")
         };
 
         // Parse amount (first number)
@@ -360,15 +361,15 @@ impl LogParser {
                 .rfind(|c: char| c.is_whitespace())
                 .map(|p| p + 1)
                 .unwrap_or(0);
-            let dmg_type = inner[type_start..bs].trim().to_string();
+            let dmg_type = inner[type_start..bs].trim();
             let dmg_type_id = parse_i64!(&inner[bs + 1..be]);
             if dmg_type.contains('-') {
-                (String::new(), 0)
+                (intern(""), 0)
             } else {
-                (dmg_type, dmg_type_id)
+                (intern(dmg_type), dmg_type_id)
             }
         } else {
-            (String::new(), 0)
+            (intern(""), 0)
         };
 
         // Parse absorbed amount from nested (X absorbed {id})

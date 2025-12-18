@@ -1,8 +1,9 @@
+use crate::context::IStr;
 use chrono::NaiveDateTime;
 
 #[derive(Debug, Clone, Default)]
 pub struct Action {
-    pub name: String,
+    pub name: IStr,
     pub action_id: i64,
 }
 
@@ -18,12 +19,13 @@ pub enum EntityType {
 
 #[derive(Debug, Clone, Default)]
 pub struct Entity {
-    pub name: String,
+    pub name: IStr,
     pub class_id: i64,
     pub log_id: i64,
     pub entity_type: EntityType,
     pub health: (i32, i32),
 }
+
 
 #[derive(Debug, Clone)]
 pub struct CombatEvent {
@@ -38,13 +40,13 @@ pub struct CombatEvent {
 
 #[derive(Debug, Clone, Default)]
 pub struct Effect {
-    pub type_name: String,
+    pub type_name: IStr,
     pub type_id: i64,
-    pub effect_name: String,
+    pub effect_name: IStr,
     pub effect_id: i64,
-    pub difficulty_name: String,
+    pub difficulty_name: IStr,
     pub difficulty_id: i64,
-    pub discipline_name: String,
+    pub discipline_name: IStr,
     pub discipline_id: i64,
 }
 
@@ -54,9 +56,9 @@ pub struct Details {
     pub is_crit: bool,
     pub is_reflect: bool,
     pub dmg_effective: i32,
-    pub dmg_type: String,
+    pub dmg_type: IStr,
     pub dmg_type_id: i64,
-    pub avoid_type: String,
+    pub avoid_type: IStr,
     pub dmg_absorbed: i32,
     pub threat: f32,
     pub heal_amount: i32,

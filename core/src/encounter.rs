@@ -1,10 +1,12 @@
 use crate::CombatEvent;
 use crate::Entity;
 use crate::EntityType;
+use crate::context::{resolve, IStr};
 use crate::swtor_ids::effect_id;
 use crate::swtor_ids::SHIELD_EFFECT_IDS;
 use chrono::{NaiveDateTime, TimeDelta};
 use hashbrown::HashMap;
+use lasso::Spur;
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub enum EncounterState {
@@ -16,9 +18,9 @@ pub enum EncounterState {
     },
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct PlayerInfo {
-    pub name: String,
+    pub name: IStr,
     pub id: i64,
     pub class_id: i64,
     pub class_name: String,
@@ -28,9 +30,24 @@ pub struct PlayerInfo {
     pub death_time: Option<NaiveDateTime>,
 }
 
-#[derive(Debug, Clone, Default)]
+impl Default for PlayerInfo {
+    fn default() -> Self {
+        Self {
+            name: Spur::default(),
+            id: 0,
+            class_id: 0,
+            class_name: String::new(),
+            discipline_id: 0,
+            discipline_name: String::new(),
+            is_dead: false,
+            death_time: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct NpcInfo {
-    pub name: String,
+    pub name: IStr,
     pub entity_type: EntityType,
     pub display_name: Option<String>,
     pub log_id: i64,
@@ -38,6 +55,21 @@ pub struct NpcInfo {
     pub is_dead: bool,
     pub first_seen_at: Option<NaiveDateTime>,
     pub death_time: Option<NaiveDateTime>,
+}
+
+impl Default for NpcInfo {
+    fn default() -> Self {
+        Self {
+            name: Spur::default(),
+            entity_type: EntityType::default(),
+            display_name: None,
+            log_id: 0,
+            class_id: 0,
+            is_dead: false,
+            first_seen_at: None,
+            death_time: None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -50,7 +82,7 @@ pub struct AreaInfo {
 #[derive(Debug, Clone)]
 pub struct EntityMetrics {
     pub entity_id: i64,
-    pub name: String,
+    pub name: IStr,
     pub total_damage: i64,
     pub dps: i32,
     pub edps: i32,
@@ -234,13 +266,11 @@ impl Encounter {
         Some(duration.num_seconds())
     }
 
-    fn get_entity_name(&self, id: i64) -> Option<String> {
-        let name = self.players.get(&id).map(|e| e.name.clone());
-        if name.is_none() {
-            return self.npcs.get(&id).map(|e| e.name.clone());
-        }
-
-        name
+    fn get_entity_name(&self, id: i64) -> Option<IStr> {
+        self.players
+            .get(&id)
+            .map(|e| e.name)
+            .or_else(|| self.npcs.get(&id).map(|e| e.name))
     }
 
     // -- Effect Instance Handling
@@ -299,7 +329,7 @@ impl Encounter {
             }
 
             if event.details.dmg_absorbed > 0
-                && (event.details.avoid_type.is_empty() || event.details.avoid_type == "shield")
+                && (resolve(event.details.avoid_type).is_empty() || resolve(event.details.avoid_type) == "shield")
             {
                 // TODO: This code is hacky with an arbitrary time cutoff
                 if let Some(effects) = self.effects.get(&event.target_entity.log_id) {
@@ -359,7 +389,7 @@ impl Encounter {
                 abs: (acc.shielding_given / duration) as i32,
                 apm: (acc.actions as f32 / duration as f32) * 60.0,
             })
-            .filter(|e| !e.name.is_empty())
+            .filter(|e| e.name != Spur::default())
             .collect();
 
         stats.sort_by(|a, b| b.dps.cmp(&a.dps));
@@ -372,7 +402,7 @@ impl Encounter {
         for entity in stats {
             println!(
                 "      [{}: {} dps | {} edps | {} total_abs || {} total heals | {} hps | {} ehps | {} abs | {} apm] ",
-                entity.name,
+                resolve(entity.name),
                 entity.dps,
                 entity.edps,
                 entity.dtps,
