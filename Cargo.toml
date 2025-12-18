@@ -1,4 +1,3 @@
 [workspace]
-resolver = "3"
+resolver = "2"
 members = ["core", "cli", "overlay", "app", "app/src-tauri"]
-default-members = ["cli"]

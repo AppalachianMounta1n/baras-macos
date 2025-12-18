@@ -5,13 +5,15 @@
 
 use std::os::fd::AsFd;
 
-use rustix::fs::{memfd_create, MemfdFlags};
-use rustix::mm::{mmap, MapFlags, ProtFlags};
+use rustix::fs::{MemfdFlags, memfd_create};
+use rustix::mm::{MapFlags, ProtFlags, mmap};
 use wayland_client::globals::GlobalListContents;
 use wayland_client::protocol::wl_buffer::WlBuffer;
 use wayland_client::protocol::wl_compositor::WlCompositor;
+use wayland_client::protocol::wl_pointer::{self, WlPointer};
 use wayland_client::protocol::wl_region::WlRegion;
 use wayland_client::protocol::wl_registry;
+use wayland_client::protocol::wl_seat::{self, WlSeat};
 use wayland_client::protocol::wl_shm::{self, Format, WlShm};
 use wayland_client::protocol::wl_shm_pool::WlShmPool;
 use wayland_client::protocol::wl_surface::WlSurface;
@@ -45,10 +47,37 @@ struct WaylandState {
     layer_surface: Option<ZwlrLayerSurfaceV1>,
     shm: Option<WlShm>,
     buffer: Option<WlBuffer>,
+    pointer: Option<WlPointer>,
 
     // Pixel buffer (RGBA format for rendering, converted to ARGB for Wayland)
     pixel_data: Vec<u8>,
     shm_data: Option<ShmBuffer>,
+
+    // Drag/resize state
+    pointer_x: f64,
+    pointer_y: f64,
+    is_dragging: bool,
+    is_resizing: bool,
+    in_resize_corner: bool, // true when pointer is in resize corner (for visual feedback)
+    window_x: i32,
+    window_y: i32,
+    // Track pending dimensions during resize (separate from actual state.width/height)
+    pending_width: u32,
+    pending_height: u32,
+    position_dirty: bool,
+    pending_resize: Option<(u32, u32)>, // (width, height) - applied on release
+}
+
+/// Resize corner detection
+struct ResizeCorner;
+
+impl ResizeCorner {
+    const CORNER_SIZE: f64 = 20.0; // pixels from bottom-right corner
+
+    /// Check if position is in the bottom-right resize corner
+    fn is_in_corner(x: f64, y: f64, width: u32, height: u32) -> bool {
+        x > (width as f64 - Self::CORNER_SIZE) && y > (height as f64 - Self::CORNER_SIZE)
+    }
 }
 
 struct ShmBuffer {
@@ -60,7 +89,7 @@ struct ShmBuffer {
 unsafe impl Send for ShmBuffer {}
 
 impl WaylandState {
-    fn new(width: u32, height: u32) -> Self {
+    fn new(width: u32, height: u32, x: i32, y: i32) -> Self {
         let pixel_count = (width * height) as usize;
         Self {
             running: true,
@@ -72,9 +101,34 @@ impl WaylandState {
             layer_surface: None,
             shm: None,
             buffer: None,
+            pointer: None,
             pixel_data: vec![0u8; pixel_count * 4],
             shm_data: None,
+            pointer_x: 0.0,
+            pointer_y: 0.0,
+            is_dragging: false,
+            is_resizing: false,
+            in_resize_corner: false,
+            window_x: x,
+            window_y: y,
+            pending_width: width,
+            pending_height: height,
+            position_dirty: false,
+            pending_resize: None,
         }
+    }
+
+    /// Update position directly - called from event handler
+    fn update_position(&mut self, x: i32, y: i32) {
+        self.window_x = x;
+        self.window_y = y;
+        if let Some(layer_surface) = &self.layer_surface {
+            layer_surface.set_margin(y, 0, 0, x);
+        }
+        if let Some(surface) = &self.surface {
+            surface.commit();
+        }
+        self.position_dirty = true;
     }
 
     fn create_shm_buffer(&mut self, qh: &QueueHandle<WaylandState>) {
@@ -135,7 +189,7 @@ impl WaylandState {
         for (i, chunk) in self.pixel_data.chunks(4).enumerate() {
             let offset = i * 4;
             if offset + 3 < shm_slice.len() && chunk.len() == 4 {
-                shm_slice[offset] = chunk[2];     // B
+                shm_slice[offset] = chunk[2]; // B
                 shm_slice[offset + 1] = chunk[1]; // G
                 shm_slice[offset + 2] = chunk[0]; // R
                 shm_slice[offset + 3] = chunk[3]; // A
@@ -162,7 +216,7 @@ impl OverlayPlatform for WaylandOverlay {
                 .map_err(|e| PlatformError::ConnectionFailed(e.to_string()))?;
 
         let qh = event_queue.handle();
-        let mut state = WaylandState::new(config.width, config.height);
+        let mut state = WaylandState::new(config.width, config.height, config.x, config.y);
 
         // Bind globals
         let _registry = connection.display().get_registry(&qh, ());
@@ -180,6 +234,15 @@ impl OverlayPlatform for WaylandOverlay {
             .map_err(|_| PlatformError::UnsupportedFeature("wl_shm".to_string()))?;
 
         state.shm = Some(shm);
+
+        // Bind seat for pointer input
+        let seat: WlSeat = globals
+            .bind(&qh, 1..=9, ())
+            .map_err(|_| PlatformError::UnsupportedFeature("wl_seat".to_string()))?;
+
+        // Get pointer from seat
+        let pointer = seat.get_pointer(&qh, ());
+        state.pointer = Some(pointer);
 
         // Create surface
         let surface = compositor.create_surface(&qh, ());
@@ -212,13 +275,22 @@ impl OverlayPlatform for WaylandOverlay {
         // Create shared memory buffer
         state.create_shm_buffer(&qh);
 
-        Ok(Self {
+        let mut overlay = Self {
             config,
             connection,
             event_queue,
             state,
             qh,
-        })
+        };
+
+        // Wait for the initial configure event before returning
+        // This is required by the layer-shell protocol
+        while !overlay.state.configured {
+            overlay.event_queue.blocking_dispatch(&mut overlay.state)
+                .map_err(|e| PlatformError::ConnectionFailed(e.to_string()))?;
+        }
+
+        Ok(overlay)
     }
 
     fn width(&self) -> u32 {
@@ -232,12 +304,8 @@ impl OverlayPlatform for WaylandOverlay {
     fn set_position(&mut self, x: i32, y: i32) {
         self.config.x = x;
         self.config.y = y;
-        if let Some(layer_surface) = &self.state.layer_surface {
-            layer_surface.set_margin(y, 0, 0, x);
-        }
-        if let Some(surface) = &self.state.surface {
-            surface.commit();
-        }
+        self.state.update_position(x, y);
+        let _ = self.connection.flush();
     }
 
     fn set_size(&mut self, width: u32, height: u32) {
@@ -260,6 +328,16 @@ impl OverlayPlatform for WaylandOverlay {
         if let Some(layer_surface) = &self.state.layer_surface {
             layer_surface.set_size(width, height);
         }
+
+        // Update input region if click-through is disabled (interactive mode)
+        if !self.config.click_through {
+            if let (Some(compositor), Some(surface)) = (&self.state.compositor, &self.state.surface) {
+                let region = compositor.create_region(&self.qh, ());
+                region.add(0, 0, width as i32, height as i32);
+                surface.set_input_region(Some(&region));
+            }
+        }
+
         if let Some(surface) = &self.state.surface {
             surface.commit();
         }
@@ -278,6 +356,22 @@ impl OverlayPlatform for WaylandOverlay {
         }
     }
 
+    fn in_resize_corner(&self) -> bool {
+        self.state.in_resize_corner
+    }
+
+    fn is_resizing(&self) -> bool {
+        self.state.is_resizing
+    }
+
+    fn pending_size(&self) -> Option<(u32, u32)> {
+        if self.state.is_resizing {
+            Some((self.state.pending_width, self.state.pending_height))
+        } else {
+            None
+        }
+    }
+
     fn pixel_buffer(&mut self) -> Option<&mut [u8]> {
         Some(&mut self.state.pixel_data)
     }
@@ -293,15 +387,39 @@ impl OverlayPlatform for WaylandOverlay {
             return false;
         }
 
-        // Read events from the socket (non-blocking via prepare_read)
-        if let Some(guard) = self.event_queue.prepare_read() {
-            // Non-blocking read
-            let _ = guard.read();
+        // Read and dispatch all available events in a tight loop
+        loop {
+            // Try to read events from the socket
+            if let Some(guard) = self.event_queue.prepare_read() {
+                match guard.read() {
+                    Ok(0) => break, // No events available
+                    Ok(_) => {}     // Events read, continue
+                    Err(_) => break, // Error or would block
+                }
+            } else {
+                // Events already pending, dispatch them
+            }
+
+            // Dispatch all pending events
+            match self.event_queue.dispatch_pending(&mut self.state) {
+                Ok(0) => break, // No events dispatched
+                Ok(_) => {}     // Events dispatched, check for more
+                Err(_) => return false,
+            }
         }
 
-        // Dispatch pending events
-        if self.event_queue.dispatch_pending(&mut self.state).is_err() {
-            return false;
+        // Apply pending resize immediately for real-time feedback
+        if let Some((width, height)) = self.state.pending_resize.take() {
+            self.set_size(width, height);
+            // Update pending dimensions to match actual size (for next delta calculation)
+            self.state.pending_width = width;
+            self.state.pending_height = height;
+        }
+
+        // Final flush if any position updates happened
+        if self.state.position_dirty {
+            let _ = self.connection.flush();
+            self.state.position_dirty = false;
         }
 
         self.state.running
@@ -460,6 +578,119 @@ impl Dispatch<ZwlrLayerSurfaceV1, ()> for WaylandState {
             }
             zwlr_layer_surface_v1::Event::Closed => {
                 state.running = false;
+            }
+            _ => {}
+        }
+    }
+}
+
+impl Dispatch<WlSeat, ()> for WaylandState {
+    fn event(
+        _state: &mut Self,
+        _proxy: &WlSeat,
+        _event: wl_seat::Event,
+        _data: &(),
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+    ) {
+        // We don't need to handle seat events for basic pointer functionality
+    }
+}
+
+impl Dispatch<WlPointer, ()> for WaylandState {
+    fn event(
+        state: &mut Self,
+        _proxy: &WlPointer,
+        event: wl_pointer::Event,
+        _data: &(),
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+    ) {
+        const MIN_SIZE: u32 = 100; // Minimum window dimension
+
+        match event {
+            wl_pointer::Event::Enter { surface_x, surface_y, .. } => {
+                state.pointer_x = surface_x;
+                state.pointer_y = surface_y;
+                // Check if in resize corner for visual feedback
+                state.in_resize_corner = ResizeCorner::is_in_corner(
+                    surface_x, surface_y, state.width, state.height
+                );
+            }
+            wl_pointer::Event::Motion { surface_x, surface_y, .. } => {
+                let delta_x = surface_x - state.pointer_x;
+                let delta_y = surface_y - state.pointer_y;
+
+                // Only update resize corner state when not actively resizing
+                // (during resize, keep it true so grip stays visible)
+                if !state.is_resizing {
+                    state.in_resize_corner = ResizeCorner::is_in_corner(
+                        surface_x, surface_y, state.width, state.height
+                    );
+                }
+
+                if state.is_resizing {
+                    // Bottom-right corner resize - apply immediately for real-time feedback
+                    let new_width = state.pending_width as i32 + delta_x as i32;
+                    let new_height = state.pending_height as i32 + delta_y as i32;
+
+                    // Enforce minimum size
+                    if new_width >= MIN_SIZE as i32 && new_height >= MIN_SIZE as i32 {
+                        state.pending_width = new_width as u32;
+                        state.pending_height = new_height as u32;
+                        // Apply resize immediately
+                        state.pending_resize = Some((new_width as u32, new_height as u32));
+                    }
+                } else if state.is_dragging {
+                    // Move window
+                    let new_x = state.window_x + delta_x as i32;
+                    let new_y = state.window_y + delta_y as i32;
+                    state.update_position(new_x, new_y);
+                }
+
+                // Always update pointer position for next delta calculation
+                state.pointer_x = surface_x;
+                state.pointer_y = surface_y;
+            }
+            wl_pointer::Event::Button { button, state: button_state, .. } => {
+                use wayland_client::WEnum;
+                // Button 272 is left mouse button (BTN_LEFT)
+                if button == 272 {
+                    match button_state {
+                        WEnum::Value(wl_pointer::ButtonState::Pressed) => {
+                            // Check if in bottom-right corner for resize
+                            if ResizeCorner::is_in_corner(
+                                state.pointer_x, state.pointer_y,
+                                state.width, state.height
+                            ) {
+                                state.is_resizing = true;
+                                state.pending_width = state.width;
+                                state.pending_height = state.height;
+                            } else {
+                                state.is_dragging = true;
+                            }
+                        }
+                        WEnum::Value(wl_pointer::ButtonState::Released) => {
+                            state.is_dragging = false;
+                            state.is_resizing = false;
+                            // Recalculate corner state based on current pointer position
+                            // and the potentially new window dimensions
+                            state.in_resize_corner = ResizeCorner::is_in_corner(
+                                state.pointer_x, state.pointer_y,
+                                state.pending_width, state.pending_height
+                            );
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            wl_pointer::Event::Leave { .. } => {
+                // Only reset corner state if not actively resizing
+                // (during resize, keep grip visible)
+                if !state.is_resizing {
+                    state.in_resize_corner = false;
+                }
+                // Don't cancel drag/resize on leave - user might move fast
             }
             _ => {}
         }

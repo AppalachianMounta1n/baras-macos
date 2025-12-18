@@ -1,12 +1,9 @@
 #![allow(non_snake_case)]
 
 use dioxus::prelude::*;
-use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 static CSS: Asset = asset!("/assets/styles.css");
-static TAURI_ICON: Asset = asset!("/assets/tauri.svg");
-static DIOXUS_ICON: Asset = asset!("/assets/dioxus.png");
 
 #[wasm_bindgen]
 extern "C" {
@@ -14,69 +11,96 @@ extern "C" {
     async fn invoke(cmd: &str, args: JsValue) -> JsValue;
 }
 
-#[derive(Serialize, Deserialize)]
-struct GreetArgs<'a> {
-    name: &'a str,
-}
-
 pub fn App() -> Element {
-    let mut name = use_signal(|| String::new());
-    let mut greet_msg = use_signal(|| String::new());
+    let mut overlay_visible = use_signal(|| true);
+    let mut move_mode = use_signal(|| false);
+    let mut status_msg = use_signal(String::new);
 
-    let greet = move |_: FormEvent| async move {
-        if name.read().is_empty() {
-            return;
+    // Read signals once at the top to avoid multiple borrow conflicts
+    let is_visible = overlay_visible();
+    let is_move_mode = move_mode();
+    let status = status_msg();
+
+    let toggle_overlay = move |_| {
+        let current = overlay_visible();
+        let cmd = if current { "hide_overlay" } else { "show_overlay" };
+
+        async move {
+            let result = invoke(cmd, JsValue::NULL).await;
+            if let Some(success) = result.as_bool() {
+                if success {
+                    let new_state = !current;
+                    overlay_visible.set(new_state);
+                    if !new_state {
+                        move_mode.set(false);
+                    }
+                    status_msg.set(String::new());
+                }
+            } else if let Some(err) = result.as_string() {
+                status_msg.set(format!("Error: {}", err));
+            }
         }
+    };
 
-        let name = name.read();
-        let args = serde_wasm_bindgen::to_value(&GreetArgs { name: &*name }).unwrap();
-        // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-        let new_msg = invoke("greet", args).await.as_string().unwrap();
-        greet_msg.set(new_msg);
+    let toggle_move = move |_| {
+        let current = overlay_visible();
+
+        async move {
+            if !current {
+                status_msg.set("Overlay must be visible first".to_string());
+                return;
+            }
+
+            let result = invoke("toggle_move_mode", JsValue::NULL).await;
+            if let Some(new_mode) = result.as_bool() {
+                move_mode.set(new_mode);
+                status_msg.set(String::new());
+            } else if let Some(err) = result.as_string() {
+                status_msg.set(format!("Error: {}", err));
+            }
+        }
     };
 
     rsx! {
         link { rel: "stylesheet", href: CSS }
-        main {
-            class: "container",
-            h1 { "Welcome to Tauri + Dioxus" }
+        main { class: "container",
+            h1 { "Baras" }
+            p { class: "subtitle", "SWTOR Combat Log Parser" }
 
-            div {
-                class: "row",
-                a {
-                    href: "https://tauri.app",
-                    target: "_blank",
-                    img {
-                        src: TAURI_ICON,
-                        class: "logo tauri",
-                         alt: "Tauri logo"
+            div { class: "controls",
+
+                button {
+                    class: if is_visible { "btn btn-active" } else { "btn" },
+                    onclick: toggle_overlay,
+                    if is_visible { "Hide Overlay" } else { "Show Overlay" }
+                }
+
+                button {
+                    class: if is_move_mode { "btn btn-warning" } else { "btn" },
+                    disabled: !is_visible,
+                    onclick: toggle_move,
+                    if is_move_mode { "Lock Position" } else { "Move Overlay" }
+                }
+            }
+
+            if !status.is_empty() {
+                p { class: "error", "{status}" }
+            }
+
+            div { class: "status",
+                p {
+                    "Overlay: "
+                    span { class: if is_visible { "status-on" } else { "status-off" },
+                        if is_visible { "Visible" } else { "Hidden" }
                     }
                 }
-                a {
-                    href: "https://dioxuslabs.com/",
-                    target: "_blank",
-                    img {
-                        src: DIOXUS_ICON,
-                        class: "logo dioxus",
-                        alt: "Dioxus logo"
+                p {
+                    "Mode: "
+                    span { class: if is_move_mode { "status-warning" } else { "" },
+                        if is_move_mode { "Move Mode (drag to reposition)" } else { "Locked" }
                     }
                 }
             }
-            p { "Click on the Tauri and Dioxus logos to learn more." }
-
-            form {
-                class: "row",
-                onsubmit: greet,
-                input {
-                    id: "greet-input",
-                    placeholder: "Enter a name...",
-                    value: "{name}",
-                    oninput: move |event| name.set(event.value())
-                }
-                button { r#type: "submit", "Greet" }
-            }
-            p { "{greet_msg}" }
         }
     }
 }
-

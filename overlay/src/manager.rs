@@ -4,7 +4,7 @@
 //! multiple overlay windows, each with its own content.
 
 use crate::platform::{NativeOverlay, OverlayConfig, OverlayPlatform, PlatformError};
-use crate::renderer::{colors, Renderer};
+use crate::renderer::{Renderer, colors};
 use tiny_skia::Color;
 
 /// A managed overlay window with its own renderer
@@ -67,15 +67,7 @@ impl OverlayWindow {
     }
 
     /// Draw a filled rounded rectangle
-    pub fn fill_rounded_rect(
-        &mut self,
-        x: f32,
-        y: f32,
-        w: f32,
-        h: f32,
-        radius: f32,
-        color: Color,
-    ) {
+    pub fn fill_rounded_rect(&mut self, x: f32, y: f32, w: f32, h: f32, radius: f32, color: Color) {
         let width = self.platform.width();
         let height = self.platform.height();
         if let Some(buffer) = self.platform.pixel_buffer() {
@@ -160,6 +152,21 @@ impl OverlayWindow {
         self.platform.poll_events()
     }
 
+    /// Check if pointer is in the resize corner
+    pub fn in_resize_corner(&self) -> bool {
+        self.platform.in_resize_corner()
+    }
+
+    /// Check if currently resizing
+    pub fn is_resizing(&self) -> bool {
+        self.platform.is_resizing()
+    }
+
+    /// Get pending resize dimensions (if resizing)
+    pub fn pending_size(&self) -> Option<(u32, u32)> {
+        self.platform.pending_size()
+    }
+
     /// Run the window event loop with a render callback
     pub fn run<F>(&mut self, mut render_callback: F)
     where
@@ -232,8 +239,13 @@ impl MeterOverlay {
 
         // Draw title
         let title_y = self.padding + self.font_size;
-        self.window
-            .draw_text(&self.title, self.padding, title_y, self.font_size, colors::white());
+        self.window.draw_text(
+            &self.title,
+            self.padding,
+            title_y,
+            self.font_size,
+            colors::white(),
+        );
 
         // Draw separator line
         let sep_y = title_y + self.bar_spacing + 2.0;
@@ -246,11 +258,7 @@ impl MeterOverlay {
         );
 
         // Find max value for scaling
-        let max_val = self
-            .entries
-            .iter()
-            .map(|e| e.max_value)
-            .fold(1.0, f64::max);
+        let max_val = self.entries.iter().map(|e| e.max_value).fold(1.0, f64::max);
 
         // Draw entries
         let bar_width = width - self.padding * 2.0;
@@ -293,6 +301,39 @@ impl MeterOverlay {
             );
 
             y += self.bar_height + self.bar_spacing;
+        }
+
+        // Draw resize indicator in bottom-right corner when pointer is there
+        if self.window.in_resize_corner() || self.window.is_resizing() {
+            let indicator_size = 16.0;
+            let corner_x = width - indicator_size - 4.0;
+            let corner_y = height - indicator_size - 4.0;
+
+            // Draw a small triangle/grip indicator
+            let highlight = if self.window.is_resizing() {
+                colors::white()
+            } else {
+                Color::from_rgba8(255, 255, 255, 180)
+            };
+
+            // Draw diagonal lines as resize grip
+            for i in 0..3 {
+                let offset = i as f32 * 5.0;
+                self.window.fill_rect(
+                    corner_x + offset,
+                    corner_y + indicator_size - 2.0,
+                    indicator_size - offset,
+                    2.0,
+                    highlight,
+                );
+                self.window.fill_rect(
+                    corner_x + indicator_size - 2.0,
+                    corner_y + offset,
+                    2.0,
+                    indicator_size - offset,
+                    highlight,
+                );
+            }
         }
 
         self.window.commit();

@@ -89,7 +89,13 @@ impl Renderer {
         paint.set_color(color);
         paint.anti_alias = true;
 
-        pixmap.fill_path(&path, &paint, FillRule::Winding, Transform::identity(), None);
+        pixmap.fill_path(
+            &path,
+            &paint,
+            FillRule::Winding,
+            Transform::identity(),
+            None,
+        );
     }
 
     /// Draw a rounded rectangle outline

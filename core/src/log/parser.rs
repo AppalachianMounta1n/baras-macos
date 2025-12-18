@@ -1,5 +1,5 @@
 use crate::log::*;
-use crate::context::{IStr, intern};
+use crate::context::intern;
 use crate::swtor_ids::{effect_id, effect_type_id};
 use chrono::{Days, NaiveDateTime};
 use memchr::memchr;

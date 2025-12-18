@@ -4,18 +4,18 @@
 //! with sample data. In production, this would receive data from
 //! the core combat log parser.
 
-use baras_overlay::{colors, MeterEntry, MeterOverlay, OverlayConfig};
+use baras_overlay::{MeterEntry, MeterOverlay, OverlayConfig, colors};
 use std::time::{Duration, Instant};
 
 fn main() {
     // Configure the overlay
     let config = OverlayConfig {
-        x: 50,
-        y: 50,
+        x: 500,
+        y: 500,
         width: 280,
         height: 200,
         namespace: "baras-dps-meter".to_string(),
-        click_through: true,
+        click_through: false,
     };
 
     // Create the meter overlay

@@ -90,6 +90,15 @@ pub trait OverlayPlatform: Sized {
     /// Enable or disable click-through mode
     fn set_click_through(&mut self, enabled: bool);
 
+    /// Check if pointer is in the resize corner (for visual feedback)
+    fn in_resize_corner(&self) -> bool;
+
+    /// Check if currently resizing (for preview)
+    fn is_resizing(&self) -> bool;
+
+    /// Get pending resize dimensions during drag (for preview)
+    fn pending_size(&self) -> Option<(u32, u32)>;
+
     /// Get mutable access to the pixel buffer (RGBA format)
     /// Returns None if buffer is not ready
     fn pixel_buffer(&mut self) -> Option<&mut [u8]>;

@@ -11,4 +11,4 @@ pub mod renderer;
 // Re-export commonly used types
 pub use manager::{MeterEntry, MeterOverlay, OverlayWindow};
 pub use platform::{NativeOverlay, OverlayConfig, OverlayPlatform, PlatformError};
-pub use renderer::{colors, Renderer};
+pub use renderer::{Renderer, colors};
