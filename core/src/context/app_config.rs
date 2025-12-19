@@ -23,4 +23,8 @@ impl AppConfig {
     pub fn load() -> Self {
         confy::load("baras", None).unwrap_or_default()
     }
+
+    pub fn save(self) {
+        confy::store("baras", None, self).expect("Failed to save configuration");
+    }
 }

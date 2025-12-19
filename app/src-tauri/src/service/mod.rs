@@ -4,131 +4,22 @@
 //! - SharedState: Arc-wrapped state readable by Tauri commands
 //! - ServiceHandle: For sending commands + accessing shared state
 //! - CombatService: Background task that processes commands and updates shared state
+mod directory;
+mod handler;
+mod state;
 
+use state::SharedState;
+pub use handler::ServiceHandle;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
+use baras_core::directory_watcher;
 use tokio::sync::{mpsc, RwLock};
 
 use baras_core::context::{resolve, AppConfig, DirectoryIndex, ParsingSession};
 use baras_core::{EntityType, GameSignal, Reader, SignalHandler};
+use baras_core::directory_watcher::DirectoryWatcher;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Shared State
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// State shared between the service and Tauri commands
-pub struct SharedState {
-    pub config: RwLock<AppConfig>,
-    pub directory_index: RwLock<DirectoryIndex>,
-    pub session: RwLock<Option<Arc<RwLock<ParsingSession>>>>,
-    /// Whether we're currently in active combat (for metrics updates)
-    pub in_combat: AtomicBool,
-}
-
-impl SharedState {
-    fn new(config: AppConfig, directory_index: DirectoryIndex) -> Self {
-        Self {
-            config: RwLock::new(config),
-            directory_index: RwLock::new(directory_index),
-            session: RwLock::new(None),
-            in_combat: AtomicBool::new(false),
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Service Handle (for Tauri commands)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Handle to communicate with the combat service and query state
-#[derive(Clone)]
-pub struct ServiceHandle {
-    cmd_tx: mpsc::Sender<ServiceCommand>,
-    shared: Arc<SharedState>,
-}
-
-impl ServiceHandle {
-    /// Send command to start tailing a log file
-    pub async fn start_tailing(&self, path: PathBuf) -> Result<(), String> {
-        self.cmd_tx
-            .send(ServiceCommand::StartTailing(path))
-            .await
-            .map_err(|e| e.to_string())
-    }
-
-    /// Send command to stop tailing
-    pub async fn stop_tailing(&self) -> Result<(), String> {
-        self.cmd_tx
-            .send(ServiceCommand::StopTailing)
-            .await
-            .map_err(|e| e.to_string())
-    }
-
-    /// Send command to refresh the directory index
-    pub async fn refresh_index(&self) -> Result<(), String> {
-        self.cmd_tx
-            .send(ServiceCommand::RefreshIndex)
-            .await
-            .map_err(|e| e.to_string())
-    }
-
-    /// Get the current configuration
-    pub async fn config(&self) -> AppConfig {
-        self.shared.config.read().await.clone()
-    }
-
-    /// Update the configuration
-    pub async fn set_config(&self, config: AppConfig) {
-        *self.shared.config.write().await = config;
-    }
-
-    /// Get log file entries for the UI
-    pub async fn log_files(&self) -> Vec<LogFileInfo> {
-        let index = self.shared.directory_index.read().await;
-        index
-            .entries()
-            .into_iter()
-            .map(|e| LogFileInfo {
-                path: e.path.clone(),
-                display_name: e.display_name(),
-                character_name: e.character_name.clone(),
-                date: e.date.to_string(),
-                is_empty: e.is_empty,
-            })
-            .collect()
-    }
-
-    /// Check if currently tailing a file
-    pub async fn is_tailing(&self) -> bool {
-        self.shared.session.read().await.is_some()
-    }
-
-    /// Get current encounter metrics
-    pub async fn current_metrics(&self) -> Option<Vec<PlayerMetrics>> {
-        let session_guard = self.shared.session.read().await;
-        let session = session_guard.as_ref()?;
-        let session = session.read().await;
-        let cache = session.session_cache.as_ref()?;
-        let encounter = cache.last_combat_encounter()?;
-
-        let entity_metrics = encounter.calculate_entity_metrics()?;
-
-        Some(
-            entity_metrics
-                .into_iter()
-                .map(|m| PlayerMetrics {
-                    entity_id: m.entity_id,
-                    name: resolve(m.name).to_string(),
-                    dps: m.dps as i64,
-                    total_damage: m.total_damage as u64,
-                    hps: m.hps as i64,
-                    total_healing: m.total_healing as u64,
-                })
-                .collect(),
-        )
-    }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Service Commands
@@ -139,7 +30,11 @@ pub enum ServiceCommand {
     StartTailing(PathBuf),
     StopTailing,
     RefreshIndex,
+    StartWatcher,
     Shutdown,
+    FileDetected(PathBuf),
+    FileRemoved(PathBuf),
+    UpdateConfig(AppConfig),
 }
 
 /// Updates sent to the overlay system
@@ -199,7 +94,9 @@ pub struct CombatService {
     shared: Arc<SharedState>,
     overlay_tx: mpsc::Sender<OverlayUpdate>,
     cmd_rx: mpsc::Receiver<ServiceCommand>,
+    cmd_tx: mpsc::Sender<ServiceCommand>,
     tail_handle: Option<tokio::task::JoinHandle<()>>,
+    directory_handle: Option<tokio::task::JoinHandle<()>>,
     metrics_handle: Option<tokio::task::JoinHandle<()>>,
 }
 
@@ -218,7 +115,9 @@ impl CombatService {
             shared: shared.clone(),
             overlay_tx,
             cmd_rx,
+            cmd_tx: cmd_tx.clone(),
             tail_handle: None,
+            directory_handle: None,
             metrics_handle: None,
         };
 
@@ -229,6 +128,15 @@ impl CombatService {
 
     /// Run the service event loop
     pub async fn run(mut self) {
+        // Start watcher on startup if we have a valid directory
+        {
+            let config = self.shared.config.read().await;
+            if !config.log_directory.is_empty() {
+                eprintln!("Service starting: found directory {}, starting watcher", config.log_directory);
+            }
+        }
+        self.start_watcher().await;
+
         while let Some(cmd) = self.cmd_rx.recv().await {
             match cmd {
                 ServiceCommand::StartTailing(path) => {
@@ -244,8 +152,170 @@ impl CombatService {
                     self.stop_tailing().await;
                     break;
                 }
+                ServiceCommand::StartWatcher => {
+                    self.start_watcher().await;
+                }
+                ServiceCommand::FileDetected(path) => {
+                    self.file_detected(path).await;
+                }
+                ServiceCommand::FileRemoved(path) => {
+                    self.file_removed(path).await;
+                }
+                ServiceCommand::UpdateConfig(config) => {
+                    self.update_config(config).await;
+                }
             }
         }
+    }
+
+    async fn update_config(&mut self, new_config: AppConfig) {
+        let old_config = self.shared.config.read().await.clone();
+
+        // Update config FIRST so handlers can read the new values
+        *self.shared.config.write().await = new_config.clone();
+
+        // Now trigger side effects for changed fields
+        if old_config.log_directory != new_config.log_directory {
+            eprintln!(
+                "Directory changed: {} -> {}",
+                old_config.log_directory, new_config.log_directory
+            );
+            self.on_directory_changed().await;
+        }
+
+        new_config.save();
+        // Future: other config change handlers
+    }
+
+    async fn on_directory_changed(&mut self) {
+        eprintln!("on_directory_changed: stopping existing watcher and tailing");
+
+        // Stop existing watcher
+        if let Some(handle) = self.directory_handle.take() {
+            handle.abort();
+            let _ = handle.await;
+        }
+
+        // Stop any active tailing
+        self.stop_tailing().await;
+
+        // Start new watcher (reads directory from config)
+        eprintln!("on_directory_changed: starting new watcher");
+        self.start_watcher().await;
+    }
+    async fn file_detected(&mut self, path: PathBuf) {
+        {
+        let mut index = self.shared.directory_index.write().await;
+        index.add_file(&path);
+        }
+
+                  let should_switch = {
+                      let index = self.shared.directory_index.read().await;
+                      index.newest_file().map(|f| f.path == path).unwrap_or(false)
+                  };
+
+                  if should_switch {
+                    //method calls stop_tailing at beginning so wont create two tailing tasks
+                      self.start_tailing(path).await;
+                  }
+
+    }
+
+    async fn file_removed(&mut self, path: PathBuf) {
+        let was_active = {
+            let session_guard= self.shared.session.read().await;
+            if let Some(session) = session_guard.as_ref() {
+                let s = session.read().await;
+                s.active_file.as_ref().map(|p| p == &path).unwrap_or(false)
+            } else {
+                false
+            }
+        };
+                  // Update index
+                  {
+                      let mut index = self.shared.directory_index.write().await;
+                      index.remove_file(&path);
+                  }
+                  // Check if we need to switch files
+
+                  if was_active {
+                      self.stop_tailing().await;
+                      // Optionally switch to next newest
+                      let next = {
+                          let index = self.shared.directory_index.read().await;
+                          index.newest_file().map(|f| f.path.clone())
+                      };
+                      if let Some(next_path) = next {
+                          self.start_tailing(next_path).await;
+                      }
+                    }
+    }
+
+    async fn start_watcher(&mut self) {
+        // Only read from what is stored in config
+        let dir = {
+            let config = self.shared.config.read().await;
+            PathBuf::from(&config.log_directory)
+        };
+
+        eprintln!("start_watcher: checking directory {}", dir.display());
+
+        // Guard against invalid input
+        if !dir.exists() || !dir.is_dir() {
+            eprintln!("start_watcher: directory {} does not exist or is not a directory", dir.display());
+            return;
+        }
+
+        // Build initial index
+        match directory_watcher::build_index(&dir) {
+            Ok((index, newest)) => {
+                let file_count = index.len();
+
+                {
+                    let mut index_guard = self.shared.directory_index.write().await;
+                    *index_guard = index;
+                }
+
+                eprintln!("start_watcher: indexed {} log files", file_count);
+
+                // Auto-load newest file if available
+                if let Some(ref newest_path) = newest {
+                    eprintln!("start_watcher: auto-loading newest file {}", newest_path.display());
+                    self.start_tailing(newest_path.clone()).await;
+                } else {
+                    eprintln!("start_watcher: no log files found in directory");
+                }
+            }
+            Err(e) => {
+                eprintln!("start_watcher: failed to build index: {}", e);
+            }
+        }
+
+        let mut watcher = match DirectoryWatcher::new(&dir) {
+            Ok(w) => {
+                eprintln!("start_watcher: directory watcher started successfully");
+                w
+            }
+            Err(e) => {
+                eprintln!("start_watcher: failed to start directory watcher: {}", e);
+                return;
+            }
+        };
+
+      // Clone the command sender so watcher can send back to service
+      let cmd_tx = self.cmd_tx.clone();  // ← You'll need to store cmd_tx in CombatService
+
+      let handle = tokio::spawn(async move {
+          while let Some(event) = watcher.next_event().await {
+              if let Some(cmd) = directory::translate_event(event) {
+                  if cmd_tx.send(cmd).await.is_err() {
+                      break; // Service shut down
+                  }
+              }
+          }
+      });
+
+      self.directory_handle = Some(handle);
     }
 
     async fn start_tailing(&mut self, path: PathBuf) {
@@ -320,22 +390,21 @@ impl CombatService {
                 // Calculate and send metrics
                 let metrics = calculate_metrics(&shared).await;
 
-                if let Some(metrics) = metrics {
-                    if !metrics.is_empty() {
+                if let Some(metrics) = metrics
+                    && !metrics.is_empty() {
                         eprintln!("Sending {} metrics to overlay", metrics.len());
                         let _ = overlay_tx.try_send(OverlayUpdate::MetricsUpdated(metrics));
                     }
-                }
+
 
                 // For CombatStarted, start polling during combat
                 if matches!(trigger, MetricsTrigger::CombatStarted) {
                     // Poll during active combat
                     while shared.in_combat.load(Ordering::SeqCst) {
                         tokio::time::sleep(std::time::Duration::from_millis(250)).await;
-                        if let Some(metrics) = calculate_metrics(&shared).await {
-                            if !metrics.is_empty() {
+                        if let Some(metrics) = calculate_metrics(&shared).await &&
+                            !metrics.is_empty() {
                                 let _ = overlay_tx.try_send(OverlayUpdate::MetricsUpdated(metrics));
-                            }
                         }
                     }
                 }
@@ -463,4 +532,17 @@ pub async fn get_current_metrics(
     handle: State<'_, ServiceHandle>,
 ) -> Result<Option<Vec<PlayerMetrics>>, String> {
     Ok(handle.current_metrics().await)
+}
+
+#[tauri::command]
+pub async fn get_config(handle: State<'_, ServiceHandle>) -> Result<AppConfig, String> {
+    Ok(handle.config().await)
+}
+
+#[tauri::command]
+pub async fn update_config(
+    config: AppConfig,
+    handle: State<'_, ServiceHandle>
+) -> Result<(), String> {
+    handle.update_config(config).await
 }

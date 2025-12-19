@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 
 use dioxus::prelude::*;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 static CSS: Asset = asset!("/assets/styles.css");
@@ -11,48 +12,53 @@ extern "C" {
     async fn invoke(cmd: &str, args: JsValue) -> JsValue;
 }
 
-/// Helper to create invoke args object
-fn make_args(pairs: &[(&str, &str)]) -> JsValue {
-    let obj = js_sys::Object::new();
-    for (key, value) in pairs {
-        js_sys::Reflect::set(&obj, &JsValue::from_str(key), &JsValue::from_str(value)).unwrap();
-    }
-    obj.into()
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AppConfig {
+    pub log_directory: String,
+    #[serde(default)]
+    pub auto_delete_empty_files: bool,
+    #[serde(default)]
+    pub log_retention_days: u32,
 }
 
 pub fn App() -> Element {
     let mut overlay_visible = use_signal(|| true);
     let mut move_mode = use_signal(|| false);
     let mut status_msg = use_signal(String::new);
-    let mut log_path = use_signal(String::new);
-    let mut is_tailing = use_signal(|| false);
+    let mut log_directory = use_signal(String::new);
+    let mut is_watching = use_signal(|| false);
 
-    // Fetch default log path from backend on mount
+    // Fetch config from backend on mount
     use_future(move || async move {
-        let result = invoke("default_log_path", JsValue::NULL).await;
-        if let Some(path) = result.as_string() {
-            log_path.set(path);
+        let result = invoke("get_config", JsValue::NULL).await;
+        if let Ok(config) = serde_wasm_bindgen::from_value::<AppConfig>(result) {
+            log_directory.set(config.log_directory.clone());
+            if !config.log_directory.is_empty() {
+                is_watching.set(true);
+            }
         }
     });
 
     if overlay_visible() {
-    use_future(move || async move {
-        invoke("show_overlay", JsValue::NULL).await;
-    });
+        use_future(move || async move {
+            invoke("show_overlay", JsValue::NULL).await;
+        });
     }
-
-
 
     // Read signals once at the top to avoid multiple borrow conflicts
     let is_visible = overlay_visible();
     let is_move_mode = move_mode();
     let status = status_msg();
-    let current_path = log_path();
-    let tailing = is_tailing();
+    let current_directory = log_directory();
+    let watching = is_watching();
 
     let toggle_overlay = move |_| {
         let current = overlay_visible();
-        let cmd = if current { "hide_overlay" } else { "show_overlay" };
+        let cmd = if current {
+            "hide_overlay"
+        } else {
+            "show_overlay"
+        };
 
         async move {
             let result = invoke(cmd, JsValue::NULL).await;
@@ -90,35 +96,31 @@ pub fn App() -> Element {
         }
     };
 
-    let toggle_tailing = move |_| {
-        let currently_tailing = is_tailing();
-        let path = log_path();
+    let set_directory = move |_| {
+        let dir = log_directory();
 
         async move {
-            if currently_tailing {
-                // Stop tailing
-                let result = invoke("stop_tailing", JsValue::NULL).await;
-                if result.is_undefined() || result.is_null() {
-                    is_tailing.set(false);
-                    status_msg.set("Stopped tailing".to_string());
-                } else if let Some(err) = result.as_string() {
-                    status_msg.set(format!("Error: {}", err));
-                }
-            } else {
-                // Start tailing
-                if path.is_empty() {
-                    status_msg.set("Please enter a log file path".to_string());
-                    return;
-                }
+            if dir.is_empty() {
+                status_msg.set("Please enter a log directory path".to_string());
+                return;
+            }
 
-                let args = make_args(&[("path", &path)]);
-                let result = invoke("start_tailing", args).await;
-                if result.is_undefined() || result.is_null() {
-                    is_tailing.set(true);
-                    status_msg.set(format!("Tailing: {}", path));
-                } else if let Some(err) = result.as_string() {
-                    status_msg.set(format!("Error: {}", err));
-                }
+            let config = AppConfig {
+                log_directory: dir.clone(),
+                auto_delete_empty_files: false,
+                log_retention_days: 0,
+            };
+
+            let args = serde_wasm_bindgen::to_value(&config).unwrap_or(JsValue::NULL);
+            let obj = js_sys::Object::new();
+            js_sys::Reflect::set(&obj, &JsValue::from_str("config"), &args).unwrap();
+
+            let result = invoke("update_config", obj.into()).await;
+            if result.is_undefined() || result.is_null() {
+                is_watching.set(true);
+                status_msg.set(format!("Watching: {}", dir));
+            } else if let Some(err) = result.as_string() {
+                status_msg.set(format!("Error: {}", err));
             }
         }
     };
@@ -145,22 +147,21 @@ pub fn App() -> Element {
                 }
             }
 
-            // Log file tailing
+            // Log directory selection
             div { class: "log-section",
-                h3 { "Combat Log" }
+                h3 { "Log Directory" }
                 div { class: "log-controls",
                     input {
                         r#type: "text",
                         class: "log-input",
-                        placeholder: "Path to combat log file...",
-                        value: "{current_path}",
-                        disabled: tailing,
-                        oninput: move |e| log_path.set(e.value())
+                        placeholder: "Path to SWTOR combat log directory...",
+                        value: "{current_directory}",
+                        oninput: move |e| log_directory.set(e.value())
                     }
                     button {
-                        class: if tailing { "btn btn-warning" } else { "btn" },
-                        onclick: toggle_tailing,
-                        if tailing { "Stop" } else { "Start Tailing" }
+                        class: "btn",
+                        onclick: set_directory,
+                        "Set Directory"
                     }
                 }
             }
@@ -183,9 +184,9 @@ pub fn App() -> Element {
                     }
                 }
                 p {
-                    "Tailing: "
-                    span { class: if tailing { "status-on" } else { "status-off" },
-                        if tailing { "Active" } else { "Stopped" }
+                    "Watching: "
+                    span { class: if watching { "status-on" } else { "status-off" },
+                        if watching { "Active" } else { "Not set" }
                     }
                 }
             }

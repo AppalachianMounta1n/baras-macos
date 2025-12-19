@@ -203,7 +203,7 @@ impl Encounter {
     }
     fn get_entity_type(&self, id: i64) -> Option<EntityType> {
         if self.players.contains_key(&id) {
-            return Some(EntityType::Player);
+            Some(EntityType::Player)
         } else {
             self.npcs
                 .get(&id)

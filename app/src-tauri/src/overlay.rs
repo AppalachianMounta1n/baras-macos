@@ -123,9 +123,9 @@ pub async fn show_overlay(
     }
 
     // If tailing is active, send current metrics to the new overlay
-    if service.is_tailing().await {
-        if let Some(metrics) = service.current_metrics().await {
-            if !metrics.is_empty() {
+    if service.is_tailing().await
+        && let Some(metrics) = service.current_metrics().await &&
+            !metrics.is_empty() {
                 let entries: Vec<_> = metrics
                     .iter()
                     .map(|m| MeterEntry::new(&m.name, m.dps, m.dps))
@@ -142,8 +142,8 @@ pub async fn show_overlay(
 
                 let _ = tx.send(OverlayCommand::UpdateEntries(entries)).await;
             }
-        }
-    }
+
+
 
     Ok(true)
 }

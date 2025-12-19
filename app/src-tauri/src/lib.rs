@@ -48,6 +48,8 @@ pub fn run() {
             service::refresh_log_index,
             service::get_tailing_status,
             service::get_current_metrics,
+            service::get_config,
+            service::update_config,
             // Utilities
             utils::default_log_path,
         ])
