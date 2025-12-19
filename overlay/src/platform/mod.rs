@@ -6,13 +6,8 @@
 #[cfg(all(unix, not(target_os = "macos")))]
 pub mod wayland;
 
-// TODO: Future platform implementations
-// #[cfg(all(unix, not(target_os = "macos")))]
-// pub mod x11;
-// #[cfg(target_os = "windows")]
-// pub mod windows;
-// #[cfg(target_os = "macos")]
-// pub mod macos;
+#[cfg(target_os = "windows")]
+pub mod windows;
 
 /// Configuration for creating an overlay window
 #[derive(Debug, Clone)]
@@ -142,8 +137,5 @@ pub trait OverlayPlatform: Sized {
 #[cfg(all(unix, not(target_os = "macos")))]
 pub use wayland::WaylandOverlay as NativeOverlay;
 
-// TODO: Add re-exports for other platforms
-// #[cfg(target_os = "windows")]
-// pub use windows::WindowsOverlay as NativeOverlay;
-// #[cfg(target_os = "macos")]
-// pub use macos::MacOSOverlay as NativeOverlay;
+#[cfg(target_os = "windows")]
+pub use windows::WindowsOverlay as NativeOverlay;

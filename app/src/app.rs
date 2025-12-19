@@ -121,11 +121,10 @@ pub fn App() -> Element {
     // Listen for active file changes
     use_future(move || async move {
         let closure = Closure::new(move |event: JsValue| {
-            if let Ok(payload) = js_sys::Reflect::get(&event, &JsValue::from_str("payload")) {
-                if let Some(file_path) = payload.as_string() {
+            if let Ok(payload) = js_sys::Reflect::get(&event, &JsValue::from_str("payload"))
+                && let Some(file_path) = payload.as_string() {
                     active_file.set(file_path);
                 }
-            }
         });
         tauri_listen("active-file-changed", &closure).await;
         closure.forget();

@@ -24,9 +24,15 @@ rustix = { version = "1.0", features = ["fs", "mm"] }
 # Platform: X11 (Linux fallback) - TODO
 # x11rb = "0.13"
 
-# Platform: Windows - TODO
-# [target.'cfg(target_os = "windows")'.dependencies]
-# windows-sys = { version = "0.52", features = ["Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging"] }
+# Platform: Windows
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_System_LibraryLoader",
+] }
 
 # Platform: macOS - TODO
 # [target.'cfg(target_os = "macos")'.dependencies]
