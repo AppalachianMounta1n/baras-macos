@@ -341,21 +341,6 @@ impl Encounter {
     }
 
     pub fn show_dps(&self) {
-        let stats = self.calculate_entity_metrics().unwrap_or_default();
-
-        for entity in stats {
-            println!(
-                "      [{}: {} dps | {} edps | {} total_abs || {} total heals | {} hps | {} ehps | {} abs | {} apm] ",
-                resolve(entity.name),
-                entity.dps,
-                entity.edps,
-                entity.dtps,
-                entity.total_healing,
-                entity.hps,
-                entity.ehps,
-                entity.abs,
-                entity.apm
-            );
-        }
+        print!("function deprecated")
     }
 }
