@@ -28,18 +28,25 @@
 //! └─────────────────────────────────────────────────────┘
 //! ```
 
+pub mod frame;
 pub mod manager;
 pub mod overlays;
 pub mod platform;
 pub mod renderer;
+pub mod utils;
 pub mod widgets;
 
 // Re-export commonly used types
+pub use frame::OverlayFrame;
 pub use manager::OverlayWindow;
-pub use overlays::{MeterEntry, MetricOverlay, PersonalOverlay, PersonalStats};
+pub use overlays::{
+    MeterEntry, MetricOverlay, Overlay, OverlayConfigUpdate, OverlayData, OverlayPosition,
+    PersonalOverlay, PersonalStats,
+};
 pub use platform::{NativeOverlay, OverlayConfig, OverlayPlatform, PlatformError};
 pub use renderer::{colors, Renderer};
-pub use widgets::ProgressBar;
+pub use utils::{color_from_rgba, format_number, format_time, truncate_name};
+pub use widgets::{Footer, Header, LabeledValue, ProgressBar};
 
 // Re-export tiny_skia Color for external use
 pub use tiny_skia::Color;

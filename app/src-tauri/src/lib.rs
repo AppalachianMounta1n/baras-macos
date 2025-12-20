@@ -2,7 +2,11 @@ pub mod overlay;
 pub mod service;
 pub mod utils;
 pub mod bridge;
-use overlay::{OverlayState, SharedOverlayState, OverlayType, OverlayHandle, OverlayCommand, PersonalOverlayHandle};
+use overlay::{
+    OverlayState, SharedOverlayState, MetricType, OverlayType, OverlayCommand,
+    create_metric_overlay, create_personal_overlay,
+};
+use baras_overlay::OverlayData;
 use bridge::spawn_overlay_bridge;
 use service::{CombatService, OverlayUpdate, ServiceHandle};
 use tauri::Manager;
@@ -27,75 +31,80 @@ fn spawn_auto_show_overlays(
         }
 
         let enabled_keys = config.overlay_settings.enabled_types();
+        let background_alpha = config.overlay_settings.background_alpha;
 
         for key in &enabled_keys {
-            // Skip personal overlay - handled separately
             if key == "personal" {
-                continue;
-            }
-
-            let Some(overlay_type) = OverlayType::from_config_key(key) else {
-                continue;
-            };
-
-            // Check if already running
-            {
-                let state = match overlay_state.lock() {
-                    Ok(s) => s,
-                    Err(_) => continue,
+                // Handle personal overlay
+                let kind = OverlayType::Personal;
+                let already_running = {
+                    match overlay_state.lock() {
+                        Ok(s) => s.is_running(kind),
+                        Err(_) => continue,
+                    }
                 };
-                if state.is_running(overlay_type) {
-                    continue;
+
+                if !already_running {
+                    let position = config.overlay_settings.get_position("personal");
+                    let personal_config = config.overlay_settings.personal_overlay.clone();
+
+                    match create_personal_overlay(position, personal_config, background_alpha) {
+                        Ok(overlay_handle) => {
+                            if let Ok(mut state) = overlay_state.lock() {
+                                state.insert(overlay_handle);
+                            }
+                            eprintln!("Auto-showed personal overlay on startup");
+                        }
+                        Err(e) => eprintln!("Failed to auto-show personal overlay: {}", e),
+                    }
                 }
-            }
+            } else if let Some(overlay_type) = MetricType::from_config_key(key) {
+                // Handle metric overlay
+                let kind = OverlayType::Metric(overlay_type);
 
-            // Load position, appearance, and spawn
-            let position = config.overlay_settings.get_position(key);
-            let appearance = config.overlay_settings.get_appearance(key);
-            let background_alpha = config.overlay_settings.background_alpha;
-            let (tx, handle) = overlay::spawn_overlay(overlay_type, position, appearance, background_alpha);
-
-            // Update state
-            {
-                let mut state = match overlay_state.lock() {
-                    Ok(s) => s,
-                    Err(_) => continue,
-                };
-                state.insert(overlay_type, OverlayHandle { tx: tx.clone(), handle });
-            }
-
-            // Send current metrics if tailing
-            if service_handle.is_tailing().await
-                && let Some(metrics) = service_handle.current_metrics().await
-                && !metrics.is_empty()
-            {
-                let entries = overlay::create_entries_for_type(overlay_type, &metrics);
-                let _ = tx.send(OverlayCommand::UpdateEntries(entries)).await;
-            }
-
-            eprintln!("Auto-showed {} overlay on startup", overlay_type.config_key());
-        }
-
-        // Auto-show personal overlay if enabled
-        if enabled_keys.iter().any(|k| k == "personal") {
-            let already_running = {
-                match overlay_state.lock() {
-                    Ok(s) => s.is_personal_running(),
-                    Err(_) => return,
-                }
-            };
-
-            if !already_running {
-                let position = config.overlay_settings.get_position("personal");
-                let personal_config = config.overlay_settings.personal_overlay.clone();
-                let background_alpha = config.overlay_settings.background_alpha;
-                let (tx, handle) = overlay::spawn_personal_overlay(position, personal_config, background_alpha);
-
-                if let Ok(mut state) = overlay_state.lock() {
-                    state.set_personal(PersonalOverlayHandle { tx, handle });
+                // Check if already running
+                {
+                    let state = match overlay_state.lock() {
+                        Ok(s) => s,
+                        Err(_) => continue,
+                    };
+                    if state.is_running(kind) {
+                        continue;
+                    }
                 }
 
-                eprintln!("Auto-showed personal overlay on startup");
+                // Load position, appearance, and spawn
+                let position = config.overlay_settings.get_position(key);
+                let appearance = config.overlay_settings.get_appearance(key);
+
+                match create_metric_overlay(overlay_type, position, appearance, background_alpha) {
+                    Ok(overlay_handle) => {
+                        let tx = overlay_handle.tx.clone();
+
+                        // Update state
+                        {
+                            let mut state = match overlay_state.lock() {
+                                Ok(s) => s,
+                                Err(_) => continue,
+                            };
+                            state.insert(overlay_handle);
+                        }
+
+                        // Send current metrics if tailing
+                        if service_handle.is_tailing().await
+                            && let Some(metrics) = service_handle.current_metrics().await
+                            && !metrics.is_empty()
+                        {
+                            let entries = overlay::create_entries_for_type(overlay_type, &metrics);
+                            let _ = tx.send(OverlayCommand::UpdateData(
+                                OverlayData::Metrics(entries)
+                            )).await;
+                        }
+
+                        eprintln!("Auto-showed {} overlay on startup", overlay_type.config_key());
+                    }
+                    Err(e) => eprintln!("Failed to auto-show {} overlay: {}", key, e),
+                }
             }
         }
     });
@@ -133,15 +142,13 @@ pub fn run() {
         .manage(overlay_state)
         .invoke_handler(tauri::generate_handler![
             // Overlay commands
-            overlay::show_overlay,
-            overlay::hide_overlay,
-            overlay::hide_all_overlays,
-            overlay::show_all_overlays,
-            overlay::toggle_move_mode,
-            overlay::get_overlay_status,
-            overlay::show_personal_overlay,
-            overlay::hide_personal_overlay,
-            overlay::refresh_overlay_settings,
+            overlay::commands::show_overlay,
+            overlay::commands::hide_overlay,
+            overlay::commands::hide_all_overlays,
+            overlay::commands::show_all_overlays,
+            overlay::commands::toggle_move_mode,
+            overlay::commands::get_overlay_status,
+            overlay::commands::refresh_overlay_settings,
             // Service commands
             service::get_log_files,
             service::start_tailing,

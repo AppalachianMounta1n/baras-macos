@@ -1,0 +1,162 @@
+//! Overlay type definitions
+//!
+//! Core enums that identify overlay types and their properties.
+
+use baras_overlay::{colors, Color};
+use serde::{Deserialize, Serialize};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Metric Types
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Specific metric types (DPS, HPS, etc.)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MetricType {
+    Dps,
+    EDps,
+    Hps,
+    EHps,
+    Tps,
+    Dtps,
+    EDtps,
+    Abs,
+}
+
+impl MetricType {
+    /// Display title for this overlay
+    pub fn title(&self) -> &'static str {
+        match self {
+            MetricType::Dps => "DPS",
+            MetricType::EDps => "eDPS",
+            MetricType::Hps => "HPS",
+            MetricType::EHps => "eHPS",
+            MetricType::Tps => "TPS",
+            MetricType::Dtps => "DTPS",
+            MetricType::EDtps => "eDTPS",
+            MetricType::Abs => "ABS",
+        }
+    }
+
+    /// Window namespace for platform identification
+    pub fn namespace(&self) -> &'static str {
+        match self {
+            MetricType::Dps => "baras-dps",
+            MetricType::EDps => "baras-edps",
+            MetricType::Hps => "baras-hps",
+            MetricType::EHps => "baras-ehps",
+            MetricType::Tps => "baras-tps",
+            MetricType::Dtps => "baras-dtps",
+            MetricType::EDtps => "baras-edtps",
+            MetricType::Abs => "baras-abs",
+        }
+    }
+
+    /// Default screen position for this overlay type
+    pub fn default_position(&self) -> (i32, i32) {
+        match self {
+            MetricType::Dps => (50, 50),
+            MetricType::EDps => (50, 50),
+            MetricType::Hps => (50, 280),
+            MetricType::EHps => (50, 280),
+            MetricType::Tps => (50, 510),
+            MetricType::Dtps => (350, 50),
+            MetricType::EDtps => (350, 50),
+            MetricType::Abs => (350, 280),
+        }
+    }
+
+    /// All overlay types
+    pub fn all() -> &'static [MetricType] {
+        &[
+            MetricType::Dps,
+            MetricType::EDps,
+            MetricType::Hps,
+            MetricType::EHps,
+            MetricType::Tps,
+            MetricType::Dtps,
+            MetricType::EDtps,
+            MetricType::Abs,
+        ]
+    }
+
+    /// Config key for position/settings storage
+    pub fn config_key(&self) -> &'static str {
+        match self {
+            MetricType::Dps => "dps",
+            MetricType::EDps => "edps",
+            MetricType::Hps => "hps",
+            MetricType::EHps => "ehps",
+            MetricType::Tps => "tps",
+            MetricType::Dtps => "dtps",
+            MetricType::EDtps => "edtps",
+            MetricType::Abs => "abs",
+        }
+    }
+
+    /// Parse from config key string
+    pub fn from_config_key(key: &str) -> Option<Self> {
+        match key {
+            "dps" => Some(MetricType::Dps),
+            "edps" => Some(MetricType::EDps),
+            "hps" => Some(MetricType::Hps),
+            "ehps" => Some(MetricType::EHps),
+            "tps" => Some(MetricType::Tps),
+            "dtps" => Some(MetricType::Dtps),
+            "edtps" => Some(MetricType::EDtps),
+            "abs" => Some(MetricType::Abs),
+            _ => None,
+        }
+    }
+
+    /// Bar fill color for this overlay type
+    pub fn bar_color(&self) -> Color {
+        match self {
+            MetricType::Dps | MetricType::EDps => colors::dps_bar_fill(),
+            MetricType::Hps | MetricType::EHps => colors::hps_bar_fill(),
+            MetricType::Tps => colors::tank_bar_fill(),
+            MetricType::Dtps | MetricType::EDtps => Color::from_rgba8(180, 80, 80, 255),
+            MetricType::Abs => Color::from_rgba8(100, 150, 200, 255),
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Unified Overlay Kind
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Unified overlay kind - covers all overlay types including personal
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(tag = "type", content = "value")]
+pub enum OverlayType {
+    /// A metric overlay (DPS, HPS, etc.)
+    Metric(MetricType),
+    /// The personal stats overlay
+    Personal,
+}
+
+impl OverlayType {
+    /// Get the config key for this overlay kind
+    pub fn config_key(&self) -> &'static str {
+        match self {
+            OverlayType::Metric(ot) => ot.config_key(),
+            OverlayType::Personal => "personal",
+        }
+    }
+
+    /// Get the namespace for window identification
+    pub fn namespace(&self) -> String {
+        match self {
+            OverlayType::Metric(ot) => ot.namespace().to_string(),
+            OverlayType::Personal => "baras-personal".to_string(),
+        }
+    }
+
+    /// Get default position
+    pub fn default_position(&self) -> (i32, i32) {
+        match self {
+            OverlayType::Metric(ot) => ot.default_position(),
+            OverlayType::Personal => (350, 510),
+        }
+    }
+}

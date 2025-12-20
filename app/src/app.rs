@@ -209,7 +209,7 @@ pub struct OverlayStatus {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum OverlayType {
+pub enum MetricType {
     Dps,
     EDps,
     Hps,
@@ -220,48 +220,55 @@ pub enum OverlayType {
     Abs,
 }
 
-impl OverlayType {
+impl MetricType {
     pub fn label(&self) -> &'static str {
         match self {
-            OverlayType::Dps => "DPS",
-            OverlayType::EDps => "eDPS",
-            OverlayType::Hps => "HPS",
-            OverlayType::EHps => "eHPS",
-            OverlayType::Tps => "TPS",
-            OverlayType::Dtps => "DTPS",
-            OverlayType::EDtps => "eDTPS",
-            OverlayType::Abs => "ABS",
+            MetricType::Dps => "DPS",
+            MetricType::EDps => "eDPS",
+            MetricType::Hps => "HPS",
+            MetricType::EHps => "eHPS",
+            MetricType::Tps => "TPS",
+            MetricType::Dtps => "DTPS",
+            MetricType::EDtps => "eDTPS",
+            MetricType::Abs => "ABS",
         }
     }
 
     pub fn config_key(&self) -> &'static str {
         match self {
-            OverlayType::Dps => "dps",
-            OverlayType::EDps => "edps",
-            OverlayType::Hps => "hps",
-            OverlayType::EHps => "ehps",
-            OverlayType::Tps => "tps",
-            OverlayType::Dtps => "dtps",
-            OverlayType::EDtps => "edtps",
-            OverlayType::Abs => "abs",
+            MetricType::Dps => "dps",
+            MetricType::EDps => "edps",
+            MetricType::Hps => "hps",
+            MetricType::EHps => "ehps",
+            MetricType::Tps => "tps",
+            MetricType::Dtps => "dtps",
+            MetricType::EDtps => "edtps",
+            MetricType::Abs => "abs",
         }
     }
 
     /// All metric overlay types (for iteration)
-    pub fn all_metrics() -> &'static [OverlayType] {
+    pub fn all_metrics() -> &'static [MetricType] {
         &[
-            OverlayType::Dps,
-            OverlayType::EDps,
-            OverlayType::Hps,
-            OverlayType::EHps,
-            OverlayType::Tps,
-            OverlayType::Dtps,
-            OverlayType::EDtps,
-            OverlayType::Abs,
+            MetricType::Dps,
+            MetricType::EDps,
+            MetricType::Hps,
+            MetricType::EHps,
+            MetricType::Tps,
+            MetricType::Dtps,
+            MetricType::EDtps,
+            MetricType::Abs,
         ]
     }
 }
 
+/// Unified overlay kind - matches backend OverlayType
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(tag = "type", content = "value")]
+pub enum OverlayType {
+    Metric(MetricType),
+    Personal,
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // App Component
@@ -271,7 +278,7 @@ pub fn App() -> Element {
     // Overlay enabled states - HashMap for all metric overlays
     let mut metric_overlays_enabled = use_signal(|| {
         let mut map = std::collections::HashMap::new();
-        for ot in OverlayType::all_metrics() {
+        for ot in MetricType::all_metrics() {
             map.insert(*ot, false);
         }
         map
@@ -322,7 +329,7 @@ pub fn App() -> Element {
         if let Ok(status) = serde_wasm_bindgen::from_value::<OverlayStatus>(status_result) {
             // Set enabled states from config for all metric overlays
             let mut new_map = std::collections::HashMap::new();
-            for ot in OverlayType::all_metrics() {
+            for ot in MetricType::all_metrics() {
                 let key = ot.config_key().to_string();
                 new_map.insert(*ot, status.enabled.contains(&key));
             }
@@ -378,15 +385,16 @@ pub fn App() -> Element {
 
     // Toggle metric overlay enabled state
     let enabled_map_for_toggle = enabled_map.clone();
-    let make_toggle_overlay = move |overlay_type: OverlayType| {
+    let make_toggle_overlay = move |overlay_type: MetricType| {
         let current = enabled_map_for_toggle.get(&overlay_type).copied().unwrap_or(false);
         move |_| {
             let cmd = if current { "hide_overlay" } else { "show_overlay" };
+            let kind = OverlayType::Metric(overlay_type);
 
             async move {
-                let args = serde_wasm_bindgen::to_value(&overlay_type).unwrap_or(JsValue::NULL);
+                let args = serde_wasm_bindgen::to_value(&kind).unwrap_or(JsValue::NULL);
                 let obj = js_sys::Object::new();
-                js_sys::Reflect::set(&obj, &JsValue::from_str("overlayType"), &args).unwrap();
+                js_sys::Reflect::set(&obj, &JsValue::from_str("kind"), &args).unwrap();
 
                 let result = invoke(cmd, obj.into()).await;
                 if let Some(success) = result.as_bool() && success {
@@ -402,8 +410,14 @@ pub fn App() -> Element {
     let toggle_personal = move |_| {
         let current = personal_on;
         async move {
-            let cmd = if current { "hide_personal_overlay" } else { "show_personal_overlay" };
-            let result = invoke(cmd, JsValue::NULL).await;
+            let cmd = if current { "hide_overlay" } else { "show_overlay" };
+            let kind = OverlayType::Personal;
+
+            let args = serde_wasm_bindgen::to_value(&kind).unwrap_or(JsValue::NULL);
+            let obj = js_sys::Object::new();
+            js_sys::Reflect::set(&obj, &JsValue::from_str("kind"), &args).unwrap();
+
+            let result = invoke(cmd, obj.into()).await;
             if let Some(success) = result.as_bool()
                 && success
             {
@@ -536,7 +550,7 @@ pub fn App() -> Element {
                 // Meters section
                 h4 { class: "subsection-title", "Meters" }
                 div { class: "overlay-meters",
-                    for overlay_type in OverlayType::all_metrics() {
+                    for overlay_type in MetricType::all_metrics() {
                         {
                             let ot = *overlay_type;
                             let is_enabled = enabled_map.get(&ot).copied().unwrap_or(false);
@@ -744,7 +758,7 @@ fn SettingsPanel(
 
             // Tabs for overlay types
             div { class: "settings-tabs",
-                for overlay_type in OverlayType::all_metrics() {
+                for overlay_type in MetricType::all_metrics() {
                     {
                         let ot = *overlay_type;
                         let key = ot.config_key().to_string();

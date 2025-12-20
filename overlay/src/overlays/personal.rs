@@ -3,11 +3,12 @@
 //! Displays the primary player's combat statistics as text items.
 
 use baras_core::context::{PersonalOverlayConfig, PersonalStat};
-use tiny_skia::Color;
 
-use crate::manager::OverlayWindow;
+use super::{Overlay, OverlayConfigUpdate, OverlayData};
+use crate::frame::OverlayFrame;
 use crate::platform::{OverlayConfig, PlatformError};
-use crate::renderer::colors;
+use crate::utils::{color_from_rgba, format_number, format_time};
+use crate::widgets::LabeledValue;
 
 /// Data for the personal overlay
 #[derive(Debug, Clone, Default)]
@@ -38,32 +39,10 @@ const BASE_FONT_SIZE: f32 = 13.0;
 const BASE_LINE_HEIGHT: f32 = 18.0;
 const BASE_PADDING: f32 = 8.0;
 
-/// Convert [u8; 4] RGBA to tiny_skia Color
-fn color_from_rgba(rgba: [u8; 4]) -> Color {
-    Color::from_rgba8(rgba[0], rgba[1], rgba[2], rgba[3])
-}
-
-/// Format a duration as MM:SS
-fn format_time(secs: u64) -> String {
-    format!("{}:{:02}", secs / 60, secs % 60)
-}
-
-/// Format a large number with K suffix
-fn format_number(n: i64) -> String {
-    if n >= 1_000_000 {
-        format!("{:.1}M", n as f64 / 1_000_000.0)
-    } else if n >= 10_000 {
-        format!("{:.1}K", n as f64 / 1_000.0)
-    } else {
-        format!("{}", n)
-    }
-}
-
 /// Personal stats overlay showing player metrics as text
 pub struct PersonalOverlay {
-    window: OverlayWindow,
+    frame: OverlayFrame,
     config: PersonalOverlayConfig,
-    background_alpha: u8,
     stats: PersonalStats,
 }
 
@@ -74,12 +53,12 @@ impl PersonalOverlay {
         config: PersonalOverlayConfig,
         background_alpha: u8,
     ) -> Result<Self, PlatformError> {
-        let window = OverlayWindow::new(window_config)?;
+        let mut frame = OverlayFrame::new(window_config, BASE_WIDTH, BASE_HEIGHT)?;
+        frame.set_background_alpha(background_alpha);
 
         Ok(Self {
-            window,
+            frame,
             config,
-            background_alpha,
             stats: PersonalStats::default(),
         })
     }
@@ -91,7 +70,7 @@ impl PersonalOverlay {
 
     /// Update background alpha
     pub fn set_background_alpha(&mut self, alpha: u8) {
-        self.background_alpha = alpha;
+        self.frame.set_background_alpha(alpha);
     }
 
     /// Update the stats
@@ -99,29 +78,20 @@ impl PersonalOverlay {
         self.stats = stats;
     }
 
-    /// Calculate scale factor based on current window size
-    fn scale_factor(&self) -> f32 {
-        let width = self.window.width() as f32;
-        let height = self.window.height() as f32;
-        let width_ratio = width / BASE_WIDTH;
-        let height_ratio = height / BASE_HEIGHT;
-        (width_ratio * height_ratio).sqrt()
-    }
-
     fn font_size(&self) -> f32 {
-        BASE_FONT_SIZE * self.scale_factor()
+        self.frame.scaled(BASE_FONT_SIZE)
     }
 
     fn line_height(&self) -> f32 {
-        BASE_LINE_HEIGHT * self.scale_factor()
+        self.frame.scaled(BASE_LINE_HEIGHT)
     }
 
     fn padding(&self) -> f32 {
-        BASE_PADDING * self.scale_factor()
+        self.frame.scaled(BASE_PADDING)
     }
 
     /// Get the display value for a stat
-    fn stat_display(&self, stat: PersonalStat) -> (& 'static str, String) {
+    fn stat_display(&self, stat: PersonalStat) -> (&'static str, String) {
         match stat {
             PersonalStat::EncounterTime => ("Time", format_time(self.stats.encounter_time_secs)),
             PersonalStat::EncounterCount => ("Fight #", format!("{}", self.stats.encounter_count)),
@@ -138,9 +108,15 @@ impl PersonalOverlay {
             PersonalStat::TotalThreat => ("Threat", format_number(self.stats.total_threat)),
             PersonalStat::DamageCritPct => ("Dmg Crit", format!("{:.1}%", self.stats.damage_crit_pct)),
             PersonalStat::HealCritPct => ("Heal Crit", format!("{:.1}%", self.stats.heal_crit_pct)),
-            PersonalStat::EffectiveHealPct => ("Eff Heal", format!("{:.1}%", self.stats.effective_heal_pct)),
+            PersonalStat::EffectiveHealPct => {
+                ("Eff Heal", format!("{:.1}%", self.stats.effective_heal_pct))
+            }
             PersonalStat::ClassDiscipline => {
-                let value = self.stats.class_discipline.clone().unwrap_or_else(|| "Unknown".to_string());
+                let value = self
+                    .stats
+                    .class_discipline
+                    .clone()
+                    .unwrap_or_else(|| "Unknown".to_string());
                 ("Spec", value)
             }
         }
@@ -148,95 +124,87 @@ impl PersonalOverlay {
 
     /// Render the overlay
     pub fn render(&mut self) {
-        let width = self.window.width() as f32;
-        let height = self.window.height() as f32;
+        let width = self.frame.width() as f32;
 
         let padding = self.padding();
         let font_size = self.font_size();
         let line_height = self.line_height();
-        let corner_radius = 6.0 * self.scale_factor();
 
         let font_color = color_from_rgba(self.config.font_color);
-        let bg_color = Color::from_rgba8(30, 30, 30, self.background_alpha);
-        let label_color = Color::from_rgba8(180, 180, 180, 255);
 
-        // Clear with transparent
-        self.window.clear(colors::transparent());
+        // Begin frame (clear, background, border)
+        self.frame.begin_frame();
 
-        // Draw background
-        self.window
-            .fill_rounded_rect(0.0, 0.0, width, height, corner_radius, bg_color);
-
-        // Draw border when interactive
-        if self.window.is_interactive() {
-            let border_color = Color::from_rgba8(128, 128, 128, 200);
-            self.window.stroke_rounded_rect(
-                1.0, 1.0,
-                width - 2.0, height - 2.0,
-                corner_radius - 1.0,
-                2.0,
-                border_color,
-            );
-        }
-
-        // Draw stats
+        // Draw stats using LabeledValue widgets
         let mut y = padding + font_size;
-        let value_x = width - padding;
+        let content_width = width - padding * 2.0;
 
         for stat in &self.config.visible_stats {
             let (label, value) = self.stat_display(*stat);
 
-            // Draw label on left
-            self.window.draw_text(label, padding, y, font_size, label_color);
-
-            // Draw value on right (right-aligned)
-            let (text_width, _) = self.window.measure_text(&value, font_size);
-            self.window.draw_text(&value, value_x - text_width, y, font_size, font_color);
+            LabeledValue::new(label, value)
+                .with_value_color(font_color)
+                .render(&mut self.frame, padding, y, content_width, font_size);
 
             y += line_height;
         }
 
-        // Draw resize indicator when interactive
-        if self.window.in_resize_corner() || self.window.is_interactive() {
-            let indicator_size = 12.0;
-            let corner_x = width - indicator_size - 4.0;
-            let corner_y = height - indicator_size - 4.0;
-
-            let highlight = if self.window.is_resizing() {
-                colors::white()
-            } else {
-                Color::from_rgba8(255, 255, 255, 150)
-            };
-
-            for i in 0..3 {
-                let offset = i as f32 * 4.0;
-                self.window.fill_rect(
-                    corner_x + offset,
-                    corner_y + indicator_size - 2.0,
-                    indicator_size - offset,
-                    2.0,
-                    highlight,
-                );
-                self.window.fill_rect(
-                    corner_x + indicator_size - 2.0,
-                    corner_y + offset,
-                    2.0,
-                    indicator_size - offset,
-                    highlight,
-                );
-            }
-        }
-
-        self.window.commit();
+        // End frame (resize indicator, commit)
+        self.frame.end_frame();
     }
 
     /// Poll for events
     pub fn poll_events(&mut self) -> bool {
-        self.window.poll_events()
+        self.frame.poll_events()
     }
 
-    /// Get mutable access to the underlying window
-    pub fn window_mut(&mut self) -> &mut OverlayWindow {
-        &mut self.window
+    /// Get mutable access to the underlying frame
+    pub fn frame_mut(&mut self) -> &mut OverlayFrame {
+        &mut self.frame
+    }
+
+    /// Get immutable access to the underlying frame
+    pub fn frame(&self) -> &OverlayFrame {
+        &self.frame
+    }
+
+    /// Get mutable access to the underlying window (convenience method)
+    pub fn window_mut(&mut self) -> &mut crate::manager::OverlayWindow {
+        self.frame.window_mut()
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Overlay Trait Implementation
+// ─────────────────────────────────────────────────────────────────────────────
+
+impl Overlay for PersonalOverlay {
+    fn update_data(&mut self, data: OverlayData) {
+        if let OverlayData::Personal(stats) = data {
+            self.set_stats(stats);
+        }
+    }
+
+    fn update_config(&mut self, config: OverlayConfigUpdate) {
+        if let OverlayConfigUpdate::Personal(personal_config, alpha) = config {
+            self.set_config(personal_config);
+            self.set_background_alpha(alpha);
+        }
+    }
+
+    fn render(&mut self) {
+        PersonalOverlay::render(self);
+    }
+
+    fn poll_events(&mut self) -> bool {
+        self.frame.poll_events()
+    }
+
+    fn frame(&self) -> &OverlayFrame {
+        &self.frame
+    }
+
+    fn frame_mut(&mut self) -> &mut OverlayFrame {
+        &mut self.frame
     }
 }

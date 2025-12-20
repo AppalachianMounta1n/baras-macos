@@ -5,9 +5,12 @@
 use baras_core::context::OverlayAppearanceConfig;
 use tiny_skia::Color;
 
-use crate::manager::OverlayWindow;
+use super::{Overlay, OverlayConfigUpdate, OverlayData};
+use crate::frame::OverlayFrame;
 use crate::platform::{OverlayConfig, PlatformError};
 use crate::renderer::colors;
+use crate::utils::{color_from_rgba, truncate_name};
+use crate::widgets::{Footer, Header, ProgressBar};
 
 /// Entry in a DPS/HPS metric
 #[derive(Debug, Clone)]
@@ -34,21 +37,6 @@ impl MeterEntry {
     }
 }
 
-/// Truncate a string to max_chars, adding "..." if truncated
-fn truncate_name(name: &str, max_chars: usize) -> String {
-    if name.chars().count() <= max_chars {
-        name.to_string()
-    } else {
-        let truncated: String = name.chars().take(max_chars.saturating_sub(3)).collect();
-        format!("{}...", truncated)
-    }
-}
-
-/// Convert [u8; 4] RGBA to tiny_skia Color
-fn color_from_rgba(rgba: [u8; 4]) -> Color {
-    Color::from_rgba8(rgba[0], rgba[1], rgba[2], rgba[3])
-}
-
 /// Base dimensions for scaling calculations
 const BASE_WIDTH: f32 = 280.0;
 const BASE_HEIGHT: f32 = 200.0;
@@ -64,11 +52,10 @@ const MAX_NAME_CHARS: usize = 16;
 
 /// A specialized DPS/HPS metric overlay
 pub struct MetricOverlay {
-    window: OverlayWindow,
+    frame: OverlayFrame,
     entries: Vec<MeterEntry>,
     title: String,
     appearance: OverlayAppearanceConfig,
-    background_alpha: u8,
 }
 
 impl MetricOverlay {
@@ -79,14 +66,14 @@ impl MetricOverlay {
         appearance: OverlayAppearanceConfig,
         background_alpha: u8,
     ) -> Result<Self, PlatformError> {
-        let window = OverlayWindow::new(config)?;
+        let mut frame = OverlayFrame::new(config, BASE_WIDTH, BASE_HEIGHT)?;
+        frame.set_background_alpha(background_alpha);
 
         Ok(Self {
-            window,
+            frame,
             entries: Vec::new(),
             title: title.to_string(),
             appearance,
-            background_alpha,
         })
     }
 
@@ -97,38 +84,27 @@ impl MetricOverlay {
 
     /// Update background alpha
     pub fn set_background_alpha(&mut self, alpha: u8) {
-        self.background_alpha = alpha;
-    }
-
-    /// Calculate scale factor based on current window size
-    fn scale_factor(&self) -> f32 {
-        let width = self.window.width() as f32;
-        let height = self.window.height() as f32;
-
-        // Use geometric mean of width and height ratios for balanced scaling
-        let width_ratio = width / BASE_WIDTH;
-        let height_ratio = height / BASE_HEIGHT;
-        (width_ratio * height_ratio).sqrt()
+        self.frame.set_background_alpha(alpha);
     }
 
     /// Get scaled bar height
     fn bar_height(&self) -> f32 {
-        BASE_BAR_HEIGHT * self.scale_factor()
+        self.frame.scaled(BASE_BAR_HEIGHT)
     }
 
     /// Get scaled bar spacing
     fn bar_spacing(&self) -> f32 {
-        BASE_BAR_SPACING * self.scale_factor()
+        self.frame.scaled(BASE_BAR_SPACING)
     }
 
     /// Get scaled padding
     fn padding(&self) -> f32 {
-        BASE_PADDING * self.scale_factor()
+        self.frame.scaled(BASE_PADDING)
     }
 
     /// Get scaled font size
     fn font_size(&self) -> f32 {
-        BASE_FONT_SIZE * self.scale_factor()
+        self.frame.scaled(BASE_FONT_SIZE)
     }
 
     /// Update the metric entries
@@ -148,64 +124,30 @@ impl MetricOverlay {
 
     /// Render the metric
     pub fn render(&mut self) {
-        let width = self.window.width() as f32;
-        let height = self.window.height() as f32;
+        let width = self.frame.width() as f32;
 
         // Get scaled layout values
         let padding = self.padding();
         let font_size = self.font_size();
         let bar_height = self.bar_height();
         let bar_spacing = self.bar_spacing();
-        let corner_radius = 8.0 * self.scale_factor();
 
         // Get colors from config
         let font_color = color_from_rgba(self.appearance.font_color);
         let bar_color = color_from_rgba(self.appearance.bar_color);
-        let bg_color = Color::from_rgba8(30, 30, 30, self.background_alpha);
 
-        // Clear with transparent background
-        self.window.clear(colors::transparent());
+        // Begin frame (clear, background, border)
+        self.frame.begin_frame();
 
-        // Draw background
-        self.window
-            .fill_rounded_rect(0.0, 0.0, width, height, corner_radius, bg_color);
-
-        // Draw border when unlocked (interactive mode)
-        if self.window.is_interactive() {
-            let border_color = Color::from_rgba8(128, 128, 128, 200);
-            self.window.stroke_rounded_rect(
-                1.0, 1.0,
-                width - 2.0, height - 2.0,
-                corner_radius - 1.0,
-                2.0,
-                border_color,
-            );
-        }
-
+        let content_width = width - padding * 2.0;
+        let bar_radius = 4.0 * self.frame.scale_factor();
         let mut y = padding;
 
-        // Draw header (title) if enabled
+        // Draw header using Header widget
         if self.appearance.show_header {
-            let title_y = y + font_size;
-            self.window.draw_text(
-                &self.title,
-                padding,
-                title_y,
-                font_size,
-                font_color,
-            );
-
-            // Draw separator line
-            let sep_y = title_y + bar_spacing + 2.0;
-            self.window.fill_rect(
-                padding,
-                sep_y,
-                width - padding * 2.0,
-                0.2 * self.scale_factor(),
-                font_color,
-            );
-
-            y = sep_y + bar_spacing + 4.0 * self.scale_factor();
+            y = Header::new(&self.title)
+                .with_color(font_color)
+                .render(&mut self.frame, padding, y, content_width, font_size, bar_spacing);
         }
 
         // Limit entries to max_entries
@@ -213,128 +155,98 @@ impl MetricOverlay {
         let visible_entries: Vec<_> = self.entries.iter().take(max_entries).collect();
 
         // Find max value for scaling
-        let max_val = visible_entries.iter().map(|e| e.max_value as f64).fold(1.0, f64::max);
+        let max_val = visible_entries
+            .iter()
+            .map(|e| e.max_value as f64)
+            .fold(1.0, f64::max);
 
-        // Draw entries
-        let bar_width = width - padding * 2.0;
-        let bar_radius = 4.0 * self.scale_factor();
-        let text_font_size = font_size - 2.0 * self.scale_factor();
+        // Draw entries using ProgressBar widget
+        let text_font_size = font_size - 2.0 * self.frame.scale_factor();
 
         for entry in &visible_entries {
-            let progress = (entry.value as f64 / max_val).clamp(0.0, 1.0) as f32;
-
-            // Draw bar background
-            self.window.fill_rounded_rect(
-                padding, y, bar_width, bar_height, bar_radius, colors::dps_bar_bg()
-            );
-
-            // Draw bar fill (use entry color if set, otherwise config bar_color)
+            // Determine fill color (use entry color if custom, otherwise config bar_color)
             let fill_color = if entry.color != colors::dps_bar_fill() {
                 entry.color
             } else {
                 bar_color
             };
-            let fill_width = bar_width * progress;
-            if fill_width > 0.0 {
-                self.window.fill_rounded_rect(
-                    padding, y, fill_width, bar_height, bar_radius, fill_color
-                );
-            }
 
-            // Draw name on the left (truncated)
             let display_name = truncate_name(&entry.name, MAX_NAME_CHARS);
-            let text_y = y + bar_height / 2.0 + text_font_size / 3.0;
-            self.window.draw_text(
-                &display_name,
-                padding + 4.0 * self.scale_factor(),
-                text_y,
-                text_font_size,
-                font_color,
-            );
 
-            // Draw value on the right
-            let value_text = format!("{}", entry.value);
-            let (text_width, _) = self.window.measure_text(&value_text, text_font_size);
-            self.window.draw_text(
-                &value_text,
-                width - padding - text_width - 4.0 * self.scale_factor(),
-                text_y,
-                text_font_size,
-                font_color,
-            );
+            ProgressBar::new(display_name, entry.value as f64, max_val)
+                .with_fill_color(fill_color)
+                .with_bg_color(colors::dps_bar_bg())
+                .with_text_color(font_color)
+                .render(&mut self.frame, padding, y, content_width, bar_height, text_font_size, bar_radius);
 
             y += bar_height + bar_spacing;
         }
 
-        // Draw footer (total) if enabled
+        // Draw footer using Footer widget
         if self.appearance.show_footer {
             let total: i64 = visible_entries.iter().map(|e| e.value).sum();
-            let (text_width, _) = self.window.measure_text(&total.to_string(), text_font_size);
-            let footer_text = format!("{}", total);
 
-            // Draw separator
-            self.window.fill_rect(
-                padding,
-                y + 2.0,
-                width - padding * 2.0,
-                0.2 * self.scale_factor(),
-                font_color,
-            );
-
-            // Draw total
-            let footer_y = y + bar_spacing + font_size;
-            self.window.draw_text(
-                &footer_text,
-                width - padding - text_width - 4.0 * self.scale_factor(),
-                footer_y,
-                font_size - 2.0,
-                font_color,
-            );
+            Footer::new(total.to_string())
+                .with_color(font_color)
+                .render(&mut self.frame, padding, y, content_width, font_size - 2.0, bar_spacing);
         }
 
-        // Draw resize indicator in bottom-right corner when pointer is there
-        if self.window.in_resize_corner() || self.window.is_interactive() {
-            let indicator_size = 16.0;
-            let corner_x = width - indicator_size - 4.0;
-            let corner_y = height - indicator_size - 4.0;
-
-            // Draw a small triangle/grip indicator
-            let highlight = if self.window.is_resizing() {
-                colors::white()
-            } else {
-                Color::from_rgba8(255, 255, 255, 180)
-            };
-
-            // Draw diagonal lines as resize grip
-            for i in 0..3 {
-                let offset = i as f32 * 5.0;
-                self.window.fill_rect(
-                    corner_x + offset,
-                    corner_y + indicator_size - 2.0,
-                    indicator_size - offset,
-                    2.0,
-                    highlight,
-                );
-                self.window.fill_rect(
-                    corner_x + indicator_size - 2.0,
-                    corner_y + offset,
-                    2.0,
-                    indicator_size - offset,
-                    highlight,
-                );
-            }
-        }
-
-        self.window.commit();
+        // End frame (resize indicator, commit)
+        self.frame.end_frame();
     }
 
     /// Poll for events
     pub fn poll_events(&mut self) -> bool {
-        self.window.poll_events()
+        self.frame.poll_events()
     }
 
-    /// Get mutable access to the underlying window
-    pub fn window_mut(&mut self) -> &mut OverlayWindow {
-        &mut self.window
+    /// Get mutable access to the underlying frame
+    pub fn frame_mut(&mut self) -> &mut OverlayFrame {
+        &mut self.frame
+    }
+
+    /// Get immutable access to the underlying frame
+    pub fn frame(&self) -> &OverlayFrame {
+        &self.frame
+    }
+
+    /// Get mutable access to the underlying window (convenience method)
+    pub fn window_mut(&mut self) -> &mut crate::manager::OverlayWindow {
+        self.frame.window_mut()
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Overlay Trait Implementation
+// ─────────────────────────────────────────────────────────────────────────────
+
+impl Overlay for MetricOverlay {
+    fn update_data(&mut self, data: OverlayData) {
+        if let OverlayData::Metrics(entries) = data {
+            self.set_entries(entries);
+        }
+    }
+
+    fn update_config(&mut self, config: OverlayConfigUpdate) {
+        if let OverlayConfigUpdate::Metric(appearance, alpha) = config {
+            self.set_appearance(appearance);
+            self.set_background_alpha(alpha);
+        }
+    }
+
+    fn render(&mut self) {
+        MetricOverlay::render(self);
+    }
+
+    fn poll_events(&mut self) -> bool {
+        self.frame.poll_events()
+    }
+
+    fn frame(&self) -> &OverlayFrame {
+        &self.frame
+    }
+
+    fn frame_mut(&mut self) -> &mut OverlayFrame {
+        &mut self.frame
     }
 }

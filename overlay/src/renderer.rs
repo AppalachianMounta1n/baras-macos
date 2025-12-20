@@ -369,4 +369,10 @@ pub mod colors {
     pub fn tank_bar_fill() -> Color {
         Color::from_rgba8(50, 100, 180, 255)
     }
+
+    /// Dimmed label color for secondary text
+    #[inline]
+    pub fn label_dim() -> Color {
+        Color::from_rgba8(180, 180, 180, 255)
+    }
 }
