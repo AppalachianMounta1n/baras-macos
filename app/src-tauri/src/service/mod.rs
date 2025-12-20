@@ -35,7 +35,7 @@ pub enum ServiceCommand {
     Shutdown,
     FileDetected(PathBuf),
     FileRemoved(PathBuf),
-    UpdateConfig { old: AppConfig, new: AppConfig },
+    DirectoryChanged,
 }
 
 /// Updates sent to the overlay system
@@ -164,26 +164,11 @@ impl CombatService {
                 ServiceCommand::FileRemoved(path) => {
                     self.file_removed(path).await;
                 }
-                ServiceCommand::UpdateConfig { old, new } => {
-                    self.update_config(old, new).await;
+                ServiceCommand::DirectoryChanged => {
+                    self.on_directory_changed().await;
                 }
             }
         }
-    }
-
-    async fn update_config(&mut self, old_config: AppConfig, new_config: AppConfig) {
-        // Note: shared config already updated by ServiceHandle::update_config
-        // This handler only processes side effects
-
-        // Trigger side effects for changed fields
-        if old_config.log_directory != new_config.log_directory {
-            eprintln!(
-                "Directory changed: {} -> {}",
-                old_config.log_directory, new_config.log_directory
-            );
-            self.on_directory_changed().await;
-        }
-
     }
 
     async fn on_directory_changed(&mut self) {
@@ -302,7 +287,7 @@ impl CombatService {
         };
 
       // Clone the command sender so watcher can send back to service
-      let cmd_tx = self.cmd_tx.clone();  // ← You'll need to store cmd_tx in CombatService
+      let cmd_tx = self.cmd_tx.clone();
 
       let handle = tokio::spawn(async move {
           while let Some(event) = watcher.next_event().await {

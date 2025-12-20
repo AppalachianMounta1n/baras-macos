@@ -106,7 +106,7 @@ fn test_parse_details_damage_basic() {
 #[test]
 fn test_parse_details_damage_crit() {
     let input = " (7500* energy {836045448940874}) <7500.0>";
-    let result = parse_details(input, effect_id::DAMAGE, effect_type_id::APPLYEFFECT);
+    let result = LogParser::parse_details(input, effect_id::DAMAGE, effect_type_id::APPLYEFFECT);
     assert!(result.is_some());
 
     let details = result.unwrap();
@@ -118,7 +118,7 @@ fn test_parse_details_damage_crit() {
 #[test]
 fn test_parse_details_damage_with_effective() {
     let input = " (5000 ~3500 kinetic {836045448940873}) <3500.0>";
-    let result = parse_details(input, effect_id::DAMAGE, effect_type_id::APPLYEFFECT);
+    let result = LogParser::parse_details(input, effect_id::DAMAGE, effect_type_id::APPLYEFFECT);
     assert!(result.is_some());
 
     let details = result.unwrap();
@@ -131,7 +131,7 @@ fn test_parse_details_damage_with_effective() {
 fn test_parse_details_damage_with_absorbed() {
     let input =
         " (5000 ~3000 kinetic {836045448940873} (2000 absorbed {836045448945511})) <5000.0>";
-    let result = parse_details(input, effect_id::DAMAGE, effect_type_id::APPLYEFFECT);
+    let result = LogParser::parse_details(input, effect_id::DAMAGE, effect_type_id::APPLYEFFECT);
     assert!(result.is_some());
 
     let details = result.unwrap();
@@ -144,7 +144,7 @@ fn test_parse_details_damage_with_absorbed() {
 #[test]
 fn test_parse_details_damage_miss() {
     let input = " (0 -miss {836045448945502}) <15000.0>";
-    let result = parse_details(input, effect_id::DAMAGE, effect_type_id::APPLYEFFECT);
+    let result = LogParser::parse_details(input, effect_id::DAMAGE, effect_type_id::APPLYEFFECT);
     assert!(result.is_some());
 
     let details = result.unwrap();
@@ -156,7 +156,7 @@ fn test_parse_details_damage_miss() {
 #[test]
 fn test_parse_dmage_shielded() {
     let input = "(2583* energy {836045448940874} -shield {836045448945509} (1150 absorbed {836045448945511})) <2583.0>";
-    let result = parse_details(input, effect_id::DAMAGE, effect_type_id::APPLYEFFECT);
+    let result = LogParser::parse_details(input, effect_id::DAMAGE, effect_type_id::APPLYEFFECT);
     assert!(result.is_some());
 
     let details = result.unwrap();

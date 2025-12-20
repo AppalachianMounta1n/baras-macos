@@ -2,7 +2,7 @@
 //!
 //! This provides cross-platform 2D rendering for overlay content.
 //! All rendering is done on the CPU and produces an RGBA pixel buffer.
-
+#![allow(clippy::too_many_arguments)]
 use cosmic_text::{
     Attrs, Buffer, Color as CosmicColor, Family, FontSystem, Metrics, Shaping, SwashCache,
 };
@@ -153,7 +153,7 @@ impl Renderer {
         let mut text_buffer = Buffer::new(&mut self.font_system, metrics);
 
         let attrs = Attrs::new().family(Family::Name("Noto Sans"));
-        text_buffer.set_text(&mut self.font_system, text, attrs, Shaping::Advanced);
+        text_buffer.set_text(&mut self.font_system, text, &attrs, Shaping::Advanced, None);
         text_buffer.shape_until_scroll(&mut self.font_system, false);
 
         let text_color = CosmicColor::rgba(
@@ -195,7 +195,7 @@ impl Renderer {
         let mut text_buffer = Buffer::new(&mut self.font_system, metrics);
 
         let attrs = Attrs::new().family(Family::SansSerif);
-        text_buffer.set_text(&mut self.font_system, text, attrs, Shaping::Advanced);
+        text_buffer.set_text(&mut self.font_system, text, &attrs, Shaping::Advanced, None);
         text_buffer.shape_until_scroll(&mut self.font_system, false);
 
         let mut width = 0.0f32;
@@ -343,10 +343,10 @@ pub mod colors {
     /// Semi-transparent background for overlays
     #[inline]
     pub fn overlay_bg() -> Color {
-        Color::from_rgba8(30, 30, 30, 200)
+        Color::from_rgba8(30, 30, 30, 10)
     }
 
-    /// DPS meter background
+    /// DPS metric background
     #[inline]
     pub fn dps_bar_bg() -> Color {
         Color::from_rgba8(60, 60, 60, 180)

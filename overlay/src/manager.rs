@@ -2,6 +2,7 @@
 //!
 //! Provides the OverlayWindow type which wraps platform-specific windows
 //! with a high-level rendering API.
+#![allow(clippy::too_many_arguments)]
 
 use crate::platform::{NativeOverlay, OverlayConfig, OverlayPlatform, PlatformError};
 use crate::renderer::Renderer;

@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+#![allow(clippy::too_many_arguments)]
 
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -292,7 +293,7 @@ pub fn App() -> Element {
             // Overlay toggles
             section { class: "overlay-controls",
                 h3 { "Meters" }
-                div { class: "overlay-meters",
+                div { class: "overlay-metrics",
                     button {
                         class: if dps_on { "btn btn-overlay btn-active" } else { "btn btn-overlay" },
                         onclick: make_toggle_overlay(OverlayType::Dps, dps_on, dps_enabled),

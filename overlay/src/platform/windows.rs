@@ -2,6 +2,7 @@
 //!
 //! Uses Win32 API to create transparent, always-on-top overlay windows
 //! with click-through support.
+#![allow(clippy::too_many_arguments)]
 
 use std::mem;
 use std::ptr;

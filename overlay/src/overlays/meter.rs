@@ -8,7 +8,7 @@ use crate::manager::OverlayWindow;
 use crate::platform::{OverlayConfig, PlatformError};
 use crate::renderer::colors;
 
-/// Entry in a DPS/HPS meter
+/// Entry in a DPS/HPS metric
 #[derive(Debug, Clone)]
 pub struct MeterEntry {
     pub name: String,
@@ -43,15 +43,15 @@ const BASE_BAR_SPACING: f32 = 4.0;
 const BASE_PADDING: f32 = 8.0;
 const BASE_FONT_SIZE: f32 = 14.0;
 
-/// A specialized DPS/HPS meter overlay
-pub struct MeterOverlay {
+/// A specialized DPS/HPS metric overlay
+pub struct MetricOverlay {
     window: OverlayWindow,
     entries: Vec<MeterEntry>,
     title: String,
 }
 
-impl MeterOverlay {
-    /// Create a new meter overlay
+impl MetricOverlay {
+    /// Create a new metric overlay
     pub fn new(config: OverlayConfig, title: &str) -> Result<Self, PlatformError> {
         let window = OverlayWindow::new(config)?;
 
@@ -93,7 +93,7 @@ impl MeterOverlay {
         BASE_FONT_SIZE * self.scale_factor()
     }
 
-    /// Update the meter entries
+    /// Update the metric entries
     pub fn set_entries(&mut self, entries: Vec<MeterEntry>) {
         self.entries = entries;
     }
@@ -108,7 +108,7 @@ impl MeterOverlay {
         self.entries.len()
     }
 
-    /// Render the meter
+    /// Render the metric
     pub fn render(&mut self) {
         let width = self.window.width() as f32;
         let height = self.window.height() as f32;
@@ -209,7 +209,7 @@ impl MeterOverlay {
         }
 
         // Draw resize indicator in bottom-right corner when pointer is there
-        if self.window.in_resize_corner() || self.window.is_resizing() {
+        if self.window.in_resize_corner() || self.window.is_interactive() {
             let indicator_size = 16.0;
             let corner_x = width - indicator_size - 4.0;
             let corner_y = height - indicator_size - 4.0;

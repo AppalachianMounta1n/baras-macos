@@ -4,6 +4,6 @@
 //! combat information. Overlays use widgets for rendering and the platform
 //! layer for window management.
 
-mod meter;
+mod metric;
 
-pub use meter::{MeterEntry, MeterOverlay};
+pub use metric::{MeterEntry, MetricOverlay};

@@ -6,7 +6,7 @@ use tauri::State;
 use serde::{Deserialize, Serialize};
 
 use baras_core::context::OverlayPositionConfig;
-use baras_overlay::{colors, Color, MeterEntry, MeterOverlay, OverlayConfig};
+use baras_overlay::{colors, Color, MeterEntry, MetricOverlay, OverlayConfig};
 
 /// Type alias for shared overlay state (must match lib.rs)
 pub type SharedOverlayState = Arc<Mutex<OverlayState>>;
@@ -184,7 +184,7 @@ pub fn spawn_overlay(
             click_through: true,
         };
 
-        let mut overlay = match MeterOverlay::new(config, &title) {
+        let mut overlay = match MetricOverlay::new(config, &title) {
             Ok(o) => o,
             Err(e) => {
                 eprintln!("Failed to create overlay {}: {}", title, e);

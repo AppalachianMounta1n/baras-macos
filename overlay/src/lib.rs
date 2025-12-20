@@ -7,7 +7,7 @@
 //! ```text
 //! ┌─────────────────────────────────────────────────────┐
 //! │                    overlays/                        │
-//! │   MeterOverlay, TimerOverlay, BossHealthOverlay     │
+//! │   MetricOverlay, TimerOverlay, BossHealthOverlay     │
 //! │          (complete overlay implementations)          │
 //! ├─────────────────────────────────────────────────────┤
 //! │                    widgets/                          │
@@ -36,7 +36,7 @@ pub mod widgets;
 
 // Re-export commonly used types
 pub use manager::OverlayWindow;
-pub use overlays::{MeterEntry, MeterOverlay};
+pub use overlays::{MeterEntry, MetricOverlay};
 pub use platform::{NativeOverlay, OverlayConfig, OverlayPlatform, PlatformError};
 pub use renderer::{colors, Renderer};
 pub use widgets::ProgressBar;

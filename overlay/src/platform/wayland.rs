@@ -2,6 +2,7 @@
 //!
 //! This provides overlay windows on Wayland compositors that support
 //! the wlr-layer-shell protocol (wlroots-based compositors like Hyprland, Sway, etc.)
+#![allow(clippy::too_many_arguments)]
 
 use std::os::fd::AsFd;
 
@@ -286,8 +287,8 @@ impl OverlayPlatform for WaylandOverlay {
 
         // Only create pointer if interactive (not click-through)
         // This saves memory/CPU when overlay is locked
-        if !config.click_through {
-            if let Some(seat) = &state.seat {
+        if !config.click_through
+            && let Some(seat) = &state.seat {
                 let pointer = seat.get_pointer(&qh, ());
                 // Create relative pointer if manager is available
                 if let Some(rpm) = &state.relative_pointer_manager {
@@ -295,7 +296,6 @@ impl OverlayPlatform for WaylandOverlay {
                     state.relative_pointer = Some(rel_pointer);
                 }
                 state.pointer = Some(pointer);
-            }
         }
 
         // Create surface
@@ -398,12 +398,11 @@ impl OverlayPlatform for WaylandOverlay {
         }
 
         // Update input region if click-through is disabled (interactive mode)
-        if !self.config.click_through {
-            if let (Some(compositor), Some(surface)) = (&self.state.compositor, &self.state.surface) {
+        if !self.config.click_through
+            && let (Some(compositor), Some(surface)) = (&self.state.compositor, &self.state.surface) {
                 let region = compositor.create_region(&self.qh, ());
                 region.add(0, 0, width as i32, height as i32);
                 surface.set_input_region(Some(&region));
-            }
         }
 
         if let Some(surface) = &self.state.surface {
@@ -440,8 +439,8 @@ impl OverlayPlatform for WaylandOverlay {
             self.state.in_resize_corner = false;
         } else {
             // Interactive mode: acquire pointer if we don't have one
-            if self.state.pointer.is_none() {
-                if let Some(seat) = &self.state.seat {
+            if self.state.pointer.is_none()
+                && let Some(seat) = &self.state.seat {
                     let pointer = seat.get_pointer(&self.qh, ());
                     // Create relative pointer if manager is available
                     if let Some(rpm) = &self.state.relative_pointer_manager {
@@ -450,7 +449,6 @@ impl OverlayPlatform for WaylandOverlay {
                     }
                     self.state.pointer = Some(pointer);
                 }
-            }
         }
     }
 
@@ -735,12 +733,8 @@ impl Dispatch<WlPointer, ()> for WaylandState {
                     let new_height = state.pending_height as i32 + delta_y as i32;
 
                     // Clamp to min/max size constraints
-                    let clamped_width = (new_width as u32)
-                        .max(MIN_OVERLAY_SIZE)
-                        .min(MAX_OVERLAY_WIDTH);
-                    let clamped_height = (new_height as u32)
-                        .max(MIN_OVERLAY_SIZE)
-                        .min(MAX_OVERLAY_HEIGHT);
+                    let clamped_width = (new_width as u32).clamp(MIN_OVERLAY_SIZE, MAX_OVERLAY_WIDTH);
+                    let clamped_height = (new_height as u32).clamp(MIN_OVERLAY_SIZE,MAX_OVERLAY_HEIGHT);
 
                     if new_width > 0 && new_height > 0 {
                         state.pending_width = clamped_width;
@@ -830,8 +824,7 @@ impl Dispatch<ZwpRelativePointerV1, ()> for WaylandState {
         _conn: &Connection,
         _qh: &QueueHandle<Self>,
     ) {
-        match event {
-            zwp_relative_pointer_v1::Event::RelativeMotion { dx, dy, .. } => {
+            if let zwp_relative_pointer_v1::Event::RelativeMotion { dx, dy, .. } = event {
                 // dx, dy are in surface-local coordinates but represent actual cursor movement
                 // This is the key: these deltas don't change when the window moves!
                 if state.is_dragging {
@@ -845,8 +838,6 @@ impl Dispatch<ZwpRelativePointerV1, ()> for WaylandState {
 
                     state.update_position(new_x, new_y);
                 }
-            }
-            _ => {}
         }
     }
 }

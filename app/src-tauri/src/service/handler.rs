@@ -54,22 +54,19 @@ impl ServiceHandle {
     }
 
     /// Update the configuration
-    ///
-    /// Updates shared state immediately for reads, then sends command
-    /// for side effects (disk save, watcher updates, etc.)
     pub async fn update_config(&self, config: AppConfig) -> Result<(), String> {
-        // Capture old config before updating for change detection
-        let old_config = self.shared.config.read().await.clone();
-
-        // Update shared state immediately so subsequent reads see the new values
+        let old_dir = self.shared.config.read().await.log_directory.clone();
+        let new_dir = config.log_directory.clone();
         *self.shared.config.write().await = config.clone();
+        config.save();
 
-        // Send command for side effects (save to disk, trigger watchers, etc.)
-        // Pass old_config so service can detect what changed
-        self.cmd_tx
-            .send(ServiceCommand::UpdateConfig { old: old_config, new: config })
-            .await
-            .map_err(|e| e.to_string())
+        if old_dir != new_dir {
+            self.cmd_tx
+                .send(ServiceCommand::DirectoryChanged)
+                .await
+                .map_err(|e| e.to_string())?;
+        }
+        Ok(())
     }
 
     /// Get log file entries for the UI

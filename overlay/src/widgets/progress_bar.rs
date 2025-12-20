@@ -1,5 +1,5 @@
 //! Progress bar widget for displaying metrics
-
+#![allow(clippy::too_many_arguments)]
 use tiny_skia::Color;
 
 use crate::manager::OverlayWindow;

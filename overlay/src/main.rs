@@ -1,10 +1,10 @@
-//! Example overlay application demonstrating the DPS meter
+//! Example overlay application demonstrating the DPS metric
 //!
-//! This is a standalone example that creates a DPS meter overlay
+//! This is a standalone example that creates a DPS metric overlay
 //! with sample data. In production, this would receive data from
 //! the core combat log parser.
 
-use baras_overlay::{MeterEntry, MeterOverlay, OverlayConfig, colors};
+use baras_overlay::{MeterEntry, MetricOverlay, OverlayConfig, colors};
 use std::time::{Duration, Instant};
 
 fn main() {
@@ -14,12 +14,12 @@ fn main() {
         y: 500,
         width: 280,
         height: 200,
-        namespace: "baras-dps-meter".to_string(),
+        namespace: "baras-dps-metric".to_string(),
         click_through: false,
     };
 
-    // Create the meter overlay
-    let mut meter = match MeterOverlay::new(config, "DPS Meter") {
+    // Create the metric overlay
+    let mut metric = match MetricOverlay::new(config, "DPS Meter") {
         Ok(m) => m,
         Err(e) => {
             eprintln!("Failed to create overlay: {}", e);
@@ -55,7 +55,7 @@ fn main() {
         },
     ];
 
-    meter.set_entries(entries);
+    metric.set_entries(entries);
 
     let start = Instant::now();
     let mut last_frame = Instant::now();
@@ -65,7 +65,7 @@ fn main() {
 
     // Main loop
     loop {
-        if !meter.poll_events() {
+        if !metric.poll_events() {
             break;
         }
 
@@ -74,10 +74,10 @@ fn main() {
         if now.duration_since(last_frame) >= frame_duration {
             // Update title with elapsed time (demo purposes)
             let elapsed = start.elapsed().as_secs();
-            meter.set_title(&format!("DPS Meter - {}:{:02}", elapsed / 60, elapsed % 60));
+            metric.set_title(&format!("DPS Meter - {}:{:02}", elapsed / 60, elapsed % 60));
 
-            // Render the meter
-            meter.render();
+            // Render the metric
+            metric.render();
 
             last_frame = now;
         }
