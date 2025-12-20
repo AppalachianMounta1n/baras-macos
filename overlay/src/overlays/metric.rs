@@ -60,7 +60,7 @@ const BASE_PADDING: f32 = 8.0;
 const BASE_FONT_SIZE: f32 = 14.0;
 
 /// Maximum characters for player names before truncation
-const MAX_NAME_CHARS: usize = 12;
+const MAX_NAME_CHARS: usize = 16;
 
 /// A specialized DPS/HPS metric overlay
 pub struct MetricOverlay {
@@ -201,7 +201,7 @@ impl MetricOverlay {
                 padding,
                 sep_y,
                 width - padding * 2.0,
-                1.0 * self.scale_factor(),
+                0.2 * self.scale_factor(),
                 font_color,
             );
 
@@ -269,14 +269,15 @@ impl MetricOverlay {
         // Draw footer (total) if enabled
         if self.appearance.show_footer {
             let total: i64 = visible_entries.iter().map(|e| e.value).sum();
-            let footer_text = format!("Total: {}", total);
+            let (text_width, _) = self.window.measure_text(&total.to_string(), text_font_size);
+            let footer_text = format!("{}", total);
 
             // Draw separator
             self.window.fill_rect(
                 padding,
                 y + 2.0,
                 width - padding * 2.0,
-                1.0 * self.scale_factor(),
+                0.2 * self.scale_factor(),
                 font_color,
             );
 
@@ -284,7 +285,7 @@ impl MetricOverlay {
             let footer_y = y + bar_spacing + font_size;
             self.window.draw_text(
                 &footer_text,
-                padding,
+                width - padding - text_width - 4.0 * self.scale_factor(),
                 footer_y,
                 font_size - 2.0,
                 font_color,
