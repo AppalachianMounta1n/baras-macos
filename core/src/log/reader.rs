@@ -1,5 +1,6 @@
 use crate::context::ParsingSession;
 use crate::{CombatEvent, LogParser};
+use encoding_rs::WINDOWS_1252;
 use memchr::memchr_iter;
 use memmap2::Mmap;
 use rayon::prelude::*;
@@ -59,8 +60,7 @@ impl Reader {
             .par_iter()
             .enumerate()
             .filter_map(|(idx, &(start, end))| {
-                // Use lossy conversion to handle any non-UTF8 bytes safely
-                let line = String::from_utf8_lossy(&bytes[start..end]);
+                let (line, _, _) = WINDOWS_1252.decode(&bytes[start..end]);
                 parser.parse_line(idx as u64 + 1, &line)
             })
             .collect();
@@ -70,13 +70,13 @@ impl Reader {
 
     //tailing live log file always write to session cache
     pub async fn tail_log_file(self) -> Result<()> {
-        const CRLF: &str = "\r\n";
+        const CRLF: &[u8] = b"\r\n";
         let file = File::open(&self.path).await?;
         let mut reader = BufReader::new(file);
         let mut line_number = 0u64;
         let pos = self.state.read().await.current_byte.unwrap_or(0);
 
-        let sesion_date = self
+        let session_date = self
             .state
             .read()
             .await
@@ -85,25 +85,26 @@ impl Reader {
 
         reader.seek(SeekFrom::Start(pos)).await?;
 
-        let parser = LogParser::new(sesion_date);
-        let mut line = String::new();
+        let parser = LogParser::new(session_date);
+        let mut buf = Vec::new();
 
         loop {
-            match reader.read_line(&mut line).await {
+            match reader.read_until(b'\n', &mut buf).await {
                 Ok(0) => {
                     sleep(TAIL_SLEEP_DURATION).await;
                     continue;
                 }
                 Ok(_) => {
-                    // Only process if line is complete (ends with newline)
-                    if line.ends_with(CRLF) {
+                    // Only process if line is complete (ends with CRLF)
+                    if buf.ends_with(CRLF) {
+                        let (line, _, _) = WINDOWS_1252.decode(&buf);
                         if let Some(event) = parser.parse_line(line_number, &line) {
                             self.state.write().await.process_event(event);
                         }
-                        line.clear();
+                        buf.clear();
                         line_number += 1;
                     }
-                    // Otherwise keep partial data, next read_line will append to it
+                    // Otherwise keep partial data, next read will append to it
                 }
                 Err(_) => break,
             }

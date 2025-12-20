@@ -430,6 +430,7 @@ dependencies = [
  "chrono",
  "confy",
  "dirs",
+ "encoding_rs",
  "hashbrown 0.16.1",
  "lasso",
  "memchr",
