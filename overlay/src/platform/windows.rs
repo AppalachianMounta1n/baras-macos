@@ -12,7 +12,7 @@ use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, WPARAM};
 use windows::Win32::Graphics::Gdi::{
     CreateCompatibleDC, CreateDIBSection, DeleteDC, EnumDisplayMonitors, GetCurrentObject, GetDC,
     GetMonitorInfoW, ReleaseDC, SelectObject, SetDIBits, BITMAPINFO, BITMAPINFOHEADER, BI_RGB,
-    DIB_RGB_COLORS, HDC, HBITMAP, HGDIOBJ, HMONITOR, MONITORINFOEXW, OBJ_BITMAP,
+    DIB_RGB_COLORS, HDC, HBITMAP, HMONITOR, MONITORINFOEXW, OBJ_BITMAP,
 };
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::UI::Input::KeyboardAndMouse::{ReleaseCapture, SetCapture};
@@ -58,6 +58,7 @@ pub fn get_all_monitors() -> Vec<MonitorInfo> {
             _rect: *mut RECT,
             lparam: LPARAM,
         ) -> windows::Win32::Foundation::BOOL {
+            #[allow(dead_code)]
             struct RawMonitor {
                 device_name: String,
                 x: i32,
@@ -67,29 +68,31 @@ pub fn get_all_monitors() -> Vec<MonitorInfo> {
                 is_primary: bool,
             }
 
-            let raw_monitors = &mut *(lparam.0 as *mut Vec<RawMonitor>);
+            unsafe {
+                let raw_monitors = &mut *(lparam.0 as *mut Vec<RawMonitor>);
 
-            let mut info = MONITORINFOEXW::default();
-            info.monitorInfo.cbSize = mem::size_of::<MONITORINFOEXW>() as u32;
+                let mut info = MONITORINFOEXW::default();
+                info.monitorInfo.cbSize = mem::size_of::<MONITORINFOEXW>() as u32;
 
-            if GetMonitorInfoW(hmonitor, &mut info.monitorInfo).as_bool() {
-                let rc = info.monitorInfo.rcMonitor;
+                if GetMonitorInfoW(hmonitor, &mut info.monitorInfo).as_bool() {
+                    let rc = info.monitorInfo.rcMonitor;
 
-                // Convert device name (wide string) to String
-                let name_len = info.szDevice.iter().position(|&c| c == 0).unwrap_or(info.szDevice.len());
-                let device_name = String::from_utf16_lossy(&info.szDevice[..name_len]);
+                    // Convert device name (wide string) to String
+                    let name_len = info.szDevice.iter().position(|&c| c == 0).unwrap_or(info.szDevice.len());
+                    let device_name = String::from_utf16_lossy(&info.szDevice[..name_len]);
 
-                raw_monitors.push(RawMonitor {
-                    device_name,
-                    x: rc.left,
-                    y: rc.top,
-                    width: (rc.right - rc.left) as u32,
-                    height: (rc.bottom - rc.top) as u32,
-                    is_primary: info.monitorInfo.dwFlags & 1 != 0,
-                });
+                    raw_monitors.push(RawMonitor {
+                        device_name,
+                        x: rc.left,
+                        y: rc.top,
+                        width: (rc.right - rc.left) as u32,
+                        height: (rc.bottom - rc.top) as u32,
+                        is_primary: info.monitorInfo.dwFlags & 1 != 0,
+                    });
+                }
+
+                windows::Win32::Foundation::BOOL::from(true)
             }
-
-            windows::Win32::Foundation::BOOL::from(true)
         }
 
         let raw_ptr = &mut raw_monitors as *mut Vec<RawMonitor>;
@@ -164,6 +167,10 @@ pub struct WindowsOverlay {
     pending_height: u32,
     running: bool,
 }
+
+// SAFETY: WindowsOverlay is only accessed from its dedicated thread after spawning.
+// The HWND handle is created and used exclusively within that thread's event loop.
+unsafe impl Send for WindowsOverlay {}
 
 impl WindowsOverlay {
     fn register_class() -> Result<(), PlatformError> {
@@ -620,7 +627,7 @@ impl OverlayPlatform for WindowsOverlay {
                         return false;
                     }
                     _ => {
-                        TranslateMessage(&msg);
+                        let _ = TranslateMessage(&msg);
                         DispatchMessageW(&msg);
                     }
                 }
@@ -650,29 +657,31 @@ impl OverlayPlatform for WindowsOverlay {
                 _rect: *mut RECT,
                 lparam: LPARAM,
             ) -> windows::Win32::Foundation::BOOL {
-                let raw_monitors = &mut *(lparam.0 as *mut Vec<RawMonitor>);
+                unsafe {
+                    let raw_monitors = &mut *(lparam.0 as *mut Vec<RawMonitor>);
 
-                let mut info = MONITORINFOEXW::default();
-                info.monitorInfo.cbSize = mem::size_of::<MONITORINFOEXW>() as u32;
+                    let mut info = MONITORINFOEXW::default();
+                    info.monitorInfo.cbSize = mem::size_of::<MONITORINFOEXW>() as u32;
 
-                if GetMonitorInfoW(hmonitor, &mut info.monitorInfo).as_bool() {
-                    let rc = info.monitorInfo.rcMonitor;
+                    if GetMonitorInfoW(hmonitor, &mut info.monitorInfo).as_bool() {
+                        let rc = info.monitorInfo.rcMonitor;
 
-                    // Convert device name (wide string) to String
-                    let name_len = info.szDevice.iter().position(|&c| c == 0).unwrap_or(info.szDevice.len());
-                    let device_name = String::from_utf16_lossy(&info.szDevice[..name_len]);
+                        // Convert device name (wide string) to String
+                        let name_len = info.szDevice.iter().position(|&c| c == 0).unwrap_or(info.szDevice.len());
+                        let device_name = String::from_utf16_lossy(&info.szDevice[..name_len]);
 
-                    raw_monitors.push(RawMonitor {
-                        device_name,
-                        x: rc.left,
-                        y: rc.top,
-                        width: (rc.right - rc.left) as u32,
-                        height: (rc.bottom - rc.top) as u32,
-                        is_primary: info.monitorInfo.dwFlags & 1 != 0,
-                    });
+                        raw_monitors.push(RawMonitor {
+                            device_name,
+                            x: rc.left,
+                            y: rc.top,
+                            width: (rc.right - rc.left) as u32,
+                            height: (rc.bottom - rc.top) as u32,
+                            is_primary: info.monitorInfo.dwFlags & 1 != 0,
+                        });
+                    }
+
+                    windows::Win32::Foundation::BOOL::from(true)
                 }
-
-                windows::Win32::Foundation::BOOL::from(true)
             }
 
             let raw_ptr = &mut raw_monitors as *mut Vec<RawMonitor>;
@@ -709,7 +718,7 @@ impl Drop for WindowsOverlay {
     fn drop(&mut self) {
         unsafe {
             if !self.hdc_mem.is_invalid() {
-                DeleteDC(self.hdc_mem);
+                let _ = DeleteDC(self.hdc_mem);
             }
             if !self.hwnd.is_invalid() {
                 let _ = DestroyWindow(self.hwnd);
