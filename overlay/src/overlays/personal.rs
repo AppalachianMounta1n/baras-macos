@@ -93,8 +93,8 @@ impl PersonalOverlay {
     /// Get the display value for a stat
     fn stat_display(&self, stat: PersonalStat) -> (&'static str, String) {
         match stat {
-            PersonalStat::EncounterTime => ("Duration", format_time(self.stats.encounter_time_secs)),
-            PersonalStat::EncounterCount => ("Encounter #", format!("{}", self.stats.encounter_count)),
+            PersonalStat::EncounterTime => ("Combat Time", format_time(self.stats.encounter_time_secs)),
+            PersonalStat::EncounterCount => ("Session Encounters", format!("{}", self.stats.encounter_count)),
             PersonalStat::Apm => ("APM", format!("{:.1}", self.stats.apm)),
             PersonalStat::Dps => ("DPS", format_number(self.stats.dps as i64)),
             PersonalStat::EDps => ("eDPS", format_number(self.stats.edps as i64)),
@@ -130,6 +130,7 @@ impl PersonalOverlay {
         let font_size = self.font_size();
         let line_height = self.line_height();
 
+        let label_color = color_from_rgba(self.config.label_color);
         let font_color = color_from_rgba(self.config.font_color);
 
         // Begin frame (clear, background, border)
@@ -143,6 +144,7 @@ impl PersonalOverlay {
             let (label, value) = self.stat_display(*stat);
 
             LabeledValue::new(label, value)
+                .with_label_color(label_color)
                 .with_value_color(font_color)
                 .render(&mut self.frame, padding, y, content_width, font_size);
 

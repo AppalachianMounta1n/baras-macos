@@ -150,14 +150,7 @@ impl Encounter {
 
     // --- Time Utils ---
 
-    pub fn duration_ms(&self) -> Option<i64> {
-        match (self.enter_combat_time, self.exit_combat_time) {
-            (Some(enter), Some(exit)) => Some(exit.signed_duration_since(enter).num_milliseconds()),
-            _ => None,
-        }
-    }
-
-    fn duration_seconds(&self) -> Option<i64> {
+     pub fn duration_seconds(&self) -> Option<i64> {
         let enter = self.enter_combat_time?;
         let terminal = match self.exit_combat_time {
             Some(exit) => exit,

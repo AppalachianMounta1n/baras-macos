@@ -19,6 +19,7 @@ use tokio::sync::{mpsc, RwLock};
 
 use baras_core::context::{resolve, AppConfig, DirectoryIndex, ParsingSession};
 use baras_core::{EntityType, GameSignal, Reader, SignalHandler};
+use baras_core::encounter::EncounterState;
 use baras_core::directory_watcher::DirectoryWatcher;
 use baras_overlay::PersonalStats;
 
@@ -450,8 +451,8 @@ async fn calculate_combat_data(shared: &Arc<SharedState>) -> Option<CombatData> 
 
     // Get encounter info
     let encounter = cache.last_combat_encounter()?;
-    let encounter_count = cache.encounter_count();
-    let encounter_time_secs = (encounter.duration_ms().unwrap_or(0) / 1000) as u64;
+    let encounter_count = cache.encounters().filter(|e| e.state != EncounterState::NotStarted ).map(|e| e.id + 1).max().unwrap_or(0) as usize;
+    let encounter_time_secs = encounter.duration_seconds().unwrap_or(0) as u64;
 
     // Calculate metrics for all players
     let entity_metrics = encounter.calculate_entity_metrics()?;

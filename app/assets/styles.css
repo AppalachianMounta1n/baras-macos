@@ -513,7 +513,7 @@ a:hover {
   background-color: #5a5a7a;
 }
 
-/* Settings modal backdrop */
+/* Settings modal backdrop - now non-blocking */
 .modal-backdrop {
   position: fixed;
   top: 0;
@@ -525,6 +525,13 @@ a:hover {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+}
+
+/* Non-blocking floating panel container */
+.floating-panel-container {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none; /* Allow clicks to pass through to elements below */
 }
 
 /* Settings panel (modal dialog) */
@@ -539,6 +546,24 @@ a:hover {
   text-align: left;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   overflow-y: auto;
+}
+
+/* Floating version of settings panel */
+.settings-panel.floating {
+  position: fixed;
+  width: 500px;
+  pointer-events: auto; /* Re-enable clicks on the panel itself */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Draggable header */
+.settings-header.draggable {
+  cursor: grab;
+  user-select: none;
+}
+
+.settings-header.draggable:active {
+  cursor: grabbing;
 }
 
 .settings-header {

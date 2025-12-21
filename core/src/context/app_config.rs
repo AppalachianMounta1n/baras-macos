@@ -124,6 +124,8 @@ pub struct PersonalOverlayConfig {
     pub visible_stats: Vec<PersonalStat>,
     #[serde(default = "default_font_color")]
     pub font_color: Color,
+    #[serde(default = "default_font_color")]
+    pub label_color: Color,
 }
 
 fn default_personal_stats() -> Vec<PersonalStat> {
@@ -141,6 +143,7 @@ impl Default for PersonalOverlayConfig {
         Self {
             visible_stats: default_personal_stats(),
             font_color: default_font_color(),
+            label_color: default_font_color(),
         }
     }
 }

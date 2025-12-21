@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-#![allow(clippy::too_many_arguments)]
+#![allow(clippy::too_many_argumentslabel)]
 
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -140,6 +140,8 @@ pub struct PersonalOverlayConfig {
     pub visible_stats: Vec<PersonalStat>,
     #[serde(default = "default_font_color")]
     pub font_color: Color,
+    #[serde(default = "default_font_color")]
+    pub label_color: Color,
 }
 
 fn default_personal_stats() -> Vec<PersonalStat> {
@@ -157,6 +159,7 @@ impl Default for PersonalOverlayConfig {
         Self {
             visible_stats: default_personal_stats(),
             font_color: default_font_color(),
+            label_color: default_font_color(),
         }
     }
 }
@@ -338,6 +341,11 @@ pub fn App() -> Element {
     let mut general_settings_open = use_signal(|| false);
     let mut overlay_settings = use_signal(OverlaySettings::default);
     let selected_overlay_tab = use_signal(|| "dps".to_string());
+
+    // Draggable panel state
+    let mut settings_panel_pos = use_signal(|| (100i32, 50i32)); // (x, y)
+    let mut settings_dragging = use_signal(|| false);
+    let mut settings_drag_offset = use_signal(|| (0i32, 0i32));
 
     // Fetch initial state from backend
     use_future(move || async move {
@@ -694,19 +702,49 @@ pub fn App() -> Element {
                 }
             }
 
-            // Settings modal
+            // Settings modal (floating, draggable, non-blocking)
             if settings_open() {
-                div {
-                    class: "modal-backdrop",
-                    onclick: move |_| settings_open.set(false),
+                // Drag overlay - captures mouse events during drag
+                if settings_dragging() {
                     div {
-                        // Stop click propagation so clicking the panel doesn't close it
-                        onclick: move |e| e.stop_propagation(),
-                        SettingsPanel {
-                            settings: overlay_settings,
-                            selected_tab: selected_overlay_tab,
-                            on_close: move |_| settings_open.set(false),
+                        style: "position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 999; cursor: grabbing;",
+                        onmousemove: move |e| {
+                            let (offset_x, offset_y) = settings_drag_offset();
+                            let new_x = e.client_coordinates().x as i32 - offset_x;
+                            let new_y = e.client_coordinates().y as i32 - offset_y;
+                            settings_panel_pos.set((new_x, new_y));
+                        },
+                        onmouseup: move |_| {
+                            settings_dragging.set(false);
                         }
+                    }
+                }
+
+                div {
+                    class: "floating-panel-wrapper",
+                    style: "position: fixed; left: {settings_panel_pos().0}px; top: {settings_panel_pos().1}px; z-index: 1000;",
+                    onmousemove: move |e| {
+                        if settings_dragging() {
+                            let (offset_x, offset_y) = settings_drag_offset();
+                            let new_x = e.client_coordinates().x as i32 - offset_x;
+                            let new_y = e.client_coordinates().y as i32 - offset_y;
+                            settings_panel_pos.set((new_x, new_y));
+                        }
+                    },
+                    onmouseup: move |_| {
+                        settings_dragging.set(false);
+                    },
+                    SettingsPanel {
+                        settings: overlay_settings,
+                        selected_tab: selected_overlay_tab,
+                        on_close: move |_| settings_open.set(false),
+                        on_header_mousedown: move |e: MouseEvent| {
+                            let (panel_x, panel_y) = settings_panel_pos();
+                            let offset_x = e.client_coordinates().x as i32 - panel_x;
+                            let offset_y = e.client_coordinates().y as i32 - panel_y;
+                            settings_drag_offset.set((offset_x, offset_y));
+                            settings_dragging.set(true);
+                        },
                     }
                 }
             }
@@ -784,6 +822,7 @@ fn SettingsPanel(
     settings: Signal<OverlaySettings>,
     selected_tab: Signal<String>,
     on_close: EventHandler<()>,
+    on_header_mousedown: EventHandler<MouseEvent>,
 ) -> Element {
     // Local draft of settings being edited
     let mut draft_settings = use_signal(|| settings());
@@ -821,6 +860,14 @@ fn SettingsPanel(
         current_settings.personal_overlay.font_color[1],
         current_settings.personal_overlay.font_color[2]
     );
+
+    let personal_label_font_color_hex = format!(
+        "#{:02x}{:02x}{:02x}",
+        current_settings.personal_overlay.label_color[0],
+        current_settings.personal_overlay.label_color[1],
+        current_settings.personal_overlay.label_color[2]
+    );
+
 
     // Save settings to backend (preserves positions)
     let save_to_backend = move |_| {
@@ -869,11 +916,14 @@ fn SettingsPanel(
 
     rsx! {
         section { class: "settings-panel",
-            div { class: "settings-header",
+            div {
+                class: "settings-header draggable",
+                onmousedown: move |e| on_header_mousedown.call(e),
                 h3 { "Overlay Settings" }
                 button {
                     class: "btn btn-close",
                     onclick: move |_| on_close.call(()),
+                    onmousedown: move |e| e.stop_propagation(), // Don't start drag when clicking close
                     "X"
                 }
             }
@@ -1236,7 +1286,7 @@ fn SettingsPanel(
 
                     // Personal overlay font color
                     div { class: "setting-row",
-                        label { "Font Color" }
+                        label { "Value Font Color" }
                         input {
                             r#type: "color",
                             key: "personal-font",
@@ -1252,6 +1302,22 @@ fn SettingsPanel(
                         }
                     }
 
+                    div { class: "setting-row",
+                        label { "Label Font Color" }
+                        input {
+                            r#type: "color",
+                            key: "personal-label-font",
+                            value: "{personal_label_font_color_hex}",
+                            class: "color-picker",
+                            oninput: move |e: Event<FormData>| {
+                                if let Some(color) = parse_hex_color(&e.value()) {
+                                    let mut new_settings = draft_settings();
+                                    new_settings.personal_overlay.label_color = color;
+                                    update_draft(new_settings);
+                                }
+                            }
+                        }
+                    }
                     // Reset to default button
                     div { class: "setting-row reset-row",
                         button {
