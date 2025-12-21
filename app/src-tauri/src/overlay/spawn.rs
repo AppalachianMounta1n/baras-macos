@@ -27,29 +27,38 @@ pub fn spawn_overlay<O: Overlay>(
     kind: OverlayType,
 ) -> (Sender<OverlayCommand>, JoinHandle<()>) {
     let (tx, mut rx) = mpsc::channel::<OverlayCommand>(32);
+    let kind_name = format!("{:?}", kind);
 
     let handle = thread::spawn(move || {
+        eprintln!("[OVERLAY-LOOP] {:?}: Thread started", kind_name);
         let mut needs_render = true;
         let mut was_in_resize_corner = false;
         let mut was_resizing = false;
+        let mut loop_count: u64 = 0;
 
         loop {
+            loop_count += 1;
+
             // Process all pending commands
             while let Ok(cmd) = rx.try_recv() {
                 match cmd {
                     OverlayCommand::SetMoveMode(enabled) => {
+                        eprintln!("[OVERLAY-LOOP] {:?}: Received SetMoveMode({})", kind_name, enabled);
                         overlay.set_click_through(!enabled);
                         needs_render = true;
                     }
                     OverlayCommand::UpdateData(data) => {
+                        // Don't log data updates (too frequent)
                         overlay.update_data(data);
                         needs_render = true;
                     }
                     OverlayCommand::UpdateConfig(config) => {
+                        eprintln!("[OVERLAY-LOOP] {:?}: Received UpdateConfig", kind_name);
                         overlay.update_config(config);
                         needs_render = true;
                     }
                     OverlayCommand::GetPosition(response_tx) => {
+                        eprintln!("[OVERLAY-LOOP] {:?}: Received GetPosition", kind_name);
                         let pos = overlay.position();
                         let current_monitor = overlay.frame().window().current_monitor();
                         let (monitor_id, monitor_x, monitor_y) = current_monitor
@@ -67,6 +76,7 @@ pub fn spawn_overlay<O: Overlay>(
                         });
                     }
                     OverlayCommand::Shutdown => {
+                        eprintln!("[OVERLAY-LOOP] {:?}: Received Shutdown command", kind_name);
                         return;
                     }
                 }
@@ -74,6 +84,7 @@ pub fn spawn_overlay<O: Overlay>(
 
             // Poll window events (returns false if window should close)
             if !overlay.poll_events() {
+                eprintln!("[OVERLAY-LOOP] {:?}: poll_events() returned false after {} iterations - EXITING", kind_name, loop_count);
                 break;
             }
 
@@ -105,6 +116,7 @@ pub fn spawn_overlay<O: Overlay>(
             let sleep_ms = if is_interactive { 16 } else { 50 };
             thread::sleep(std::time::Duration::from_millis(sleep_ms));
         }
+        eprintln!("[OVERLAY-LOOP] {:?}: Thread exiting after {} iterations", kind_name, loop_count);
     });
 
     (tx, handle)
