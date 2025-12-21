@@ -28,7 +28,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
     RegisterClassExW, SetWindowLongPtrW, SetWindowPos, ShowWindow, TranslateMessage,
     UpdateLayeredWindow, GetCursorPos,
     CS_HREDRAW, CS_VREDRAW, GWL_EXSTYLE, HTCLIENT, HWND_TOPMOST, IDC_ARROW, MSG, PM_REMOVE,
-    SW_SHOWNOACTIVATE, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, ULW_ALPHA,
+    SW_SHOWNOACTIVATE, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, ULW_ALPHA,
     WM_DESTROY, WM_ERASEBKGND, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WM_NCHITTEST, WM_QUIT,
     WNDCLASSEXW, WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST,
     WS_EX_TRANSPARENT, WS_POPUP,
@@ -345,21 +345,7 @@ impl WindowsOverlay {
             }
             overlay_log!("  Setting extended style to {:#x}", ex_style.0);
             SetWindowLongPtrW(self.hwnd, GWL_EXSTYLE, ex_style.0 as isize);
-
-            // CRITICAL: After changing extended styles, we must call SetWindowPos with
-            // SWP_FRAMECHANGED to force the window to apply the new style. Without this,
-            // the WS_EX_TRANSPARENT flag change won't take effect!
-            overlay_log!("  Calling SetWindowPos with SWP_FRAMECHANGED");
-            let result = SetWindowPos(
-                self.hwnd,
-                HWND_TOPMOST,
-                0,
-                0,
-                0,
-                0,
-                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED,
-            );
-            overlay_log!("  SetWindowPos result: {:?}", result);
+            overlay_log!("  SetWindowLongPtrW completed");
         }
     }
 }
