@@ -56,6 +56,8 @@ const BASE_HEIGHT: f32 = 200.0;
 const BASE_BAR_HEIGHT: f32 = 20.0;
 const BASE_BAR_SPACING: f32 = 4.0;
 const BASE_PADDING: f32 = 8.0;
+const MIN_BAR_HEIGHT_ABSOLUTE: f32 = 16.0; // Absolute minimum bar height (not scaled)
+const MIN_BAR_SPACING_ABSOLUTE: f32 = 2.0; // Absolute minimum spacing (not scaled)
 const BASE_FONT_SIZE: f32 = 14.0;
 
 /// Maximum characters for player names before truncation
@@ -136,12 +138,15 @@ impl MetricOverlay {
     /// Render the metric
     pub fn render(&mut self) {
         let width = self.frame.width() as f32;
+        let height = self.frame.height() as f32;
 
         // Get scaled layout values
         let padding = self.padding();
         let font_size = self.font_size();
-        let bar_height = self.bar_height();
+        let ideal_bar_height = self.bar_height();
         let bar_spacing = self.bar_spacing();
+        // Use absolute minimum bar height (not scaled) to handle extreme aspect ratios
+        let min_bar_height = MIN_BAR_HEIGHT_ABSOLUTE;
 
         // Get colors from config
         let font_color = color_from_rgba(self.appearance.font_color);
@@ -150,6 +155,47 @@ impl MetricOverlay {
         // Get display options
         let show_total = self.appearance.show_total;
         let show_per_second = self.appearance.show_per_second;
+
+        // Limit entries to max_entries
+        let max_entries = self.appearance.max_entries as usize;
+        let visible_entries: Vec<_> = self.entries.iter().take(max_entries).collect();
+        let num_entries = visible_entries.len();
+
+        // Calculate space reserved for header and footer (must match actual widget heights)
+        // Header with separator: font_size + spacing + 2.0 + spacing + 4.0 * scale
+        // Footer: 2.0 (separator offset) + spacing + font_size + buffer
+        let scale = self.frame.scale_factor();
+        let header_space = if self.appearance.show_header {
+            font_size + bar_spacing + 2.0 + bar_spacing + 4.0 * scale
+        } else {
+            0.0
+        };
+        let footer_space = if self.appearance.show_footer {
+            2.0 + bar_spacing + font_size + 6.0 * scale // separator + spacing + text + buffer
+        } else {
+            0.0
+        };
+
+        // Calculate available space for bars (reserve footer space first)
+        let available_for_bars = height - padding * 2.0 - header_space - footer_space;
+
+        // Calculate effective bar height and spacing - compress proportionally if needed
+        let (bar_height, effective_spacing) = if num_entries > 0 {
+            let n = num_entries as f32;
+            let ideal_total = n * ideal_bar_height + (n - 1.0) * bar_spacing;
+
+            if ideal_total > available_for_bars && ideal_total > 0.0 {
+                // Compress both bars and spacing proportionally
+                let compression_ratio = available_for_bars / ideal_total;
+                let compressed_bar = (ideal_bar_height * compression_ratio).max(min_bar_height);
+                let compressed_spacing = (bar_spacing * compression_ratio).max(MIN_BAR_SPACING_ABSOLUTE);
+                (compressed_bar, compressed_spacing)
+            } else {
+                (ideal_bar_height, bar_spacing)
+            }
+        } else {
+            (ideal_bar_height, bar_spacing)
+        };
 
         // Begin frame (clear, background, border)
         self.frame.begin_frame();
@@ -165,10 +211,6 @@ impl MetricOverlay {
                 .render(&mut self.frame, padding, y, content_width, font_size, bar_spacing);
         }
 
-        // Limit entries to max_entries
-        let max_entries = self.appearance.max_entries as usize;
-        let visible_entries: Vec<_> = self.entries.iter().take(max_entries).collect();
-
         // Find max value for scaling (use actual rate values, not max_value field)
         let max_val = visible_entries
             .iter()
@@ -176,7 +218,16 @@ impl MetricOverlay {
             .fold(1.0, f64::max);
 
         // Draw entries using ProgressBar widget
-        let text_font_size = font_size - 2.0 * self.frame.scale_factor();
+        // Scale text font size proportionally if bars are compressed
+        let base_text_size = font_size - 2.0 * self.frame.scale_factor();
+        let compression_ratio = bar_height / ideal_bar_height;
+        let text_font_size = if compression_ratio < 1.0 {
+            // When bars are compressed, scale text proportionally (keep minimum readable)
+            let compressed = base_text_size * compression_ratio;
+            compressed.max(10.0) // Absolute minimum 10px
+        } else {
+            base_text_size
+        };
 
         for entry in &visible_entries {
             // Determine fill color (use entry color if custom, otherwise config bar_color)
@@ -216,7 +267,7 @@ impl MetricOverlay {
 
             bar.render(&mut self.frame, padding, y, content_width, bar_height, text_font_size, bar_radius);
 
-            y += bar_height + bar_spacing;
+            y += bar_height + effective_spacing;
         }
 
         // Draw footer using Footer widget

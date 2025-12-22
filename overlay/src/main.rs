@@ -3,8 +3,11 @@
 //! Run with: cargo run -p baras-overlay
 //!
 //! Use command line args to select overlay type:
-//!   --metric  (default) - DPS meter overlay
-//!   --raid    - Three raid overlays side-by-side showing all interaction modes
+//!   --metric      (default) - DPS meter overlay with 4 players
+//!   --metric-8    - Moveable DPS meter with 8 players
+//!   --metric-16   - Moveable DPS meter with 16 players
+//!   --raid        - Three raid overlays side-by-side showing all interaction modes
+//!   --raid-timers - 16 frames with ticking effect timers
 
 use std::env;
 use std::time::{Duration, Instant};
@@ -91,6 +94,184 @@ mod examples {
 
             // Sleep based on interactive state for CPU efficiency
             let sleep_ms = if metric.is_interactive() { 1 } else { 16 };
+            std::thread::sleep(Duration::from_millis(sleep_ms));
+        }
+    }
+
+    /// Run a moveable metric overlay with 8 players (standard ops group)
+    pub fn run_metric_overlay_8() {
+        let config = OverlayConfig {
+            x: 200,
+            y: 100,
+            width: 300,
+            height: 280,
+            namespace: "baras-dps-metric-8".to_string(),
+            click_through: false,
+            target_monitor_id: None,
+        };
+
+        let mut appearance = OverlayAppearanceConfig::default();
+        appearance.max_entries = 8;
+
+        let mut metric = match MetricOverlay::new(config, "DPS Meter (8 Players)", appearance, 180) {
+            Ok(m) => m,
+            Err(e) => {
+                eprintln!("Failed to create overlay: {}", e);
+                return;
+            }
+        };
+
+        metric.set_move_mode(true);
+
+        let player_data = [
+            ("Fury Mara", 26500, colors::dps_bar_fill()),
+            ("Carnage Mara", 24800, colors::dps_bar_fill()),
+            ("Lightning Sorc", 23200, colors::dps_bar_fill()),
+            ("Virulence Sniper", 21500, colors::dps_bar_fill()),
+            ("Corruption Sorc", 8200, colors::hps_bar_fill()),
+            ("Medicine Op", 7400, colors::hps_bar_fill()),
+            ("Immortal Jugg", 4200, colors::tank_bar_fill()),
+            ("Shield Tech PT", 3800, colors::tank_bar_fill()),
+        ];
+
+        let max_value = player_data[0].1;
+
+        let entries: Vec<MetricEntry> = player_data
+            .iter()
+            .map(|(name, value, color)| MetricEntry {
+                name: name.to_string(),
+                value: *value,
+                max_value,
+                total_value: (*value as i64) * 180,
+                color: *color,
+            })
+            .collect();
+
+        metric.set_entries(entries);
+
+        let start = Instant::now();
+        let mut last_frame = Instant::now();
+        let frame_duration = Duration::from_millis(16);
+
+        println!("┌─────────────────────────────────────────────────────────────┐");
+        println!("│        8-Player Metric Overlay - Move Mode Enabled          │");
+        println!("├─────────────────────────────────────────────────────────────┤");
+        println!("│  Drag anywhere to move the overlay                          │");
+        println!("│  Drag bottom-right corner to resize                         │");
+        println!("│  Shows 4 DPS + 2 Healers + 2 Tanks                          │");
+        println!("├─────────────────────────────────────────────────────────────┤");
+        println!("│  Press Ctrl+C to exit                                       │");
+        println!("└─────────────────────────────────────────────────────────────┘");
+
+        loop {
+            if !metric.poll_events() {
+                break;
+            }
+
+            let now = Instant::now();
+            if now.duration_since(last_frame) >= frame_duration {
+                let elapsed = start.elapsed().as_secs();
+                metric.set_title(&format!("DPS Meter - {}:{:02}", elapsed / 60, elapsed % 60));
+                metric.render();
+                last_frame = now;
+            }
+
+            let sleep_ms = if metric.is_interactive() { 4 } else { 16 };
+            std::thread::sleep(Duration::from_millis(sleep_ms));
+        }
+    }
+
+    /// Run a moveable metric overlay with 16 players
+    /// Demonstrates the full raid-size DPS meter in move mode
+    pub fn run_metric_overlay_16() {
+        let config = OverlayConfig {
+            x: 200,
+            y: 100,
+            width: 320,
+            height: 450,
+            namespace: "baras-dps-metric-16".to_string(),
+            click_through: false, // Moveable
+            target_monitor_id: None,
+        };
+
+        let mut appearance = OverlayAppearanceConfig::default();
+        appearance.max_entries = 16;
+
+        let mut metric = match MetricOverlay::new(config, "DPS Meter (16 Players)", appearance, 180) {
+            Ok(m) => m,
+            Err(e) => {
+                eprintln!("Failed to create overlay: {}", e);
+                return;
+            }
+        };
+
+        // Enable move mode so it's draggable
+        metric.set_move_mode(true);
+
+        // Create 16 players with varied DPS values
+        let player_data = [
+            ("Fury Mara", 28500, colors::dps_bar_fill()),
+            ("Carnage Mara", 26800, colors::dps_bar_fill()),
+            ("Annihilation", 25200, colors::dps_bar_fill()),
+            ("Lightning Sorc", 24100, colors::dps_bar_fill()),
+            ("Virulence Sniper", 23500, colors::dps_bar_fill()),
+            ("Arsenal Merc", 22800, colors::dps_bar_fill()),
+            ("IO Merc", 21200, colors::dps_bar_fill()),
+            ("Hatred Assassin", 20500, colors::dps_bar_fill()),
+            ("Corruption Sorc", 8200, colors::hps_bar_fill()),
+            ("Medicine Op", 7800, colors::hps_bar_fill()),
+            ("Bodyguard Merc", 7100, colors::hps_bar_fill()),
+            ("Seer Sage", 6500, colors::hps_bar_fill()),
+            ("Immortal Jugg", 4200, colors::tank_bar_fill()),
+            ("Shield Tech PT", 3800, colors::tank_bar_fill()),
+            ("Darkness Sin", 3500, colors::tank_bar_fill()),
+            ("Defense Guard", 3100, colors::tank_bar_fill()),
+        ];
+
+        let max_value = player_data[0].1; // Highest DPS for bar scaling
+
+        let entries: Vec<MetricEntry> = player_data
+            .iter()
+            .map(|(name, value, color)| MetricEntry {
+                name: name.to_string(),
+                value: *value,
+                max_value,
+                total_value: (*value as i64) * 180, // ~3 min encounter
+                color: *color,
+            })
+            .collect();
+
+        metric.set_entries(entries);
+
+        let start = Instant::now();
+        let mut last_frame = Instant::now();
+        let frame_duration = Duration::from_millis(16);
+
+        println!("┌─────────────────────────────────────────────────────────────┐");
+        println!("│        16-Player Metric Overlay - Move Mode Enabled         │");
+        println!("├─────────────────────────────────────────────────────────────┤");
+        println!("│  Drag anywhere to move the overlay                          │");
+        println!("│  Drag bottom-right corner to resize                         │");
+        println!("│  Shows 8 DPS + 4 Healers + 4 Tanks                          │");
+        println!("├─────────────────────────────────────────────────────────────┤");
+        println!("│  Press Ctrl+C to exit                                       │");
+        println!("└─────────────────────────────────────────────────────────────┘");
+
+        loop {
+            if !metric.poll_events() {
+                break;
+            }
+
+            let now = Instant::now();
+            if now.duration_since(last_frame) >= frame_duration {
+                let elapsed = start.elapsed().as_secs();
+                metric.set_title(&format!("DPS Meter - {}:{:02}", elapsed / 60, elapsed % 60));
+                metric.render();
+                last_frame = now;
+            }
+
+            // Faster polling when interactive (dragging/resizing)
+            let sleep_ms = if metric.is_interactive() { 4 } else { 16 };
             std::thread::sleep(Duration::from_millis(sleep_ms));
         }
     }
@@ -469,6 +650,17 @@ fn main() {
         "--raid" => examples::run_raid_overlay(),
         "--raid-timers" => examples::run_raid_timer_stress_test(),
         "--metric" => examples::run_metric_overlay(),
-        _ => ()
+        "--metric-8" => examples::run_metric_overlay_8(),
+        "--metric-16" => examples::run_metric_overlay_16(),
+        _ => {
+            println!("Usage: cargo run -p baras-overlay -- [OPTION]");
+            println!();
+            println!("Options:");
+            println!("  --metric      DPS meter with 4 players (default)");
+            println!("  --metric-8    Moveable DPS meter with 8 players");
+            println!("  --metric-16   Moveable DPS meter with 16 players");
+            println!("  --raid        Three raid overlays showing interaction modes");
+            println!("  --raid-timers 16-frame stress test with ticking timers");
+        }
     }
 }
