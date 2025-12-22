@@ -180,14 +180,16 @@ fn spawn_register_hotkeys(
             if let Ok(shortcut) = key_str.parse::<Shortcut>() {
                 let state = overlay_state.clone();
                 let handle = service_handle.clone();
-                let app = app_handle.clone();
 
-                if let Err(e) = global_shortcut.on_shortcut(shortcut, move |_app, _shortcut, _event| {
-                    let state = state.clone();
-                    let handle = handle.clone();
-                    tauri::async_runtime::spawn(async move {
-                        toggle_visibility_hotkey(state, handle).await;
-                    });
+                if let Err(e) = global_shortcut.on_shortcut(shortcut, move |_app, _shortcut, event| {
+                    // Only toggle on key press, not release or repeat
+                    if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                        let state = state.clone();
+                        let handle = handle.clone();
+                        tauri::async_runtime::spawn(async move {
+                            toggle_visibility_hotkey(state, handle).await;
+                        });
+                    }
                 }) {
                     eprintln!("[HOTKEY] Failed to register visibility hotkey: {}", e);
                 } else {
@@ -202,13 +204,15 @@ fn spawn_register_hotkeys(
         if let Some(ref key_str) = hotkeys.toggle_move_mode {
             if let Ok(shortcut) = key_str.parse::<Shortcut>() {
                 let state = overlay_state.clone();
-                let handle = service_handle.clone();
 
-                if let Err(e) = global_shortcut.on_shortcut(shortcut, move |_app, _shortcut, _event| {
-                    let state = state.clone();
-                    tauri::async_runtime::spawn(async move {
-                        toggle_move_mode_hotkey(state).await;
-                    });
+                if let Err(e) = global_shortcut.on_shortcut(shortcut, move |_app, _shortcut, event| {
+                    // Only toggle on key press, not release or repeat
+                    if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                        let state = state.clone();
+                        tauri::async_runtime::spawn(async move {
+                            toggle_move_mode_hotkey(state).await;
+                        });
+                    }
                 }) {
                     eprintln!("[HOTKEY] Failed to register move mode hotkey: {}", e);
                 } else {
@@ -224,11 +228,14 @@ fn spawn_register_hotkeys(
             if let Ok(shortcut) = key_str.parse::<Shortcut>() {
                 let state = overlay_state.clone();
 
-                if let Err(e) = global_shortcut.on_shortcut(shortcut, move |_app, _shortcut, _event| {
-                    let state = state.clone();
-                    tauri::async_runtime::spawn(async move {
-                        toggle_rearrange_mode_hotkey(state).await;
-                    });
+                if let Err(e) = global_shortcut.on_shortcut(shortcut, move |_app, _shortcut, event| {
+                    // Only toggle on key press, not release or repeat
+                    if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                        let state = state.clone();
+                        tauri::async_runtime::spawn(async move {
+                            toggle_rearrange_mode_hotkey(state).await;
+                        });
+                    }
                 }) {
                     eprintln!("[HOTKEY] Failed to register rearrange mode hotkey: {}", e);
                 } else {
