@@ -24,7 +24,7 @@ use baras_core::directory_watcher::DirectoryWatcher;
 use baras_core::tracking::EffectCategory;
 use baras_core::swtor_data::{Discipline, Role};
 use baras_core::{load_definitions, ActiveEffect, DefinitionSet, EntityType, GameSignal, PlayerMetrics, Reader, SignalHandler};
-use baras_overlay::{PersonalStats, PlayerRole, RaidEffect, RaidFrame, RaidFrameData};
+use baras_overlay::{BossHealthData, PersonalStats, PlayerRole, RaidEffect, RaidFrame, RaidFrameData};
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -52,6 +52,8 @@ pub enum OverlayUpdate {
     DataUpdated(CombatData),
     /// Effect data for raid frame overlay (HoTs, debuffs, etc.)
     EffectsUpdated(RaidFrameData),
+    /// Boss health data for boss health overlay
+    BossHealthUpdated(BossHealthData),
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -481,15 +483,21 @@ impl CombatService {
             }
         });
 
-        // Spawn effects sampling task (polls continuously, not just in combat)
+        // Spawn effects + boss health sampling task (polls continuously)
         let shared = self.shared.clone();
         let overlay_tx = self.overlay_tx.clone();
         let effects_handle = tokio::spawn(async move {
             loop {
                 tokio::time::sleep(std::time::Duration::from_millis(150)).await;
 
+                // Send raid frame effects
                 if let Some(data) = build_raid_frame_data(&shared).await {
                     let _ = overlay_tx.try_send(OverlayUpdate::EffectsUpdated(data));
+                }
+
+                // Send boss health data
+                if let Some(data) = build_boss_health_data(&shared).await {
+                    let _ = overlay_tx.try_send(OverlayUpdate::BossHealthUpdated(data));
                 }
             }
         });
@@ -694,6 +702,26 @@ async fn build_raid_frame_data(shared: &Arc<SharedState>) -> Option<RaidFrameDat
     }
 
     Some(RaidFrameData { frames })
+}
+
+/// Build boss health data from the current encounter
+async fn build_boss_health_data(shared: &Arc<SharedState>) -> Option<BossHealthData> {
+    let session_guard = shared.session.read().await;
+    let session = session_guard.as_ref()?;
+    let session = session.read().await;
+    let cache = session.session_cache.as_ref()?;
+
+    let entries = cache.get_boss_health();
+    let in_combat = shared.in_combat.load(Ordering::SeqCst);
+
+    Some(BossHealthData {
+        entries,
+        combat_ended_at: if !in_combat {
+            Some(std::time::Instant::now())
+        } else {
+            None
+        },
+    })
 }
 
 /// Convert an ActiveEffect (core) to RaidEffect (overlay)

@@ -264,6 +264,45 @@ impl RaidOverlaySettings {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Boss Health Overlay Settings
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Configuration for the boss health bar overlay
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BossHealthConfig {
+    /// Health bar fill color [r, g, b, a]
+    #[serde(default = "default_boss_bar_color")]
+    pub bar_color: Color,
+    /// Text color for boss name and percentage
+    #[serde(default = "default_font_color")]
+    pub font_color: Color,
+    /// Show percentage text on bar
+    #[serde(default = "default_true")]
+    pub show_percent: bool,
+    /// Auto-hide bars after combat ends
+    #[serde(default = "default_true")]
+    pub auto_hide: bool,
+    /// Seconds to wait after combat ends before hiding (0-60)
+    #[serde(default = "default_auto_hide_delay")]
+    pub auto_hide_delay_secs: u32,
+}
+
+fn default_boss_bar_color() -> Color { [200, 50, 50, 255] }  // Red
+fn default_auto_hide_delay() -> u32 { 10 }
+
+impl Default for BossHealthConfig {
+    fn default() -> Self {
+        Self {
+            bar_color: default_boss_bar_color(),
+            font_color: default_font_color(),
+            show_percent: true,
+            auto_hide: true,
+            auto_hide_delay_secs: default_auto_hide_delay(),
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Overlay Settings (combined)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -322,6 +361,16 @@ pub struct OverlaySettings {
     /// Background opacity for raid frame overlay (0-255)
     #[serde(default = "default_opacity")]
     pub raid_opacity: u8,
+
+    // --- Boss health overlay ---
+
+    /// Boss health bar overlay configuration
+    #[serde(default)]
+    pub boss_health: BossHealthConfig,
+
+    /// Background opacity for boss health overlay (0-255)
+    #[serde(default = "default_opacity")]
+    pub boss_health_opacity: u8,
 }
 
 fn default_visible() -> bool { true }
@@ -343,6 +392,8 @@ impl Default for OverlaySettings {
             default_appearances: HashMap::new(),
             raid_overlay: RaidOverlaySettings::default(),
             raid_opacity: default_opacity(),
+            boss_health: BossHealthConfig::default(),
+            boss_health_opacity: default_opacity(),
         }
     }
 }

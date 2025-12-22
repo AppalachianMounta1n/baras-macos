@@ -99,6 +99,8 @@ pub fn SettingsPanel(
                 config.overlay_settings.personal_opacity = new_settings.personal_opacity;
                 config.overlay_settings.raid_overlay = new_settings.raid_overlay.clone();
                 config.overlay_settings.raid_opacity = new_settings.raid_opacity;
+                config.overlay_settings.boss_health = new_settings.boss_health.clone();
+                config.overlay_settings.boss_health_opacity = new_settings.boss_health_opacity;
                 // Keep positions and enabled state untouched
                 config.overlay_settings.positions = existing_positions;
                 config.overlay_settings.enabled = existing_enabled;
@@ -378,6 +380,11 @@ pub fn SettingsPanel(
                             onclick: move |_| selected_tab.set("raid".to_string()),
                             "Raid Frames"
                         }
+                        button {
+                            class: if tab == "boss_health" { "tab-btn active" } else { "tab-btn" },
+                            onclick: move |_| selected_tab.set("boss_health".to_string()),
+                            "Boss Health"
+                        }
                     }
                 }
                 // Metrics group
@@ -403,7 +410,74 @@ pub fn SettingsPanel(
             }
 
             // Per-overlay settings
-            if tab == "raid" {
+            if tab == "boss_health" {
+                // Boss health overlay settings
+                div { class: "settings-section",
+                    h4 { "Appearance" }
+
+                    // Background Opacity
+                    div { class: "setting-row",
+                        label { "Background Opacity" }
+                        input {
+                            r#type: "range",
+                            min: "0",
+                            max: "255",
+                            value: "{current_settings.boss_health_opacity}",
+                            oninput: move |e| {
+                                if let Ok(val) = e.value().parse::<u8>() {
+                                    let mut new_settings = draft_settings();
+                                    new_settings.boss_health_opacity = val;
+                                    update_draft(new_settings);
+                                }
+                            }
+                        }
+                        span { class: "value", "{current_settings.boss_health_opacity}" }
+                    }
+
+                    // Bar Color
+                    {
+                        let bar_hex = format!(
+                            "#{:02x}{:02x}{:02x}",
+                            current_settings.boss_health.bar_color[0],
+                            current_settings.boss_health.bar_color[1],
+                            current_settings.boss_health.bar_color[2]
+                        );
+                        rsx! {
+                            div { class: "setting-row",
+                                label { "Bar Color" }
+                                input {
+                                    r#type: "color",
+                                    key: "boss-health-bar",
+                                    value: "{bar_hex}",
+                                    class: "color-picker",
+                                    oninput: move |e: Event<FormData>| {
+                                        if let Some(color) = parse_hex_color(&e.value()) {
+                                            let mut new_settings = draft_settings();
+                                            new_settings.boss_health.bar_color = color;
+                                            update_draft(new_settings);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Reset to default button
+                    div { class: "setting-row reset-row",
+                        button {
+                            class: "btn btn-reset",
+                            onclick: move |_| {
+                                let mut new_settings = draft_settings();
+                                new_settings.boss_health = crate::app::BossHealthConfig::default();
+                                new_settings.boss_health_opacity = 180;
+                                update_draft(new_settings);
+                            },
+                            i { class: "fa-solid fa-rotate-left" }
+                            span { " Reset Style" }
+                        }
+                    }
+                }
+            } else if tab == "raid" {
                 // Raid frame overlay settings
                 div { class: "settings-section",
                     h4 { "Grid Layout" }

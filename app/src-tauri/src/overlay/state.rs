@@ -146,6 +146,16 @@ impl OverlayState {
         self.overlays.contains_key(&OverlayType::Raid)
     }
 
+    /// Get the channel for boss health overlay (convenience)
+    pub fn get_boss_health_tx(&self) -> Option<&Sender<OverlayCommand>> {
+        self.get_tx(OverlayType::BossHealth)
+    }
+
+    /// Check if boss health overlay is running
+    pub fn is_boss_health_running(&self) -> bool {
+        self.overlays.contains_key(&OverlayType::BossHealth)
+    }
+
     /// Get all channels
     pub fn all_txs(&self) -> Vec<&Sender<OverlayCommand>> {
         self.overlays.values().map(|h| &h.tx).collect()
@@ -157,7 +167,7 @@ impl OverlayState {
             .keys()
             .filter_map(|k| match k {
                 OverlayType::Metric(ot) => Some(*ot),
-                OverlayType::Personal | OverlayType::Raid => None,
+                OverlayType::Personal | OverlayType::Raid | OverlayType::BossHealth => None,
             })
             .collect()
     }

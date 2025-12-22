@@ -10,7 +10,7 @@ use tauri::State;
 use baras_overlay::{RaidGridLayout, RaidOverlayConfig};
 
 use super::metrics::create_entries_for_type;
-use super::spawn::{create_metric_overlay, create_personal_overlay, create_raid_overlay};
+use super::spawn::{create_boss_health_overlay, create_metric_overlay, create_personal_overlay, create_raid_overlay};
 use super::state::OverlayCommand;
 use super::types::{OverlayType, MetricType};
 use super::SharedOverlayState;
@@ -27,6 +27,8 @@ pub struct OverlayStatusResponse {
     pub personal_enabled: bool,
     pub raid_running: bool,
     pub raid_enabled: bool,
+    pub boss_health_running: bool,
+    pub boss_health_enabled: bool,
     pub overlays_visible: bool,
     pub move_mode: bool,
     pub rearrange_mode: bool,
@@ -84,6 +86,10 @@ pub async fn show_overlay(
             let raid_config: RaidOverlayConfig = raid_settings.clone().into();
             create_raid_overlay(position, layout, raid_config, config.overlay_settings.raid_opacity)?
         }
+        OverlayType::BossHealth => {
+            let boss_config = config.overlay_settings.boss_health.clone();
+            create_boss_health_overlay(position, boss_config, config.overlay_settings.boss_health_opacity)?
+        }
     };
     let tx = overlay_handle.tx.clone();
 
@@ -116,8 +122,8 @@ pub async fn show_overlay(
                     let _ = tx.send(OverlayCommand::UpdateData(OverlayData::Personal(stats))).await;
                 }
             }
-            OverlayType::Raid => {
-                // Raid overlay gets data via EffectsUpdated channel, starts empty
+            OverlayType::Raid | OverlayType::BossHealth => {
+                // Raid and boss health overlays get data via separate update channels
             }
         }
     }
@@ -298,6 +304,29 @@ pub async fn show_all_overlays_impl(
                     needs_monitor_save.push(("raid".to_string(), tx));
                 }
             }
+        } else if key == "boss_health" {
+            let kind = OverlayType::BossHealth;
+            let already_running = {
+                let s = state.lock().map_err(|e| e.to_string())?;
+                s.is_running(kind)
+            };
+
+            if !already_running {
+                let position = config.overlay_settings.get_position("boss_health");
+                let needs_save = position.monitor_id.is_none();
+                let boss_config = config.overlay_settings.boss_health.clone();
+                let overlay_handle = create_boss_health_overlay(position, boss_config, config.overlay_settings.boss_health_opacity)?;
+                let tx = overlay_handle.tx.clone();
+
+                {
+                    let mut s = state.lock().map_err(|e| e.to_string())?;
+                    s.insert(overlay_handle);
+                }
+
+                if needs_save {
+                    needs_monitor_save.push(("boss_health".to_string(), tx));
+                }
+            }
         } else if let Some(overlay_type) = MetricType::from_config_key(key) {
             let kind = OverlayType::Metric(overlay_type);
             {
@@ -475,6 +504,32 @@ pub async fn show_all_overlays(
                     needs_monitor_save.push(("raid".to_string(), tx));
                 }
             }
+        } else if key == "boss_health" {
+            // Handle boss health overlay
+            let kind = OverlayType::BossHealth;
+            let already_running = {
+                let state = state.lock().map_err(|e| e.to_string())?;
+                state.is_running(kind)
+            };
+
+            if !already_running {
+                let position = config.overlay_settings.get_position("boss_health");
+                let needs_save = position.monitor_id.is_none();
+                let boss_config = config.overlay_settings.boss_health.clone();
+                let overlay_handle = create_boss_health_overlay(position, boss_config, config.overlay_settings.boss_health_opacity)?;
+                let tx = overlay_handle.tx.clone();
+
+                {
+                    let mut state = state.lock().map_err(|e| e.to_string())?;
+                    state.insert(overlay_handle);
+                }
+
+                // Boss health overlay gets data via BossHealthUpdated channel
+
+                if needs_save {
+                    needs_monitor_save.push(("boss_health".to_string(), tx));
+                }
+            }
         } else if let Some(overlay_type) = MetricType::from_config_key(key) {
             // Handle metric overlay
             let kind = OverlayType::Metric(overlay_type);
@@ -647,12 +702,13 @@ pub async fn get_overlay_status(
     state: State<'_, SharedOverlayState>,
     service: State<'_, crate::service::ServiceHandle>,
 ) -> Result<OverlayStatusResponse, String> {
-    let (running_metric_types, personal_running, raid_running, move_mode, rearrange_mode) = {
+    let (running_metric_types, personal_running, raid_running, boss_health_running, move_mode, rearrange_mode) = {
         let state = state.lock().map_err(|e| e.to_string())?;
         (
             state.running_metric_types(),
             state.is_personal_running(),
             state.is_raid_running(),
+            state.is_boss_health_running(),
             state.move_mode,
             state.rearrange_mode,
         )
@@ -669,6 +725,7 @@ pub async fn get_overlay_status(
 
     let personal_enabled = config.overlay_settings.is_enabled("personal");
     let raid_enabled = config.overlay_settings.is_enabled("raid");
+    let boss_health_enabled = config.overlay_settings.is_enabled("boss_health");
 
     Ok(OverlayStatusResponse {
         running: running_metric_types,
@@ -677,6 +734,8 @@ pub async fn get_overlay_status(
         personal_enabled,
         raid_running,
         raid_enabled,
+        boss_health_running,
+        boss_health_enabled,
         overlays_visible: config.overlay_settings.overlays_visible,
         move_mode,
         rearrange_mode,
@@ -808,6 +867,36 @@ pub async fn refresh_overlay_settings(
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Handle Boss Health Overlay - enable/disable based on profile
+    // ─────────────────────────────────────────────────────────────────────────
+    let boss_health_enabled = config.overlay_settings.enabled.get("boss_health").copied().unwrap_or(false);
+    let boss_health_running = {
+        let s = state.lock().map_err(|e| e.to_string())?;
+        s.is_running(OverlayType::BossHealth)
+    };
+
+    if boss_health_running && !boss_health_enabled {
+        eprintln!("[REFRESH] Shutting down boss health overlay (disabled in profile)");
+        if let Ok(mut state_guard) = state.lock() {
+            if let Some(handle) = state_guard.remove(OverlayType::BossHealth) {
+                let _ = handle.tx.try_send(OverlayCommand::Shutdown);
+            }
+        }
+    } else if !boss_health_running && boss_health_enabled {
+        eprintln!("[REFRESH] Starting boss health overlay (enabled in profile)");
+        let position = config.overlay_settings.get_position("boss_health");
+        let boss_config = config.overlay_settings.boss_health.clone();
+        match create_boss_health_overlay(position, boss_config, config.overlay_settings.boss_health_opacity) {
+            Ok(handle) => {
+                if let Ok(mut state_guard) = state.lock() {
+                    state_guard.insert(handle);
+                }
+            }
+            Err(e) => eprintln!("[REFRESH] Failed to create boss health overlay: {}", e),
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Update config for all currently running overlays
     // ─────────────────────────────────────────────────────────────────────────
     let overlays: Vec<_> = {
@@ -822,6 +911,7 @@ pub async fn refresh_overlay_settings(
             OverlayType::Metric(overlay_type) => overlay_type.config_key().to_string(),
             OverlayType::Personal => "personal".to_string(),
             OverlayType::Raid => "raid".to_string(),
+            OverlayType::BossHealth => "boss_health".to_string(),
         };
 
         // Send position update if we have saved position for this overlay
@@ -851,6 +941,10 @@ pub async fn refresh_overlay_settings(
                     raid_config.max_effects_per_frame, raid_config.effect_size,
                     raid_config.show_role_icons, config.overlay_settings.raid_opacity);
                 OverlayConfigUpdate::Raid(raid_config, config.overlay_settings.raid_opacity)
+            }
+            OverlayType::BossHealth => {
+                let boss_config = config.overlay_settings.boss_health.clone();
+                OverlayConfigUpdate::BossHealth(boss_config, config.overlay_settings.boss_health_opacity)
             }
         };
         let _ = tx.send(OverlayCommand::UpdateConfig(config_update)).await;

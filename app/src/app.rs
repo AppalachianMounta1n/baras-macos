@@ -241,6 +241,36 @@ impl RaidOverlaySettings {
     }
 }
 
+/// Configuration for the boss health bar overlay
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BossHealthConfig {
+    #[serde(default = "default_boss_bar_color")]
+    pub bar_color: Color,
+    #[serde(default = "default_font_color")]
+    pub font_color: Color,
+    #[serde(default = "default_true")]
+    pub show_percent: bool,
+    #[serde(default = "default_true")]
+    pub auto_hide: bool,
+    #[serde(default = "default_auto_hide_delay")]
+    pub auto_hide_delay_secs: u32,
+}
+
+fn default_boss_bar_color() -> Color { [200, 50, 50, 255] }
+fn default_auto_hide_delay() -> u32 { 10 }
+
+impl Default for BossHealthConfig {
+    fn default() -> Self {
+        Self {
+            bar_color: default_boss_bar_color(),
+            font_color: default_font_color(),
+            show_percent: true,
+            auto_hide: true,
+            auto_hide_delay_secs: default_auto_hide_delay(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OverlayPositionConfig {
     pub x: i32,
@@ -275,6 +305,12 @@ pub struct OverlaySettings {
     /// Background opacity for raid frame overlay (0-255)
     #[serde(default = "default_opacity")]
     pub raid_opacity: u8,
+    /// Boss health bar overlay configuration
+    #[serde(default)]
+    pub boss_health: BossHealthConfig,
+    /// Background opacity for boss health overlay (0-255)
+    #[serde(default = "default_opacity")]
+    pub boss_health_opacity: u8,
 }
 
 fn default_opacity() -> u8 { 180 }
@@ -348,6 +384,8 @@ pub struct OverlayStatus {
     pub personal_enabled: bool,
     pub raid_running: bool,
     pub raid_enabled: bool,
+    pub boss_health_running: bool,
+    pub boss_health_enabled: bool,
     pub overlays_visible: bool,
     pub move_mode: bool,
     pub rearrange_mode: bool,
@@ -416,6 +454,7 @@ pub enum OverlayType {
     Metric(MetricType),
     Personal,
     Raid,
+    BossHealth,
 }
 
 
@@ -434,6 +473,7 @@ pub fn App() -> Element {
     });
     let mut personal_enabled = use_signal(|| false);
     let mut raid_enabled = use_signal(|| false);
+    let mut boss_health_enabled = use_signal(|| false);
 
     // Global visibility toggle (persisted)
     let mut overlays_visible = use_signal(|| true);
@@ -517,6 +557,7 @@ pub fn App() -> Element {
             metric_overlays_enabled.set(new_map);
             personal_enabled.set(status.personal_enabled);
             raid_enabled.set(status.raid_enabled);
+            boss_health_enabled.set(status.boss_health_enabled);
             // Set global visibility
             overlays_visible.set(status.overlays_visible);
             move_mode.set(status.move_mode);
@@ -565,8 +606,9 @@ pub fn App() -> Element {
     let enabled_map = metric_overlays_enabled();
     let personal_on = personal_enabled();
     let raid_on = raid_enabled();
+    let boss_health_on = boss_health_enabled();
     let any_metric_enabled = enabled_map.values().any(|&v| v);
-    let any_enabled = any_metric_enabled || personal_on || raid_on;
+    let any_enabled = any_metric_enabled || personal_on || raid_on || boss_health_on;
     let is_visible = overlays_visible();
     let is_move_mode = move_mode();
     let is_rearrange_mode = rearrange_mode();
@@ -640,6 +682,26 @@ pub fn App() -> Element {
                 if current {
                     rearrange_mode.set(false);
                 }
+            }
+        }
+    };
+
+    // Toggle boss health overlay
+    let toggle_boss_health = move |_| {
+        let current = boss_health_on;
+        async move {
+            let cmd = if current { "hide_overlay" } else { "show_overlay" };
+            let kind = OverlayType::BossHealth;
+
+            let args = serde_wasm_bindgen::to_value(&kind).unwrap_or(JsValue::NULL);
+            let obj = js_sys::Object::new();
+            js_sys::Reflect::set(&obj, &JsValue::from_str("kind"), &args).unwrap();
+
+            let result = invoke(cmd, obj.into()).await;
+            if let Some(success) = result.as_bool()
+                && success
+            {
+                boss_health_enabled.set(!current);
             }
         }
     };
@@ -999,7 +1061,7 @@ pub fn App() -> Element {
                     }
                 }
 
-                // General section (Personal Stats + Raid Frames)
+                // General section (Personal Stats + Raid Frames + Boss Health)
                 h4 { class: "subsection-title", "General" }
                 div { class: "overlay-grid",
                     button {
@@ -1011,6 +1073,11 @@ pub fn App() -> Element {
                         class: if raid_on { "btn btn-overlay btn-active" } else { "btn btn-overlay" },
                         onclick: toggle_raid,
                         "Raid Frames"
+                    }
+                    button {
+                        class: if boss_health_on { "btn btn-overlay btn-active" } else { "btn btn-overlay" },
+                        onclick: toggle_boss_health,
+                        "Boss Health"
                     }
                 }
 

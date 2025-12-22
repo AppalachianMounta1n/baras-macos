@@ -35,6 +35,27 @@ pub enum PhaseType {
     DummyParse,
 }
 
+/// Real-time boss health data for overlay display
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct BossHealthEntry {
+    pub name: String,
+    pub current: i32,
+    pub max: i32,
+    /// Used for sorting by encounter order (not serialized)
+    #[serde(skip)]
+    pub first_seen_at: Option<NaiveDateTime>,
+}
+
+impl BossHealthEntry {
+    pub fn percent(&self) -> f32 {
+        if self.max > 0 {
+            (self.current as f32 / self.max as f32) * 100.0
+        } else {
+            0.0
+        }
+    }
+}
+
 
 
 #[derive(Debug, Clone)]
@@ -135,6 +156,18 @@ impl Encounter {
     }
         self.try_track_entity(&event.source_entity, event.timestamp);
         self.try_track_entity(&event.target_entity, event.timestamp);
+
+        // Update health for NPCs on every event
+        self.update_npc_health(&event.source_entity);
+        self.update_npc_health(&event.target_entity);
+    }
+
+    /// Update NPC health from entity data (called on every combat event)
+    #[inline]
+    fn update_npc_health(&mut self, entity: &Entity) {
+        if let Some(npc) = self.npcs.get_mut(&entity.log_id) {
+            npc.health = entity.health;
+        }
     }
 
     #[inline]
@@ -156,6 +189,7 @@ impl Encounter {
                     log_id: entity.log_id,
                     class_id: entity.class_id,
                     first_seen_at: Some(timestamp),
+                    health: entity.health,
                     ..Default::default()
                 });
             }

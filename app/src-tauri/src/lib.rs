@@ -4,7 +4,7 @@ pub mod utils;
 pub mod bridge;
 use overlay::{
     OverlayState, SharedOverlayState, MetricType, OverlayType, OverlayCommand,
-    create_metric_overlay, create_personal_overlay, create_raid_overlay,
+    create_boss_health_overlay, create_metric_overlay, create_personal_overlay, create_raid_overlay,
 };
 use baras_overlay::{RaidGridLayout, RaidOverlayConfig};
 use baras_overlay::OverlayData;
@@ -105,6 +105,31 @@ fn spawn_auto_show_overlays(
                             eprintln!("Auto-showed raid overlay on startup");
                         }
                         Err(e) => eprintln!("Failed to auto-show raid overlay: {}", e),
+                    }
+                }
+            } else if key == "boss_health" {
+                // Handle boss health overlay
+                let kind = OverlayType::BossHealth;
+                let already_running = {
+                    match overlay_state.lock() {
+                        Ok(s) => s.is_running(kind),
+                        Err(_) => continue,
+                    }
+                };
+
+                if !already_running {
+                    let position = config.overlay_settings.get_position("boss_health");
+                    let boss_config = config.overlay_settings.boss_health.clone();
+                    let boss_opacity = config.overlay_settings.boss_health_opacity;
+
+                    match create_boss_health_overlay(position, boss_config, boss_opacity) {
+                        Ok(overlay_handle) => {
+                            if let Ok(mut state) = overlay_state.lock() {
+                                state.insert(overlay_handle);
+                            }
+                            eprintln!("Auto-showed boss health overlay on startup");
+                        }
+                        Err(e) => eprintln!("Failed to auto-show boss health overlay: {}", e),
                     }
                 }
             } else if let Some(overlay_type) = MetricType::from_config_key(key) {

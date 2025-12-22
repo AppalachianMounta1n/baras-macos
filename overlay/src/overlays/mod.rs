@@ -9,10 +9,12 @@
 //! All overlays implement the `Overlay` trait, which provides a unified
 //! interface for the application layer to interact with any overlay type.
 
+mod boss_health;
 mod metric;
 mod personal;
 mod raid;
 
+pub use boss_health::{BossHealthOverlay, BossHealthData};
 pub use metric::{MetricEntry, MetricOverlay};
 pub use personal::{PersonalOverlay, PersonalStats};
 pub use raid::{
@@ -38,7 +40,7 @@ pub enum RaidRegistryAction {
 }
 
 use crate::frame::OverlayFrame;
-use baras_core::context::{OverlayAppearanceConfig, PersonalOverlayConfig};
+use baras_core::context::{OverlayAppearanceConfig, PersonalOverlayConfig, BossHealthConfig};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data Types
@@ -53,9 +55,8 @@ pub enum OverlayData {
     Personal(PersonalStats),
     /// Raid frame data
     Raid(RaidFrameData),
-    // Future variants:
-    // Timer(TimerData),
-    // BossHealth(BossHealthData),
+    /// Boss health bar data
+    BossHealth(BossHealthData),
 }
 
 /// Configuration updates that can be sent to overlays
@@ -67,6 +68,8 @@ pub enum OverlayConfigUpdate {
     Personal(PersonalOverlayConfig, u8),
     /// Config for raid overlay (+ background alpha)
     Raid(RaidOverlayConfig, u8),
+    /// Config for boss health overlay (+ background alpha)
+    BossHealth(BossHealthConfig, u8),
 }
 
 /// Position information for an overlay

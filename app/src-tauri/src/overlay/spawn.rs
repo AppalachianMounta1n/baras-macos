@@ -14,9 +14,9 @@
 use std::thread::{self, JoinHandle};
 use tokio::sync::mpsc::{self, Sender};
 
-use baras_core::context::{OverlayAppearanceConfig, OverlayPositionConfig, PersonalOverlayConfig};
+use baras_core::context::{BossHealthConfig, OverlayAppearanceConfig, OverlayPositionConfig, PersonalOverlayConfig};
 use baras_overlay::{
-    MetricOverlay, Overlay, OverlayConfig, PersonalOverlay,
+    BossHealthOverlay, MetricOverlay, Overlay, OverlayConfig, PersonalOverlay,
     RaidGridLayout, RaidOverlay, RaidOverlayConfig, RaidRegistryAction,
 };
 
@@ -309,4 +309,32 @@ pub fn create_raid_overlay(
     let (tx, handle) = spawn_overlay_with_factory(factory, kind, Some(registry_tx))?;
 
     Ok(OverlayHandle { tx, handle, kind, registry_action_rx: Some(registry_rx) })
+}
+
+/// Create and spawn the boss health bar overlay
+pub fn create_boss_health_overlay(
+    position: OverlayPositionConfig,
+    boss_config: BossHealthConfig,
+    background_alpha: u8,
+) -> Result<OverlayHandle, String> {
+    let config = OverlayConfig {
+        x: position.x,
+        y: position.y,
+        width: position.width,
+        height: position.height,
+        namespace: "baras-boss-health".to_string(),
+        click_through: true,
+        target_monitor_id: position.monitor_id.clone(),
+    };
+
+    let kind = OverlayType::BossHealth;
+
+    let factory = move || {
+        BossHealthOverlay::new(config, boss_config, background_alpha)
+            .map_err(|e| format!("Failed to create boss health overlay: {}", e))
+    };
+
+    let (tx, handle) = spawn_overlay_with_factory(factory, kind, None)?;
+
+    Ok(OverlayHandle { tx, handle, kind, registry_action_rx: None })
 }

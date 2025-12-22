@@ -36,7 +36,7 @@ pub use types::{OverlayType, MetricType};
 pub use state::{OverlayCommand, OverlayHandle, OverlayState, PositionEvent};
 
 // Spawn functions
-pub use spawn::{create_metric_overlay, create_personal_overlay, create_raid_overlay};
+pub use spawn::{create_boss_health_overlay, create_metric_overlay, create_personal_overlay, create_raid_overlay};
 
 // Metrics helpers
 pub use metrics::{create_all_entries, create_entries_for_type};

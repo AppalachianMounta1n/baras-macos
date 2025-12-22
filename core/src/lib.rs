@@ -18,4 +18,4 @@ pub use tracking::{ActiveEffect, DefinitionSet, EffectDefinition, load_definitio
 pub use log::*;
 pub use encounter::metrics::PlayerMetrics;
 pub use encounter::summary::{EncounterSummary, EncounterHistory};
-pub use encounter::PhaseType;
+pub use encounter::{PhaseType, BossHealthEntry};

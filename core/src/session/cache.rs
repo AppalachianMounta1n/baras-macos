@@ -1,7 +1,8 @@
-use crate::encounter::{Encounter, EncounterState};
+use crate::encounter::{Encounter, EncounterState, BossHealthEntry};
 use crate::encounter::entity_info::PlayerInfo;
 use crate::encounter::summary::{EncounterHistory, create_summary};
 use crate::session::info::AreaInfo;
+use crate::swtor_data::lookup_boss;
 use std::collections::VecDeque;
 
 const CACHE_DEFAULT_CAPACITY: usize = 3;
@@ -113,6 +114,31 @@ impl SessionCache {
 
     pub fn encounter_count(&self) -> usize {
         self.encounters.len()
+    }
+
+    // --- Boss Health ---
+
+    /// Get current health of all bosses in the last combat encounter
+    pub fn get_boss_health(&self) -> Vec<BossHealthEntry> {
+        let Some(encounter) = self.last_combat_encounter() else {
+            return vec![];
+        };
+
+        let mut entries: Vec<_> = encounter.npcs.values()
+            .filter_map(|npc| {
+                lookup_boss(npc.class_id).map(|info| BossHealthEntry {
+                    name: info.boss.to_string(),
+                    current: npc.health.0,
+                    max: npc.health.1,
+                    first_seen_at: npc.first_seen_at,
+                })
+            })
+            .filter(|b| b.max > 0)
+            .collect();
+
+        // Sort by encounter order (first_seen_at)
+        entries.sort_by_key(|e| e.first_seen_at);
+        entries
     }
 
     // --- Debug/Display ---
