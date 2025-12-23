@@ -8,7 +8,7 @@ use tiny_skia::Color;
 use super::{Overlay, OverlayConfigUpdate, OverlayData};
 use crate::frame::OverlayFrame;
 use crate::platform::{OverlayConfig, PlatformError};
-use crate::renderer::colors;
+use crate::widgets::colors;
 use crate::utils::{color_from_rgba, format_number, truncate_name};
 use crate::widgets::{Footer, Header, ProgressBar};
 
@@ -280,26 +280,6 @@ impl MetricOverlay {
 
         // End frame (resize indicator, commit)
         self.frame.end_frame();
-    }
-
-    /// Poll for events
-    pub fn poll_events(&mut self) -> bool {
-        self.frame.poll_events()
-    }
-
-    /// Get mutable access to the underlying frame
-    pub fn frame_mut(&mut self) -> &mut OverlayFrame {
-        &mut self.frame
-    }
-
-    /// Get immutable access to the underlying frame
-    pub fn frame(&self) -> &OverlayFrame {
-        &self.frame
-    }
-
-    /// Get mutable access to the underlying window (convenience method)
-    pub fn window_mut(&mut self) -> &mut crate::manager::OverlayWindow {
-        self.frame.window_mut()
     }
 }
 

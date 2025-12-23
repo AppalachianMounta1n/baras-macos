@@ -53,9 +53,9 @@ pub use platform::{
     resolve_absolute_position, MonitorInfo, NativeOverlay, OverlayConfig, OverlayPlatform,
     PlatformError, VirtualScreenBounds,
 };
-pub use renderer::{colors, Renderer};
+pub use renderer::Renderer;
 pub use utils::{color_from_rgba, format_number, format_time, truncate_name};
-pub use widgets::{Footer, Header, LabeledValue, ProgressBar};
+pub use widgets::{colors, Footer, Header, LabeledValue, ProgressBar};
 
 // Re-export tiny_skia Color for external use
 pub use tiny_skia::Color;

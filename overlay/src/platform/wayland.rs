@@ -2,6 +2,7 @@
 //!
 //! This provides overlay windows on Wayland compositors that support
 //! the wlr-layer-shell protocol (wlroots-based compositors like Hyprland, Sway, etc.)
+//! Not GNOME though why are you trying to game on GNOME?
 #![allow(clippy::too_many_arguments)]
 
 use std::os::fd::AsFd;

@@ -12,8 +12,10 @@
 
 mod header;
 mod labeled_value;
+pub mod colors;
 mod progress_bar;
 
 pub use header::{Footer, Header};
 pub use labeled_value::LabeledValue;
 pub use progress_bar::ProgressBar;
+pub use colors::*;

@@ -110,8 +110,7 @@ mod examples {
             target_monitor_id: None,
         };
 
-        let mut appearance = OverlayAppearanceConfig::default();
-        appearance.max_entries = 8;
+        let appearance = OverlayAppearanceConfig { max_entries: 8, ..Default::default()};
 
         let mut metric = match MetricOverlay::new(config, "DPS Meter (8 Players)", appearance, 180) {
             Ok(m) => m,
@@ -142,7 +141,7 @@ mod examples {
                 name: name.to_string(),
                 value: *value,
                 max_value,
-                total_value: (*value as i64) * 180,
+                total_value: value * 180,
                 color: *color,
             })
             .collect();
@@ -194,8 +193,7 @@ mod examples {
             target_monitor_id: None,
         };
 
-        let mut appearance = OverlayAppearanceConfig::default();
-        appearance.max_entries = 16;
+        let appearance = OverlayAppearanceConfig { max_entries: 16, ..Default::default()};
 
         let mut metric = match MetricOverlay::new(config, "DPS Meter (16 Players)", appearance, 180) {
             Ok(m) => m,
@@ -236,7 +234,7 @@ mod examples {
                 name: name.to_string(),
                 value: *value,
                 max_value,
-                total_value: (*value as i64) * 180, // ~3 min encounter
+                total_value: *value * 180, // ~3 min encounter
                 color: *color,
             })
             .collect();

@@ -11,7 +11,7 @@
 #![allow(clippy::too_many_arguments)]
 use crate::manager::OverlayWindow;
 use crate::platform::{OverlayConfig, PlatformError};
-use crate::renderer::colors;
+use crate::widgets::colors;
 use crate::utils::color_from_rgba;
 use tiny_skia::Color;
 
@@ -102,7 +102,6 @@ impl OverlayFrame {
         // Draw border only in move mode (interactive AND drag enabled)
         // Rearrange mode is interactive but drag disabled - no border
         if self.window.is_interactive() && self.window.is_drag_enabled() {
-            let border_color = Color::from_rgba8(128, 128, 128, 200);
             self.window.stroke_rounded_rect(
                 1.0,
                 1.0,
@@ -110,7 +109,7 @@ impl OverlayFrame {
                 height - 2.0,
                 corner_radius - 1.0,
                 2.0,
-                border_color,
+                colors::frame_border(),
             );
         }
     }
@@ -143,7 +142,7 @@ impl OverlayFrame {
         let highlight = if self.window.is_resizing() {
             colors::white()
         } else {
-            Color::from_rgba8(255, 255, 255, 150)
+            colors::resize_indicator()
         };
 
         // Draw diagonal grip lines

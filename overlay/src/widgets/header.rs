@@ -5,7 +5,7 @@
 use tiny_skia::Color;
 
 use crate::frame::OverlayFrame;
-use crate::renderer::colors;
+use crate::widgets::colors;
 
 /// A section header with title and optional separator
 #[derive(Debug, Clone)]

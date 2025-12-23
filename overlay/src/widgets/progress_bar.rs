@@ -3,7 +3,7 @@
 use tiny_skia::Color;
 
 use crate::frame::OverlayFrame;
-use crate::renderer::colors;
+use crate::widgets::colors;
 
 /// A horizontal progress bar with label and optional center/right text
 ///

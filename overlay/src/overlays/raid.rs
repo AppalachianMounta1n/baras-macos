@@ -9,7 +9,7 @@ use tiny_skia::Color;
 use super::{Overlay, OverlayConfigUpdate, OverlayData, RaidRegistryAction};
 use crate::frame::OverlayFrame;
 use crate::platform::{OverlayConfig, PlatformError};
-use crate::renderer::colors;
+use crate::widgets::colors;
 use crate::utils::truncate_name;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -743,12 +743,11 @@ impl RaidOverlay {
             InteractionMode::Move => {
                 // Move mode: transparent frames with dashed border for alignment
                 // (container background is set semi-transparent in set_interaction_mode)
-                let guide_color = Color::from_rgba8(180, 180, 180, 200);
                 self.frame.stroke_rounded_rect_dashed(
                     x, y, w, h,
                     corner_radius,
                     1.5,        // stroke width
-                    guide_color,
+                    colors::raid_guide(),
                     6.0,        // dash length
                     4.0,        // gap length
                 );
@@ -794,11 +793,11 @@ impl RaidOverlay {
     #[allow(dead_code)]
     fn percent_color(percent: f32) -> Color {
         if percent > 0.5 {
-            Color::from_rgba8(80, 200, 80, 255) // Green
+            colors::health_high()
         } else if percent > 0.25 {
-            Color::from_rgba8(220, 180, 50, 255) // Yellow
+            colors::health_medium()
         } else {
-            Color::from_rgba8(220, 60, 60, 255) // Red
+            colors::health_low()
         }
     }
 
@@ -817,8 +816,7 @@ impl RaidOverlay {
         match role {
             PlayerRole::Tank => {
                 // Blue shield
-                let color = Color::from_rgba8(100, 150, 220, 255);
-                self.frame.fill_rounded_rect(icon_x, icon_y, icon_size, icon_size, 2.0, color);
+                self.frame.fill_rounded_rect(icon_x, icon_y, icon_size, icon_size, 2.0, colors::role_tank());
                 // "T" label centered in the icon
                 // Note: draw_text y is baseline, so add font_size to push text down into box
                 let icon_font = icon_size * 0.7;
@@ -828,7 +826,6 @@ impl RaidOverlay {
             }
             PlayerRole::Healer => {
                 // Green cross
-                let color = Color::from_rgba8(100, 220, 100, 255);
                 let bar_w = icon_size * 0.35;
                 // Vertical bar
                 self.frame.fill_rect(
@@ -836,7 +833,7 @@ impl RaidOverlay {
                     icon_y,
                     bar_w,
                     icon_size,
-                    color,
+                    colors::role_healer(),
                 );
                 // Horizontal bar
                 self.frame.fill_rect(
@@ -844,7 +841,7 @@ impl RaidOverlay {
                     icon_y + (icon_size - bar_w) / 2.0,
                     icon_size,
                     bar_w,
-                    color,
+                    colors::role_healer(),
                 );
             }
             PlayerRole::Dps => {
@@ -865,16 +862,14 @@ impl RaidOverlay {
         let ey = y + vertical_offset;
 
         // Semi-transparent background with dashed border to indicate placeholder
-        let bg_color = Color::from_rgba8(80, 80, 80, 150);
-        self.frame.fill_rounded_rect(ex, ey, effect_size, effect_size, corner_radius, bg_color);
+        self.frame.fill_rounded_rect(ex, ey, effect_size, effect_size, corner_radius, colors::effect_icon_bg());
 
         // Dashed border to indicate it's a placeholder
-        let border_color = Color::from_rgba8(150, 150, 150, 200);
         self.frame.stroke_rounded_rect_dashed(
             ex, ey, effect_size, effect_size,
             corner_radius,
             1.0,        // stroke width
-            border_color,
+            colors::effect_icon_border(),
             3.0,        // dash length
             2.0,        // gap length
         );
@@ -898,8 +893,7 @@ impl RaidOverlay {
             let ey = y + vertical_offset;
 
             // Dark background (always visible even when fill is empty)
-            let bg_color = Color::from_rgba8(20, 20, 20, 220);
-            self.frame.fill_rounded_rect(ex, ey, effect_size, effect_size, corner_radius, bg_color);
+            self.frame.fill_rounded_rect(ex, ey, effect_size, effect_size, corner_radius, colors::effect_bar_bg());
 
             // Calculate fill based on remaining duration
             let fill_percent = effect.fill_percent();
@@ -932,10 +926,9 @@ impl RaidOverlay {
             }
 
             // Thin border outline for visibility
-            let border_color = Color::from_rgba8(60, 60, 60, 255);
             self.frame.stroke_rounded_rect(
                 ex, ey, effect_size, effect_size,
-                corner_radius, 1.0, border_color,
+                corner_radius, 1.0, colors::effect_bar_border(),
             );
 
             // Stack count if applicable (centered in the effect square)
@@ -951,8 +944,7 @@ impl RaidOverlay {
                 let text_y = ey + effect_size * 0.78;
 
                 // Draw shadow (subtle drop shadow for readability)
-                let shadow_color = Color::from_rgba8(0, 0, 0, 160);
-                self.frame.draw_text(&count, text_x + 1.0, text_y + 1.0, stack_font, shadow_color);
+                self.frame.draw_text(&count, text_x + 1.0, text_y + 1.0, stack_font, colors::text_shadow());
 
                 // Draw text on top
                 self.frame.draw_text(&count, text_x, text_y, stack_font, colors::white());
@@ -977,16 +969,16 @@ impl RaidOverlay {
                 self.config.selection_color[3],
             )
         } else {
-            Color::from_rgba8(50, 50, 50, 140)
+            colors::raid_empty_slot()
         };
         let corner_radius = (h * 0.1).clamp(2.0, 6.0);
         self.frame.fill_rounded_rect(x, y, w, h, corner_radius, overlay_color);
 
         // Border
         let border_color = if is_selected {
-            Color::from_rgba8(120, 180, 255, 255)
+            colors::raid_slot_text()
         } else {
-            Color::from_rgba8(150, 150, 150, 200)
+            colors::text_muted()
         };
         self.frame.stroke_rounded_rect(x + 1.0, y + 1.0, w - 2.0, h - 2.0, corner_radius - 1.0, 2.0, border_color);
 
@@ -1005,7 +997,7 @@ impl RaidOverlay {
         let text_y = y + (h / 2.0) + (font_size * 0.35);
 
         let text_color = if raid_frame.is_empty() {
-            Color::from_rgba8(120, 120, 120, 200)
+            colors::raid_slot_number()
         } else {
             colors::white()
         };
@@ -1019,7 +1011,7 @@ impl RaidOverlay {
 
             self.frame.fill_rounded_rect(
                 btn_x, btn_y, btn_size, btn_size, 2.0,
-                Color::from_rgba8(180, 60, 60, 220),
+                colors::raid_clear_button(),
             );
             // Note: draw_text y is baseline
             let btn_font = btn_size * 0.7;
@@ -1039,7 +1031,7 @@ impl RaidOverlay {
         let x = self.frame.width() as f32 - 24.0;
         let y = self.frame.height() as f32 - 16.0;
 
-        self.frame.draw_text(&text, x, y, 10.0, Color::from_rgba8(255, 180, 100, 200));
+        self.frame.draw_text(&text, x, y, 10.0, colors::raid_overflow());
     }
 
     // ─────────────────────────────────────────────────────────────────────────
