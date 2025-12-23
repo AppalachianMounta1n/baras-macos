@@ -1,16 +1,16 @@
 //! Overlay management module
 //!
-//! Handles overlay lifecycle, state management, and Tauri commands.
+//! Handles overlay lifecycle and state management.
 //!
 //! # Module Structure
 //!
 //! - `types` - Core type definitions (`MetricType`, `OverlayType`)
 //! - `state` - Runtime state management (`OverlayState`, `OverlayCommand`, `OverlayHandle`)
 //! - `spawn` - Overlay creation and spawning functions
-//! - `commands` - Tauri command handlers
+//! - `manager` - High-level overlay lifecycle operations
 //! - `metrics` - Metric entry creation helpers
 
-pub mod commands;
+mod manager;
 mod metrics;
 mod spawn;
 mod state;
@@ -30,7 +30,7 @@ pub type SharedOverlayState = Arc<Mutex<state::OverlayState>>;
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Types
-pub use types::{OverlayType, MetricType};
+pub use types::{MetricType, OverlayType};
 
 // State management
 pub use state::{OverlayCommand, OverlayHandle, OverlayState, PositionEvent};
@@ -38,15 +38,11 @@ pub use state::{OverlayCommand, OverlayHandle, OverlayState, PositionEvent};
 // Spawn functions
 pub use spawn::{create_boss_health_overlay, create_metric_overlay, create_personal_overlay, create_raid_overlay};
 
+// Manager
+pub use manager::OverlayManager;
+
 // Metrics helpers
 pub use metrics::{create_all_entries, create_entries_for_type};
-
-// Tauri commands
-pub use commands::{
-    clear_raid_registry, get_overlay_status, hide_all_overlays, hide_overlay,
-    refresh_overlay_settings, remove_raid_slot, show_all_overlays, show_overlay,
-    swap_raid_slots, toggle_move_mode, toggle_raid_rearrange, OverlayStatusResponse,
-};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Appearance Helper

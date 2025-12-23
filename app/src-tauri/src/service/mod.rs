@@ -1,14 +1,14 @@
 //! Combat service - coordinates parsing, state management, and overlay updates
 //!
 //! Architecture:
-//! - SharedState: Arc-wrapped state readable by Tauri commands
+//! - SharedState: Arc-wrapped state readable by Tauri commands (in crate::state)
 //! - ServiceHandle: For sending commands + accessing shared state
 //! - CombatService: Background task that processes commands and updates shared state
 mod directory;
 mod handler;
-mod state;
 
-use state::SharedState;
+use crate::state::SharedState;
+pub use crate::state::{RaidSlotRegistry, RegisteredPlayer};
 pub use handler::*;
 use std::path::PathBuf;
 use std::sync::atomic::Ordering;

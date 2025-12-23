@@ -1,14 +1,18 @@
-use crate::overlay::{create_all_entries, OverlayCommand, OverlayType, MetricType};
+//! Overlay update router
+//!
+//! Routes service updates (metrics, effects, boss health) to the appropriate overlay threads.
+//! Also polls the raid overlay's registry action channel and forwards swap/clear commands
+//! back to the service registry.
+
+use crate::overlay::{create_all_entries, OverlayCommand, OverlayType, MetricType, SharedOverlayState};
 use crate::service::{OverlayUpdate, ServiceHandle};
-use crate::SharedOverlayState;
 use baras_overlay::{OverlayData, RaidRegistryAction};
 use tokio::sync::mpsc;
 
-/// Bridge between service overlay updates and the overlay threads
+/// Spawn the overlay update router task.
 ///
-/// Also polls the raid overlay's registry action channel and forwards
-/// swap/clear commands to the service registry.
-pub fn spawn_overlay_bridge(
+/// Routes service updates to overlay threads and polls for registry actions.
+pub fn spawn_overlay_router(
     mut rx: mpsc::Receiver<OverlayUpdate>,
     overlay_state: SharedOverlayState,
     service_handle: ServiceHandle,
@@ -157,11 +161,11 @@ async fn poll_registry_actions(overlay_state: &SharedOverlayState, service_handl
     for action in actions {
         match action {
             RaidRegistryAction::SwapSlots(a, b) => {
-                eprintln!("[BRIDGE] Processing SwapSlots({}, {})", a, b);
+                eprintln!("[ROUTER] Processing SwapSlots({}, {})", a, b);
                 service_handle.swap_raid_slots(a, b).await;
             }
             RaidRegistryAction::ClearSlot(slot) => {
-                eprintln!("[BRIDGE] Processing ClearSlot({})", slot);
+                eprintln!("[ROUTER] Processing ClearSlot({})", slot);
                 service_handle.remove_raid_slot(slot).await;
             }
         }
