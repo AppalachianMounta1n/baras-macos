@@ -28,13 +28,44 @@ pub async fn upload_to_parsely(
     path: PathBuf,
     handle: State<'_, ServiceHandle>,
 ) -> Result<ParselyUploadResponse, String> {
-    // Read the log file
-    let log_content = std::fs::read_to_string(&path)
+    // Read file as bytes (SWTOR logs are Windows-1252 encoded, not UTF-8)
+    let file_bytes = std::fs::read(&path)
         .map_err(|e| format!("Failed to read log file: {}", e))?;
 
-    // Encode as Windows-1252 and gzip compress
-    let (encoded, _, _) = WINDOWS_1252.encode(&log_content);
-    let compressed = gzip_compress(&encoded)
+    if file_bytes.is_empty() {
+        return Ok(ParselyUploadResponse {
+            success: false,
+            link: None,
+            error: Some("File is empty".to_string()),
+        });
+    }
+
+    // Decode as Windows-1252 for content inspection
+    let (log_content, _, had_errors) = WINDOWS_1252.decode(&file_bytes);
+
+    if had_errors {
+        return Ok(ParselyUploadResponse {
+            success: false,
+            link: None,
+            error: Some("File appears to be corrupted".to_string()),
+        });
+    }
+
+    // Check if file has combat data (look for combat log markers)
+    let has_combat = log_content.contains("EnterCombat")
+        || log_content.contains("ExitCombat")
+        || log_content.contains("ApplyEffect");
+
+    if !has_combat {
+        return Ok(ParselyUploadResponse {
+            success: false,
+            link: None,
+            error: Some("File has no combat encounters".to_string()),
+        });
+    }
+
+    // Gzip compress the original bytes (already in Windows-1252)
+    let compressed = gzip_compress(&file_bytes)
         .map_err(|e| format!("Failed to compress: {}", e))?;
 
     // Get filename for the upload
@@ -93,26 +124,34 @@ fn gzip_compress(data: &[u8]) -> std::io::Result<Vec<u8>> {
 
 /// Parse Parsely XML response
 fn parse_parsely_response(xml: &str) -> Result<ParselyUploadResponse, String> {
-    // Check for errors
-    if xml.contains("NOT OK") || xml.contains("error") {
+    // Check for error status: <status>error</status>
+    if xml.contains("<status>error</status>") {
+        // Extract error message from <error>...</error>
+        let error_msg = extract_xml_element(xml, "error")
+            .unwrap_or_else(|| "Unknown error".to_string());
         return Ok(ParselyUploadResponse {
             success: false,
             link: None,
-            error: Some(xml.to_string()),
+            error: Some(error_msg),
+        });
+    }
+
+    // Check for legacy error format
+    if xml.contains("NOT OK") {
+        return Ok(ParselyUploadResponse {
+            success: false,
+            link: None,
+            error: Some("Upload rejected by server".to_string()),
         });
     }
 
     // Extract link from <file> element
-    // Simple parsing without XML library: find <file>...</file>
-    if let Some(start) = xml.find("<file>") {
-        if let Some(end) = xml.find("</file>") {
-            let link = &xml[start + 6..end];
-            return Ok(ParselyUploadResponse {
-                success: true,
-                link: Some(link.to_string()),
-                error: None,
-            });
-        }
+    if let Some(link) = extract_xml_element(xml, "file") {
+        return Ok(ParselyUploadResponse {
+            success: true,
+            link: Some(link),
+            error: None,
+        });
     }
 
     Ok(ParselyUploadResponse {
@@ -120,4 +159,20 @@ fn parse_parsely_response(xml: &str) -> Result<ParselyUploadResponse, String> {
         link: None,
         error: Some(format!("Unexpected response: {}", xml)),
     })
+}
+
+/// Extract content from an XML element: <tag>content</tag>
+fn extract_xml_element(xml: &str, tag: &str) -> Option<String> {
+    let open_tag = format!("<{}>", tag);
+    let close_tag = format!("</{}>", tag);
+
+    if let Some(start) = xml.find(&open_tag) {
+        if let Some(end) = xml.find(&close_tag) {
+            let content_start = start + open_tag.len();
+            if content_start < end {
+                return Some(xml[content_start..end].to_string());
+            }
+        }
+    }
+    None
 }
