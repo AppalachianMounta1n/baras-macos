@@ -141,20 +141,37 @@ pub fn App() -> Element {
         closure.forget();
     });
 
-    // Poll session info, tailing status, and file list
+    // Listen for log file changes (event-driven from watcher)
     use_future(move || async move {
-        loop {
-            gloo_timers::future::TimeoutFuture::new(2000).await;
-            session_info.set(api::get_session_info().await);
-            is_watching.set(api::get_watching_status().await);
-            is_live_tailing.set(api::is_live_tailing().await);
+        let closure = Closure::new(move |_event: JsValue| {
+            spawn(async move {
+                let result = api::get_log_files().await;
+                if let Ok(files) = serde_wasm_bindgen::from_value::<Vec<LogFileInfo>>(result) {
+                    log_files.set(files);
+                }
+            });
+        });
+        api::tauri_listen("log-files-changed", &closure).await;
+        closure.forget();
+    });
 
-            // Refresh file list to keep Latest/Current display up to date
-            let result = api::get_log_files().await;
-            if let Ok(files) = serde_wasm_bindgen::from_value::<Vec<LogFileInfo>>(result) {
-                log_files.set(files);
-            }
-        }
+    // Listen for session updates (event-driven from backend signals)
+    use_future(move || async move {
+        // Initial fetch on mount
+        session_info.set(api::get_session_info().await);
+        is_watching.set(api::get_watching_status().await);
+        is_live_tailing.set(api::is_live_tailing().await);
+
+        // Listen for updates (no more polling!)
+        let closure = Closure::new(move |_event: JsValue| {
+            spawn(async move {
+                session_info.set(api::get_session_info().await);
+                is_watching.set(api::get_watching_status().await);
+                is_live_tailing.set(api::is_live_tailing().await);
+            });
+        });
+        api::tauri_listen("session-updated", &closure).await;
+        closure.forget();
     });
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -968,10 +985,13 @@ pub fn App() -> Element {
                                     {
                                         let path = file.path.clone();
                                         let path_for_upload = file.path.clone();
-                                        let display_name = file.display_name.clone();
                                         let char_name = file.character_name.clone().unwrap_or_else(|| "Unknown".to_string());
                                         let date = file.date.clone();
-                                        let size_kb = file.file_size / 1024;
+                                        let size_str = if file.file_size >= 1024 * 1024 {
+                                            format!("{:.1}mb", file.file_size as f64 / (1024.0 * 1024.0))
+                                        } else {
+                                            format!("{}kb", file.file_size / 1024)
+                                        };
                                         let is_empty = file.is_empty;
                                         let upload_st = upload_status();
                                         let is_uploading = upload_st.as_ref().map(|(p, _, _)| p == &path).unwrap_or(false);
@@ -979,11 +999,11 @@ pub fn App() -> Element {
                                             div {
                                                 class: if is_empty { "file-item empty" } else { "file-item" },
                                                 div { class: "file-info",
-                                                    span { class: "file-name", "{display_name}" }
+                                                    span { class: "file-date", "{date}" }
                                                     div { class: "file-meta",
                                                         span { class: "file-char", "{char_name}" }
-                                                        span { class: "file-date", "{date}" }
-                                                        span { class: "file-size", "{size_kb} KB" }
+                                                        span { class: "file-sep", " • " }
+                                                        span { class: "file-size", "{size_str}" }
                                                     }
                                                     // Show upload result for this file
                                                     if let Some((ref p, success, ref msg)) = upload_st {

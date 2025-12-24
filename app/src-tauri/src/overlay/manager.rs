@@ -263,6 +263,9 @@ impl OverlayManager {
             ).await;
         }
 
+        // Update overlay status flag for effects loop optimization
+        service.set_overlay_active(kind.config_key(), true);
+
         Ok(true)
     }
 
@@ -289,6 +292,9 @@ impl OverlayManager {
         if let Some(h) = handle {
             Self::shutdown_no_position(h).await;
         }
+
+        // Update overlay status flag for effects loop optimization
+        service.set_overlay_active(kind.config_key(), false);
 
         Ok(true)
     }
@@ -373,6 +379,9 @@ impl OverlayManager {
                 needs_monitor_save.push((key.clone(), tx));
             }
 
+            // Update overlay status flag for effects loop optimization
+            service.set_overlay_active(key, true);
+
             if let OverlayType::Metric(mt) = kind {
                 shown_metric_types.push(mt);
             }
@@ -405,6 +414,11 @@ impl OverlayManager {
         for handle in handles {
             Self::shutdown_no_position(handle).await;
         }
+
+        // Clear all overlay status flags
+        service.set_overlay_active("raid", false);
+        service.set_overlay_active("boss_health", false);
+        service.set_overlay_active("timers", false);
 
         Ok(true)
     }

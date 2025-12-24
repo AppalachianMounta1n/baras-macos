@@ -91,7 +91,7 @@ impl ServiceHandle {
                 path: e.path.clone(),
                 display_name: e.display_name(),
                 character_name: e.character_name.clone(),
-                date: e.date.to_string(),
+                date: e.formatted_datetime(),
                 is_empty: e.is_empty,
                 file_size: e.file_size,
             })
@@ -293,5 +293,19 @@ impl ServiceHandle {
     /// Check if in live tailing mode
     pub fn is_live_tailing(&self) -> bool {
         self.shared.is_live_tailing.load(Ordering::SeqCst)
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Overlay Status Flags (for skipping work in effects loop)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// Update the overlay status flag for a specific overlay type
+    pub fn set_overlay_active(&self, kind: &str, active: bool) {
+        match kind {
+            "raid" => self.shared.raid_overlay_active.store(active, Ordering::SeqCst),
+            "boss_health" => self.shared.boss_health_overlay_active.store(active, Ordering::SeqCst),
+            "timers" => self.shared.timer_overlay_active.store(active, Ordering::SeqCst),
+            _ => {}
+        }
     }
 }

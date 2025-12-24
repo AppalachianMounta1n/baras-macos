@@ -1,7 +1,7 @@
 //! Overlay update router
 //!
 //! Routes service updates (metrics, effects, boss health) to the appropriate overlay threads.
-//! Also polls the raid overlay's registry action channel and forwards swap/clear commands
+//! Also handles the raid overlay's registry action channel and forwards swap/clear commands
 //! back to the service registry.
 
 use crate::overlay::{create_all_entries, OverlayCommand, OverlayType, MetricType, SharedOverlayState};
@@ -11,38 +11,77 @@ use tokio::sync::mpsc;
 
 /// Spawn the overlay update router task.
 ///
-/// Routes service updates to overlay threads and polls for registry actions.
+/// Routes service updates to overlay threads. Uses select! to avoid polling.
 pub fn spawn_overlay_router(
     mut rx: mpsc::Receiver<OverlayUpdate>,
     overlay_state: SharedOverlayState,
     service_handle: ServiceHandle,
 ) {
+    // Create async channel for registry actions (bridges sync overlay thread → async router)
+    let (registry_tx, mut registry_rx) = mpsc::channel::<RaidRegistryAction>(32);
+
+    // Spawn registry action bridge task
+    let overlay_state_clone = overlay_state.clone();
     tauri::async_runtime::spawn(async move {
         loop {
-            // Check for overlay updates (non-blocking with timeout for polling)
-            let update = tokio::time::timeout(
-                std::time::Duration::from_millis(50),
-                rx.recv()
-            ).await;
+            // Check if raid overlay exists and has a registry channel
+            // Must not hold lock across await!
+            let action = overlay_state_clone.lock().ok().and_then(|state| {
+                state.overlays.get(&OverlayType::Raid)
+                    .and_then(|h| h.registry_action_rx.as_ref())
+                    .and_then(|rx| rx.try_recv().ok())
+            });
 
-            // Process overlay update if received
-            match update {
-                Ok(Some(update)) => {
-                    process_overlay_update(&overlay_state, update).await;
-                }
-                Ok(None) => {
-                    // Channel closed
-                    break;
-                }
-                Err(_) => {
-                    // Timeout - no update received, continue to poll registry actions
-                }
+            if let Some(action) = action {
+                let _ = registry_tx.send(action).await;
+            } else {
+                // No action available, sleep briefly then check again
+                // This is still polling but at a much lower rate (100ms vs 50ms)
+                // and only affects the registry channel, not overlay updates
+                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
             }
-
-            // Poll raid overlay's registry action channel
-            poll_registry_actions(&overlay_state, &service_handle).await;
         }
     });
+
+    // Main router loop - no timeout needed, uses select!
+    tauri::async_runtime::spawn(async move {
+        loop {
+            tokio::select! {
+                // Wait for overlay updates
+                update = rx.recv() => {
+                    match update {
+                        Some(update) => {
+                            process_overlay_update(&overlay_state, update).await;
+                        }
+                        None => {
+                            // Channel closed
+                            break;
+                        }
+                    }
+                }
+                // Wait for registry actions
+                action = registry_rx.recv() => {
+                    if let Some(action) = action {
+                        process_registry_action(&service_handle, action).await;
+                    }
+                }
+            }
+        }
+    });
+}
+
+/// Process a registry action from the raid overlay
+async fn process_registry_action(service_handle: &ServiceHandle, action: RaidRegistryAction) {
+    match action {
+        RaidRegistryAction::SwapSlots(a, b) => {
+            eprintln!("[ROUTER] Processing SwapSlots({}, {})", a, b);
+            service_handle.swap_raid_slots(a, b).await;
+        }
+        RaidRegistryAction::ClearSlot(slot) => {
+            eprintln!("[ROUTER] Processing ClearSlot({})", slot);
+            service_handle.remove_raid_slot(slot).await;
+        }
+    }
 }
 
 /// Process a single overlay update
@@ -195,43 +234,3 @@ async fn process_overlay_update(overlay_state: &SharedOverlayState, update: Over
     }
 }
 
-/// Poll the raid overlay's registry action channel and forward to service
-async fn poll_registry_actions(overlay_state: &SharedOverlayState, service_handle: &ServiceHandle) {
-    // Get the registry action receiver from the raid overlay handle
-    let actions: Vec<RaidRegistryAction> = {
-        let state = match overlay_state.lock() {
-            Ok(s) => s,
-            Err(_) => return,
-        };
-
-        // Try to get actions from the raid overlay's registry channel
-        if let Some(handle) = state.overlays.get(&OverlayType::Raid) {
-            if let Some(ref rx) = handle.registry_action_rx {
-                // Drain all pending actions (non-blocking)
-                let mut actions = Vec::new();
-                while let Ok(action) = rx.try_recv() {
-                    actions.push(action);
-                }
-                actions
-            } else {
-                Vec::new()
-            }
-        } else {
-            Vec::new()
-        }
-    };
-
-    // Process each action
-    for action in actions {
-        match action {
-            RaidRegistryAction::SwapSlots(a, b) => {
-                eprintln!("[ROUTER] Processing SwapSlots({}, {})", a, b);
-                service_handle.swap_raid_slots(a, b).await;
-            }
-            RaidRegistryAction::ClearSlot(slot) => {
-                eprintln!("[ROUTER] Processing ClearSlot({})", slot);
-                service_handle.remove_raid_slot(slot).await;
-            }
-        }
-    }
-}

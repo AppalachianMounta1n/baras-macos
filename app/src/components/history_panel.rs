@@ -5,6 +5,8 @@
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::spawn_local as spawn;
 
 use crate::api;
 
@@ -116,15 +118,23 @@ pub fn HistoryPanel() -> Element {
         loading.set(false);
     });
 
-    // Poll for updates
+    // Listen for session updates (refresh on combat end, file change, etc.)
     use_future(move || async move {
-        loop {
-            gloo_timers::future::TimeoutFuture::new(3000).await;
-            let result = api::get_encounter_history().await;
-            if let Ok(history) = serde_wasm_bindgen::from_value::<Vec<EncounterSummary>>(result) {
-                encounters.set(history);
+        let closure = Closure::new(move |event: JsValue| {
+            // Check if this is a combat-end or file-change event
+            if let Some(event_type) = event.as_string() {
+                if event_type.contains("CombatEnded") || event_type.contains("TailingModeChanged") {
+                    spawn(async move {
+                        let result = api::get_encounter_history().await;
+                        if let Ok(history) = serde_wasm_bindgen::from_value::<Vec<EncounterSummary>>(result) {
+                            encounters.set(history);
+                        }
+                    });
+                }
             }
-        }
+        });
+        api::tauri_listen("session-updated", &closure).await;
+        closure.forget();
     });
 
     let history = encounters();

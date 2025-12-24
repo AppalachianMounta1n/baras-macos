@@ -2027,36 +2027,36 @@ details[open] .collapsible-summary::before {
 .file-item .file-info {
   display: flex;
   flex-direction: column;
-  gap: 0.25em;
+  gap: 0.2em;
   overflow: hidden;
 }
 
-.file-item .file-name {
-  font-weight: 500;
+.file-item .file-date {
+  font-weight: 600;
   color: var(--text-primary);
-  font-size: 0.9em;
+  font-size: 0.95em;
+}
+
+.file-item .file-meta {
+  display: flex;
+  align-items: center;
+  font-size: 0.85em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.file-item .file-meta {
-  display: flex;
-  gap: 1em;
-  font-size: 0.75em;
-  color: var(--text-muted);
-}
-
 .file-item .file-char {
-  color: #8ab4f8;
+  color: var(--swtor-blue);
 }
 
-.file-item .file-date {
-  color: var(--text-muted);
+.file-item .file-sep {
+  color: var(--text-disabled);
+  margin: 0 0.1em;
 }
 
 .file-item .file-size {
-  color: var(--text-disabled);
+  color: var(--text-muted);
 }
 
 .file-item .btn-open {

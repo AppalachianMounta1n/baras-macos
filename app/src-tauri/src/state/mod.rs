@@ -39,9 +39,14 @@ pub struct SharedState {
     pub raid_registry: Mutex<RaidSlotRegistry>,
     /// Current area ID for lazy loading timers (0 = unknown)
     pub current_area_id: AtomicI64,
-    /// Area ID that needs timer definitions loaded (0 = none pending)
-    /// Set by signal handler, cleared by loader task
-    pub pending_area_load: AtomicI64,
+
+    // ─── Overlay status flags (for skipping work when not needed) ───
+    /// Whether raid overlay is currently running
+    pub raid_overlay_active: AtomicBool,
+    /// Whether boss health overlay is currently running
+    pub boss_health_overlay_active: AtomicBool,
+    /// Whether timer overlay is currently running
+    pub timer_overlay_active: AtomicBool,
 }
 
 impl SharedState {
@@ -55,7 +60,10 @@ impl SharedState {
             is_live_tailing: AtomicBool::new(true), // Start in live tailing mode
             raid_registry: Mutex::new(RaidSlotRegistry::new(8)), // Default 8 slots (2x4 grid)
             current_area_id: AtomicI64::new(0),
-            pending_area_load: AtomicI64::new(0),
+            // Overlay status flags - updated by OverlayManager
+            raid_overlay_active: AtomicBool::new(false),
+            boss_health_overlay_active: AtomicBool::new(false),
+            timer_overlay_active: AtomicBool::new(false),
         }
     }
 

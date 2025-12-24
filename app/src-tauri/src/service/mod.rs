@@ -79,15 +79,33 @@ pub enum MetricsTrigger {
     InitialLoad,
 }
 
+/// Events to notify frontend of session state changes
+#[derive(Debug, Clone, Copy)]
+pub enum SessionEvent {
+    CombatStarted,
+    CombatEnded,
+    AreaChanged,
+    PlayerInitialized,
+}
+
 /// Signal handler that tracks combat state and triggers metrics updates
 struct CombatSignalHandler {
     shared: Arc<SharedState>,
     trigger_tx: std::sync::mpsc::Sender<MetricsTrigger>,
+    /// Channel for area load requests (event-driven, not polled)
+    area_load_tx: std::sync::mpsc::Sender<i64>,
+    /// Channel for frontend session updates (event-driven, not polled)
+    session_event_tx: std::sync::mpsc::Sender<SessionEvent>,
 }
 
 impl CombatSignalHandler {
-    fn new(shared: Arc<SharedState>, trigger_tx: std::sync::mpsc::Sender<MetricsTrigger>) -> Self {
-        Self { shared, trigger_tx }
+    fn new(
+        shared: Arc<SharedState>,
+        trigger_tx: std::sync::mpsc::Sender<MetricsTrigger>,
+        area_load_tx: std::sync::mpsc::Sender<i64>,
+        session_event_tx: std::sync::mpsc::Sender<SessionEvent>,
+    ) -> Self {
+        Self { shared, trigger_tx, area_load_tx, session_event_tx }
     }
 }
 
@@ -97,23 +115,28 @@ impl SignalHandler for CombatSignalHandler {
             GameSignal::CombatStarted { .. } => {
                 self.shared.in_combat.store(true, Ordering::SeqCst);
                 let _ = self.trigger_tx.send(MetricsTrigger::CombatStarted);
+                let _ = self.session_event_tx.send(SessionEvent::CombatStarted);
             }
             GameSignal::CombatEnded { .. } => {
                 self.shared.in_combat.store(false, Ordering::SeqCst);
                 let _ = self.trigger_tx.send(MetricsTrigger::CombatEnded);
+                let _ = self.session_event_tx.send(SessionEvent::CombatEnded);
             }
             GameSignal::DisciplineChanged { entity_id, discipline_id, .. } => {
                 // Update raid registry with discipline info for role icons
                 if let Ok(mut registry) = self.shared.raid_registry.lock() {
                     registry.update_discipline(*entity_id, 0, *discipline_id);
                 }
+                // Notify frontend of player info change
+                let _ = self.session_event_tx.send(SessionEvent::PlayerInitialized);
             }
             GameSignal::AreaEntered { area_id, .. } => {
-                // Signal that we need to load timer definitions for this area
+                // Send area ID through channel for event-driven loading
                 let current = self.shared.current_area_id.load(Ordering::SeqCst);
                 if *area_id != current && *area_id != 0 {
-                    self.shared.pending_area_load.store(*area_id, Ordering::SeqCst);
                     self.shared.current_area_id.store(*area_id, Ordering::SeqCst);
+                    let _ = self.area_load_tx.send(*area_id);
+                    let _ = self.session_event_tx.send(SessionEvent::AreaChanged);
                 }
             }
             _ => {}
@@ -345,11 +368,13 @@ impl CombatService {
                 ServiceCommand::OpenHistoricalFile(path) => {
                     // Pause live tailing and open the historical file
                     self.shared.is_live_tailing.store(false, Ordering::SeqCst);
+                    let _ = self.app_handle.emit("session-updated", "TailingModeChanged");
                     self.start_tailing(path).await;
                 }
                 ServiceCommand::ResumeLiveTailing => {
                     // Resume live tailing and switch to newest file
                     self.shared.is_live_tailing.store(true, Ordering::SeqCst);
+                    let _ = self.app_handle.emit("session-updated", "TailingModeChanged");
                     let newest = {
                         let index = self.shared.directory_index.read().await;
                         index.newest_file().map(|f| f.path.clone())
@@ -421,6 +446,9 @@ impl CombatService {
             index.add_file(&path);
         }
 
+        // Notify frontend that file list changed
+        let _ = self.app_handle.emit("log-files-changed", ());
+
         // Only auto-switch if in live tailing mode
         if !self.shared.is_live_tailing.load(Ordering::SeqCst) {
             return;
@@ -447,11 +475,14 @@ impl CombatService {
                 false
             }
         };
-                  // Update index
-                  {
-                      let mut index = self.shared.directory_index.write().await;
-                      index.remove_file(&path);
-                  }
+        // Update index
+        {
+            let mut index = self.shared.directory_index.write().await;
+            index.remove_file(&path);
+        }
+
+        // Notify frontend that file list changed
+        let _ = self.app_handle.emit("log-files-changed", ());
                   // Check if we need to switch files
 
                   if was_active {
@@ -523,6 +554,7 @@ impl CombatService {
 
       self.directory_handle = Some(handle);
       self.shared.watching.store(true, Ordering::SeqCst);
+      let _ = self.app_handle.emit("session-updated", "WatcherStarted");
     }
 
     async fn start_tailing(&mut self, path: PathBuf) {
@@ -538,6 +570,10 @@ impl CombatService {
 
         // Create trigger channel for signal-driven metrics updates
         let (trigger_tx, trigger_rx) = std::sync::mpsc::channel::<MetricsTrigger>();
+        // Create channel for event-driven area loading (replaces polling)
+        let (area_load_tx, area_load_rx) = std::sync::mpsc::channel::<i64>();
+        // Create channel for frontend session events (replaces polling)
+        let (session_event_tx, session_event_rx) = std::sync::mpsc::channel::<SessionEvent>();
 
         let mut session = ParsingSession::new(path.clone(), self.definitions.clone());
 
@@ -545,11 +581,27 @@ impl CombatService {
         // Reset area tracking for new session
         self.loaded_area_id = 0;
         self.shared.current_area_id.store(0, Ordering::SeqCst);
-        self.shared.pending_area_load.store(0, Ordering::SeqCst);
 
         // Add signal handler that triggers metrics on combat state changes
-        let handler = CombatSignalHandler::new(self.shared.clone(), trigger_tx.clone());
+        let handler = CombatSignalHandler::new(self.shared.clone(), trigger_tx.clone(), area_load_tx, session_event_tx);
         session.add_signal_handler(Box::new(handler));
+
+        // Spawn task to emit session events to frontend (event-driven, not polled)
+        let app_handle = self.app_handle.clone();
+        tokio::spawn(async move {
+            loop {
+                let event = match tokio::task::spawn_blocking({
+                    let rx = session_event_rx.recv();
+                    move || rx
+                }).await {
+                    Ok(Ok(e)) => e,
+                    Ok(Err(_)) => break, // Channel closed
+                    Err(_) => break,     // Task cancelled
+                };
+                // Emit event to frontend - they can fetch fresh data
+                let _ = app_handle.emit("session-updated", format!("{:?}", event));
+            }
+        });
 
         let session = Arc::new(RwLock::new(session));
 
@@ -635,24 +687,39 @@ impl CombatService {
         });
 
         // Spawn effects + boss health sampling task (polls continuously)
+        // Checks overlay status flags to skip work when no overlays need it
         let shared = self.shared.clone();
         let overlay_tx = self.overlay_tx.clone();
         let effects_handle = tokio::spawn(async move {
             loop {
                 tokio::time::sleep(std::time::Duration::from_millis(150)).await;
 
-                // Send raid frame effects
-                if let Some(data) = build_raid_frame_data(&shared).await {
-                    let _ = overlay_tx.try_send(OverlayUpdate::EffectsUpdated(data));
+                // Check which overlays are active to skip unnecessary work
+                let raid_active = shared.raid_overlay_active.load(Ordering::Relaxed);
+                let boss_active = shared.boss_health_overlay_active.load(Ordering::Relaxed);
+                let timer_active = shared.timer_overlay_active.load(Ordering::Relaxed);
+
+                // Skip entire iteration if no relevant overlays are running
+                if !raid_active && !boss_active && !timer_active {
+                    continue;
+                }
+
+                // Send raid frame effects (always needed for HOT animations)
+                if raid_active {
+                    if let Some(data) = build_raid_frame_data(&shared).await {
+                        let _ = overlay_tx.try_send(OverlayUpdate::EffectsUpdated(data));
+                    }
                 }
 
                 // Send boss health data
-                if let Some(data) = build_boss_health_data(&shared).await {
-                    let _ = overlay_tx.try_send(OverlayUpdate::BossHealthUpdated(data));
+                if boss_active {
+                    if let Some(data) = build_boss_health_data(&shared).await {
+                        let _ = overlay_tx.try_send(OverlayUpdate::BossHealthUpdated(data));
+                    }
                 }
 
-                // Only poll timers in live mode - historical files don't need real-time timer updates
-                if shared.is_live_tailing.load(Ordering::SeqCst) {
+                // Only poll timers if overlay active and in live mode
+                if timer_active && shared.is_live_tailing.load(Ordering::SeqCst) {
                     if let Some(data) = build_timer_data(&shared).await {
                         let _ = overlay_tx.try_send(OverlayUpdate::TimersUpdated(data));
                     }
@@ -661,6 +728,7 @@ impl CombatService {
         });
 
         // Spawn area loader task for lazy loading timer/boss definitions
+        // Now event-driven via channel instead of polling
         let shared = self.shared.clone();
         let area_index = self.area_index.clone();
         let is_live = self.shared.is_live_tailing.load(Ordering::SeqCst);
@@ -668,36 +736,42 @@ impl CombatService {
             Some(tokio::spawn(async move {
                 let mut loaded_area_id: i64 = 0;
 
+                // Wait for area IDs via channel (event-driven, no polling)
                 loop {
-                    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                    let area_id = match tokio::task::spawn_blocking({
+                        let rx_recv = area_load_rx.recv();
+                        move || rx_recv
+                    }).await {
+                        Ok(Ok(id)) => id,
+                        Ok(Err(_)) => break, // Channel closed
+                        Err(_) => break,     // Task cancelled
+                    };
 
-                    // Check if there's a pending area to load
-                    let pending = shared.pending_area_load.load(Ordering::SeqCst);
-                    if pending != 0 && pending != loaded_area_id {
-                        // Clear the pending flag
-                        shared.pending_area_load.store(0, Ordering::SeqCst);
+                    // Skip if already loaded this area
+                    if area_id == loaded_area_id {
+                        continue;
+                    }
 
-                        // Load definitions for this area
-                        if let Some(entry) = area_index.get(&pending) {
-                            use baras_core::encounters::load_bosses_from_file;
+                    // Load definitions for this area
+                    if let Some(entry) = area_index.get(&area_id) {
+                        use baras_core::encounters::load_bosses_from_file;
 
-                            match load_bosses_from_file(&entry.file_path) {
-                                Ok(bosses) => {
-                                    let timer_count: usize = bosses.iter().map(|b| b.timers.len()).sum();
-                                    eprintln!("[AREAS] Loaded {} bosses, {} timers for '{}'",
-                                        bosses.len(), timer_count, entry.name);
+                        match load_bosses_from_file(&entry.file_path) {
+                            Ok(bosses) => {
+                                let timer_count: usize = bosses.iter().map(|b| b.timers.len()).sum();
+                                eprintln!("[AREAS] Loaded {} bosses, {} timers for '{}'",
+                                    bosses.len(), timer_count, entry.name);
 
-                                    // Update the session with new definitions
-                                    if let Some(session_arc) = &*shared.session.read().await {
-                                        let session = session_arc.read().await;
-                                        session.set_boss_definitions(bosses);
-                                    }
-
-                                    loaded_area_id = pending;
+                                // Update the session with new definitions
+                                if let Some(session_arc) = &*shared.session.read().await {
+                                    let session = session_arc.read().await;
+                                    session.set_boss_definitions(bosses);
                                 }
-                                Err(e) => {
-                                    eprintln!("[AREAS] Failed to load definitions for '{}': {}", entry.name, e);
-                                }
+
+                                loaded_area_id = area_id;
+                            }
+                            Err(e) => {
+                                eprintln!("[AREAS] Failed to load definitions for '{}': {}", entry.name, e);
                             }
                         }
                     }

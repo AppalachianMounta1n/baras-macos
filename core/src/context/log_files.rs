@@ -20,11 +20,17 @@ pub struct LogFileMetaData {
 }
 
 impl LogFileMetaData {
+    /// Display name without date (date shown separately as title)
     pub fn display_name(&self) -> String {
         match &self.character_name {
-            Some(name) => format!("{} - {} - Session {}", self.date, name, self.session_number),
-            None => format!("{} - Unknown - Session {}", self.date, self.session_number),
+            Some(name) => format!("{} Session {}", name, self.session_number),
+            None => format!("Unknown Session {}", self.session_number),
         }
+    }
+
+    /// Formatted timestamp for display (date + time)
+    pub fn formatted_datetime(&self) -> String {
+        self.created_at.format("%Y-%m-%d %-H:%M").to_string()
     }
 }
 
