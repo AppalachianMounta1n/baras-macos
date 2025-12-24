@@ -40,7 +40,7 @@ show_on_raid_frames = true
 [[effect]]
 id = "kolto_shell"
 name = "Kolto Shell"
-category = "shield"
+category = "hot"
 effect_ids = [985226842996736]
 refresh_abilities = [985226842996736]
 source = "local_player"
@@ -54,7 +54,7 @@ show_on_raid_frames = true
 [[effect]]
 id = "kolto_shell_others"
 name = "Other's Kolto Shell"
-category = "shield"
+category = "hot"
 effect_ids = [985226842996736]
 refresh_abilities = [985226842996736]
 source = "other_players"
@@ -146,7 +146,7 @@ target = "group_members"
 duration_secs = 30.0
 can_be_refreshed = true
 max_stacks = 1
-enabled = false
+enabled = true
 color = [168, 96, 171, 255]
 show_on_raid_frames = true
 
