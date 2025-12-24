@@ -1,0 +1,86 @@
+# Guardian Droid - A Traitor Among The Chiss
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "guardian_droid"
+name = "Guardian Droid"
+area_name = "A Traitor Among The Chiss"
+difficulties = ["master", "veteran"]
+npc_names = ["Guardian Droid"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "guardian_droid_security_droid"
+name = "Security Droid"
+trigger = { type = "ability_cast", ability_ids = [4132312589533184] }
+duration_secs = 60.0
+color = [11, 128, 11, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "guardian_droid_tank_droid"
+name = "Tank Droid"
+trigger = { type = "ability_cast", ability_ids = [4132346949271552] }
+duration_secs = 90.0
+color = [15, 128, 18, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "guardian_droid_explosive_droid"
+name = "Explosive Droid"
+trigger = { type = "ability_cast", ability_ids = [4132342654304256] }
+duration_secs = 15.0
+color = [11, 128, 20, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "guardian_droid_heat_beam"
+name = "Heat Beam"
+trigger = { type = "ability_cast", ability_ids = [4134146540568576] }
+duration_secs = 15.0
+color = [26, 213, 220, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "guardian_droid_missile"
+name = "Missile"
+trigger = { type = "ability_cast", ability_ids = [4134941109518336] }
+duration_secs = 20.0
+color = [213, 36, 25, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "guardian_droid_concussive_blast"
+name = "Concussive Blast"
+trigger = { type = "ability_cast", ability_ids = [4143492389404672] }
+duration_secs = 10.0
+color = [220, 93, 26, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "guardian_droid_mortar_volley"
+name = "Mortar Volley"
+trigger = { type = "ability_cast", ability_ids = [4139755767857152] }
+duration_secs = 9.0
+color = [236, 234, 42, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "guardian_droid_proximity_measure"
+name = "Proximity Measure"
+trigger = { type = "ability_cast", ability_ids = [4132943949725696] }
+duration_secs = 20.0
+color = [32, 47, 220, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "guardian_droid_incinerate"
+name = "Incinerate"
+trigger = { type = "ability_cast", ability_ids = [4149080141856768] }
+duration_secs = 20.0
+color = [220, 93, 32, 255]
+difficulties = ["veteran", "master"]

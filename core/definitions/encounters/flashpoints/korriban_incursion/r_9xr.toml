@@ -1,0 +1,62 @@
+# R-9XR - Korriban Incursion
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "r_9xr"
+name = "R-9XR"
+area_name = "Korriban Incursion"
+difficulties = ["master", "veteran"]
+npc_names = ["R-9XR"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "r_9xr_extermination_mode"
+name = "Extermination Mode"
+trigger = { type = "combat_start" }
+duration_secs = 135.0
+color = [213, 25, 28, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "r_9xr_adds"
+name = "Adds"
+trigger = { type = "ability_cast", ability_ids = [3483824067444736] }
+duration_secs = 30.0
+color = [25, 136, 20, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "r_9xr_adds_2"
+name = "Adds_"
+trigger = { type = "combat_start" }
+duration_secs = 15.0
+color = [8, 144, 13, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "r_9xr_laser_burst"
+name = "Laser Burst"
+trigger = { type = "ability_cast", ability_ids = [3330704188375040] }
+duration_secs = 16.5
+color = [26, 217, 220, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "r_9xr_missiels"
+name = "Missiels"
+trigger = { type = "ability_cast", ability_ids = [3330712778309632] }
+duration_secs = 30.0
+color = [213, 130, 31, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "r_9xr_missiles"
+name = "Missiles_"
+trigger = { type = "combat_start" }
+duration_secs = 25.0
+color = [220, 126, 32, 255]
+difficulties = ["veteran", "master"]

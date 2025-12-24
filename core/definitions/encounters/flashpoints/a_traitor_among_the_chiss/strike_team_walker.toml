@@ -1,0 +1,80 @@
+# Strike Team Walker - A Traitor Among The Chiss
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "strike_team_walker"
+name = "Strike Team Walker"
+area_name = "A Traitor Among The Chiss"
+difficulties = ["master", "veteran"]
+npc_names = ["Strike Team Walker"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "strike_team_walker_phase_1"
+name = "Phase 1"
+trigger = { type = "timer_expires", timer_id = "strike_team_walker_phase_2" }
+duration_secs = 60.0
+color = [15, 128, 27, 255]
+phases = ["p1"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "strike_team_walker_adds"
+name = "Adds"
+trigger = { type = "ability_cast", ability_ids = [4140206739423232] }
+duration_secs = 80.0
+color = [15, 128, 21, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "strike_team_walker_phase_2"
+name = "Phase 2"
+trigger = { type = "combat_start" }
+duration_secs = 60.0
+color = [22, 136, 16, 255]
+phases = ["p2"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "strike_team_walker_burst_wave"
+name = "Burst Wave"
+trigger = { type = "ability_cast", ability_ids = [4143638418292736] }
+duration_secs = 22.5
+color = [220, 138, 26, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "strike_team_walker_rain_of_fire"
+name = "Rain of Fire"
+trigger = { type = "ability_cast", ability_ids = [4138295478976512] }
+duration_secs = 7.0
+color = [228, 27, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "strike_team_walker_buf_repair"
+name = "Buf + Repair"
+trigger = { type = "ability_cast", ability_ids = [4138033485971456] }
+duration_secs = 11.0
+color = [236, 28, 190, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "strike_team_walker_shock_and_awe"
+name = "Shock and Awe"
+trigger = { type = "ability_cast", ability_ids = [4137853097345024] }
+duration_secs = 9.0
+color = [228, 34, 39, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "strike_team_walker_orbital_laser"
+name = "Orbital Laser"
+trigger = { type = "ability_cast", ability_ids = [4137865982246912] }
+duration_secs = 12.0
+color = [228, 125, 27, 255]
+difficulties = ["veteran", "master"]

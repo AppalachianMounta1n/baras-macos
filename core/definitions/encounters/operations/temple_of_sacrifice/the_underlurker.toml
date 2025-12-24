@@ -1,0 +1,46 @@
+# The Underlurker - Temple of Sacrifice
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "the_underlurker"
+name = "The Underlurker"
+area_name = "Temple of Sacrifice"
+difficulties = ["master", "veteran"]
+npc_names = ["The Underlurker"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "the_underlurker_collapse"
+name = "Collapse"
+trigger = { type = "ability_cast", ability_ids = [3512467204341760] }
+duration_secs = 15.0
+color = [41, 29, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "the_underlurker_rage_storm"
+name = "Rage Storm"
+trigger = { type = "ability_cast", ability_ids = [3411423803736064] }
+duration_secs = 10.5
+color = [224, 35, 33, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "the_underlurker_leap"
+name = "Leap"
+trigger = { type = "ability_cast", ability_ids = [3411569832624128] }
+duration_secs = 9.0
+color = [180, 184, 23, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "the_underlurker_adds"
+name = "Adds_"
+trigger = { type = "ability_cast", ability_ids = [3413575582351360] }
+duration_secs = 10.0
+color = [24, 173, 19, 255]
+difficulties = ["veteran", "master"]

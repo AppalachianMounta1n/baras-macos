@@ -1,0 +1,188 @@
+# Revan - Temple of Sacrifice
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "revan"
+name = "Revan"
+area_name = "Temple of Sacrifice"
+difficulties = ["master", "veteran"]
+npc_names = ["Revan"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "revan_cleanse_pools"
+name = "Cleanse Pools"
+trigger = { type = "combat_start" }
+duration_secs = 50.0
+color = [112, 158, 17, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_essence_corruption_1st"
+name = "Essence Corruption 1st"
+trigger = { type = "combat_start" }
+duration_secs = 10.0
+color = [104, 33, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_heave"
+name = "Heave"
+trigger = { type = "ability_cast", ability_ids = [3462632698806272] }
+duration_secs = 30.0
+color = [173, 168, 22, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_overcharge"
+name = "Overcharge"
+trigger = { type = "ability_cast", ability_ids = [3442094165196800] }
+duration_secs = 16.0
+color = [185, 24, 189, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_flying_sabers"
+name = "Flying Sabers"
+trigger = { type = "ability_cast", ability_ids = [3453089281474560] }
+duration_secs = 60.0
+color = [20, 138, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_trail_of_agony"
+name = "Trail of Agony"
+trigger = { type = "ability_cast", ability_ids = [3443275281203200] }
+duration_secs = 32.0
+color = [219, 112, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_impel"
+name = "Impel"
+trigger = { type = "ability_cast", ability_ids = [3514803666550784] }
+duration_secs = 20.0
+color = [32, 139, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_essence_corruption"
+name = "Essence Corruption"
+trigger = { type = "ability_cast", ability_ids = [3447359795101696] }
+duration_secs = 11.0
+color = [104, 33, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_force_aberration_1st"
+name = "Force Aberration 1st"
+trigger = { type = "ability_cast", ability_ids = [3447523003858944] }
+duration_secs = 23.5
+color = [104, 33, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_sabers_trial_p4"
+name = "Sabers + Trial P4"
+trigger = { type = "ability_cast", ability_ids = [3447523003858944] }
+duration_secs = 16.5
+color = [219, 114, 32, 255]
+phases = ["p4"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_push_p4"
+name = "Push P4_"
+trigger = { type = "ability_cast", ability_ids = [3455881010216960] }
+duration_secs = 9.5
+color = [224, 32, 29, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_push_p4_2"
+name = "Push P4"
+trigger = { type = "timer_expires", timer_id = "revan_pull_p4" }
+duration_secs = 15.0
+color = [214, 33, 32, 255]
+phases = ["p4"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_pull_p4"
+name = "Pull P4"
+trigger = { type = "timer_expires", timer_id = "revan_push_p4" }
+duration_secs = 15.0
+color = [219, 32, 34, 255]
+phases = ["p4"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_force_aberration"
+name = "Force Aberration"
+trigger = { type = "ability_cast", ability_ids = [3447711982419968] }
+duration_secs = 77.0
+color = [104, 33, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_push_p6"
+name = "Push P6_"
+trigger = { type = "effect_removed", effect_ids = [3447578838433792] }
+duration_secs = 16.0
+color = [219, 30, 28, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_push_p6_2"
+name = "Push P6"
+trigger = { type = "timer_expires", timer_id = "revan_pull_p6" }
+duration_secs = 15.0
+color = [219, 36, 32, 255]
+phases = ["p6"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_pull_p6"
+name = "Pull P6"
+trigger = { type = "timer_expires", timer_id = "revan_push_p6" }
+duration_secs = 15.0
+color = [219, 28, 28, 255]
+phases = ["p6"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_heave_p6"
+name = "Heave P6"
+trigger = { type = "effect_removed", effect_ids = [3449047717249024] }
+duration_secs = 25.0
+color = [173, 168, 22, 255]
+phases = ["p6"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_unstable_aberration"
+name = "Unstable Aberration"
+trigger = { type = "ability_cast", ability_ids = [3449073487052800] }
+duration_secs = 40.0
+color = [104, 33, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_force_imbue"
+name = "Force Imbue"
+trigger = { type = "timer_expires", timer_id = "revan_adds_kill_shot" }
+duration_secs = 40.0
+color = [224, 31, 29, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_adds_kill_shot"
+name = "Adds/Kill Shot"
+trigger = { type = "ability_cast", ability_ids = [3447677622681600] }
+duration_secs = 5.0
+color = [224, 29, 29, 255]
+difficulties = ["veteran", "master"]

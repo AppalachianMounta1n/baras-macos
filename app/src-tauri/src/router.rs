@@ -122,6 +122,22 @@ async fn process_overlay_update(overlay_state: &SharedOverlayState, update: Over
                 )).await;
             }
         }
+        OverlayUpdate::TimersUpdated(timer_data) => {
+            // Send timer data to timer overlay
+            let timer_tx = {
+                let state = match overlay_state.lock() {
+                    Ok(s) => s,
+                    Err(_) => return,
+                };
+                state.get_timers_tx().cloned()
+            };
+
+            if let Some(tx) = timer_tx {
+                let _ = tx.send(OverlayCommand::UpdateData(
+                    OverlayData::Timers(timer_data)
+                )).await;
+            }
+        }
         OverlayUpdate::CombatStarted => {
             // Could show overlay or clear entries
         }

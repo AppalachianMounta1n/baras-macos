@@ -1,0 +1,136 @@
+# Soa - Eternity Vault
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "soa"
+name = "Soa"
+area_name = "Eternity Vault"
+difficulties = ["veteran"]
+npc_names = ["Soa"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "soa_1st_platform"
+name = "1st platform."
+trigger = { type = "ability_cast", ability_ids = [2137966000472064] }
+duration_secs = 10.0
+color = [224, 33, 29, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "soa_2nd_platform"
+name = "2nd platform"
+trigger = { type = "timer_expires", timer_id = "soa_1st_platform" }
+duration_secs = 20.0
+color = [224, 33, 29, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "soa_3rd_platform"
+name = "3rd platform"
+trigger = { type = "timer_expires", timer_id = "soa_2nd_platform" }
+duration_secs = 38.0
+color = [224, 29, 30, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "soa_1st_platform_p5"
+name = "1st platform P5"
+trigger = { type = "ability_cast", ability_ids = [2138051899817984] }
+duration_secs = 8.0
+color = [219, 28, 29, 255]
+phases = ["p5"]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "soa_2nd_platform_p5"
+name = "2nd platform P5"
+trigger = { type = "timer_expires", timer_id = "soa_1st_platform_p5" }
+duration_secs = 22.0
+color = [219, 28, 29, 255]
+phases = ["p5"]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "soa_3rd_platform_p5"
+name = "3rd platform P5"
+trigger = { type = "timer_expires", timer_id = "soa_2nd_platform_p5" }
+duration_secs = 38.0
+color = [219, 28, 30, 255]
+phases = ["p5"]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "soa_soa_p6"
+name = "SOA P6"
+trigger = { type = "timer_expires", timer_id = "soa_3rd_platform_p5" }
+duration_secs = 42.0
+color = [224, 29, 33, 255]
+phases = ["p6"]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "soa_soa_p4"
+name = "SOA P4"
+trigger = { type = "timer_expires", timer_id = "soa_3rd_platform" }
+duration_secs = 42.0
+color = [224, 29, 33, 255]
+phases = ["p4"]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "soa_pylon_drop"
+name = "Pylon drop"
+trigger = { type = "ability_cast", ability_ids = [1975835280015360] }
+duration_secs = 20.0
+color = [224, 29, 29, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "soa_mind_trap_p6"
+name = "Mind Trap P6"
+trigger = { type = "ability_cast", ability_ids = [2482912003883008] }
+duration_secs = 18.0
+color = [33, 224, 220, 255]
+phases = ["p6"]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "soa_ball_lightning_p6"
+name = "Ball Lightning P6"
+trigger = { type = "ability_cast", ability_ids = [2482985018327040] }
+duration_secs = 16.5
+color = [224, 176, 33, 255]
+phases = ["p6"]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "soa_force_cyclone_p4"
+name = "Force Cyclone P4"
+trigger = { type = "ability_cast", ability_ids = [1790412951912448] }
+duration_secs = 37.5
+color = [158, 29, 224, 255]
+phases = ["p4"]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "soa_ball_lightning_p4"
+name = "Ball Lightning P4"
+trigger = { type = "ability_cast", ability_ids = [2076298860036096] }
+duration_secs = 18.0
+color = [224, 176, 33, 255]
+phases = ["p4"]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "soa_mind_trap_p4"
+name = "Mind Trap P4"
+trigger = { type = "ability_cast", ability_ids = [2025528051630080] }
+duration_secs = 36.0
+color = [33, 224, 223, 255]
+phases = ["p4"]
+difficulties = ["veteran"]

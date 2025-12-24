@@ -151,6 +151,11 @@ impl OverlayState {
         self.get_tx(OverlayType::BossHealth)
     }
 
+    /// Get the channel for timer overlay (convenience)
+    pub fn get_timers_tx(&self) -> Option<&Sender<OverlayCommand>> {
+        self.get_tx(OverlayType::Timers)
+    }
+
     /// Check if boss health overlay is running
     pub fn is_boss_health_running(&self) -> bool {
         self.overlays.contains_key(&OverlayType::BossHealth)
@@ -167,7 +172,7 @@ impl OverlayState {
             .keys()
             .filter_map(|k| match k {
                 OverlayType::Metric(ot) => Some(*ot),
-                OverlayType::Personal | OverlayType::Raid | OverlayType::BossHealth => None,
+                OverlayType::Personal | OverlayType::Raid | OverlayType::BossHealth | OverlayType::Timers => None,
             })
             .collect()
     }

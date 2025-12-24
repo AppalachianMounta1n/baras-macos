@@ -1,0 +1,54 @@
+# Regnant - Ruins of Nul
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "regnant"
+name = "Regnant"
+area_name = "Ruins of Nul"
+difficulties = ["master", "veteran"]
+npc_names = ["Regnant"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "regnant_middle_beam"
+name = "Middle Beam"
+trigger = { type = "ability_cast", ability_ids = [4526972839395328] }
+duration_secs = 12.0
+color = [228, 199, 27, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "regnant_multi_beams_end"
+name = "Multi Beams End"
+trigger = { type = "ability_cast", ability_ids = [4482172035530752] }
+duration_secs = 21.5
+color = [228, 30, 27, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "regnant_multi_beams"
+name = "Multi Beams"
+trigger = { type = "timer_expires", timer_id = "regnant_multi_beams_end" }
+duration_secs = 15.0
+color = [220, 37, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "regnant_missile_barrage_end"
+name = "Missile Barrage End"
+trigger = { type = "ability_cast", ability_ids = [4578800209756160] }
+duration_secs = 21.5
+color = [220, 113, 39, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "regnant_missile_barrage"
+name = "Missile Barrage"
+trigger = { type = "timer_expires", timer_id = "regnant_missile_barrage_end" }
+duration_secs = 20.0
+color = [220, 124, 32, 255]
+difficulties = ["veteran", "master"]

@@ -8,7 +8,7 @@ use baras_core::context::{OverlayPositionConfig, OverlaySettings};
 use baras_overlay::{OverlayConfigUpdate, OverlayData, RaidGridLayout, RaidOverlayConfig};
 
 use super::metrics::create_entries_for_type;
-use super::spawn::{create_boss_health_overlay, create_metric_overlay, create_personal_overlay, create_raid_overlay};
+use super::spawn::{create_boss_health_overlay, create_metric_overlay, create_personal_overlay, create_raid_overlay, create_timer_overlay};
 use super::state::{OverlayCommand, OverlayHandle, PositionEvent};
 use super::types::{MetricType, OverlayType};
 use super::{get_appearance_for_type, SharedOverlayState};
@@ -55,6 +55,10 @@ impl OverlayManager {
             OverlayType::BossHealth => {
                 let boss_config = settings.boss_health.clone();
                 create_boss_health_overlay(position, boss_config, settings.boss_health_opacity)?
+            }
+            OverlayType::Timers => {
+                let timer_config = settings.timer_overlay.clone();
+                create_timer_overlay(position, timer_config, settings.timer_opacity)?
             }
         };
 
@@ -104,7 +108,7 @@ impl OverlayManager {
                     let _ = tx.send(OverlayCommand::UpdateData(OverlayData::Personal(stats))).await;
                 }
             }
-            OverlayType::Raid | OverlayType::BossHealth => {
+            OverlayType::Raid | OverlayType::BossHealth | OverlayType::Timers => {
                 // These get data via separate update channels (bridge)
             }
         }
@@ -185,6 +189,10 @@ impl OverlayManager {
             OverlayType::BossHealth => {
                 let boss_config = settings.boss_health.clone();
                 OverlayConfigUpdate::BossHealth(boss_config, settings.boss_health_opacity)
+            }
+            OverlayType::Timers => {
+                let timer_config = settings.timer_overlay.clone();
+                OverlayConfigUpdate::Timers(timer_config, settings.timer_opacity)
             }
         }
     }
@@ -310,6 +318,7 @@ impl OverlayManager {
                 "personal" => OverlayType::Personal,
                 "raid" => OverlayType::Raid,
                 "boss_health" => OverlayType::BossHealth,
+                "timers" => OverlayType::Timers,
                 _ => {
                     if let Some(mt) = MetricType::from_config_key(key) {
                         OverlayType::Metric(mt)
@@ -413,10 +422,9 @@ impl OverlayManager {
         };
 
         // Turn off rearrange mode first if entering move mode
-        if was_rearranging && new_mode {
-            if let Some(ref tx) = raid_tx {
+        if was_rearranging && new_mode
+            && let Some(ref tx) = raid_tx {
                 let _ = tx.send(OverlayCommand::SetRearrangeMode(false)).await;
-            }
         }
 
         // Broadcast move mode to all overlays
@@ -484,18 +492,16 @@ impl OverlayManager {
             if running && !enabled {
                 // Shutdown if running but disabled
                 eprintln!("[REFRESH] Shutting down {} (disabled)", key);
-                if let Ok(mut s) = state.lock() {
-                    if let Some(handle) = s.remove(overlay_type) {
+                if let Ok(mut s) = state.lock()
+                    && let Some(handle) = s.remove(overlay_type) {
                         let _ = handle.tx.try_send(OverlayCommand::Shutdown);
                     }
-                }
             } else if !running && enabled {
                 // Start if not running but enabled
                 eprintln!("[REFRESH] Starting {} (enabled)", key);
-                if let Ok(result) = Self::spawn(overlay_type, settings) {
-                    if let Ok(mut s) = state.lock() {
+                if let Ok(result) = Self::spawn(overlay_type, settings)
+                    && let Ok(mut s) = state.lock() {
                         s.insert(result.handle);
-                    }
                 }
             }
         }
@@ -504,21 +510,18 @@ impl OverlayManager {
         let raid_enabled = settings.enabled.get("raid").copied().unwrap_or(false);
         let raid_was_running = {
             let mut was_running = false;
-            if let Ok(mut s) = state.lock() {
-                if let Some(handle) = s.remove(OverlayType::Raid) {
+            if let Ok(mut s) = state.lock()
+                && let Some(handle) = s.remove(OverlayType::Raid) {
                     let _ = handle.tx.try_send(OverlayCommand::Shutdown);
                     was_running = true;
-                }
             }
             was_running
         };
 
-        if raid_was_running || raid_enabled {
-            if let Ok(result) = Self::spawn(OverlayType::Raid, settings) {
-                if let Ok(mut s) = state.lock() {
+        if (raid_was_running || raid_enabled)
+            && let Ok(result) = Self::spawn(OverlayType::Raid, settings)
+            && let Ok(mut s) = state.lock() {
                     s.insert(result.handle);
-                }
-            }
         }
 
         // Update config for all running overlays
@@ -546,6 +549,7 @@ impl OverlayManager {
         let mut types = vec![
             OverlayType::Personal,
             OverlayType::BossHealth,
+            OverlayType::Timers,
         ];
         for mt in MetricType::all() {
             types.push(OverlayType::Metric(*mt));

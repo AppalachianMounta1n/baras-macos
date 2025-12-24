@@ -1,0 +1,184 @@
+# IZAX - The Gods from the Machine
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "izax"
+name = "IZAX"
+area_name = "The Gods from the Machine"
+difficulties = ["master", "veteran"]
+npc_names = ["IZAX"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "izax_induction"
+name = "Induction"
+trigger = { type = "ability_cast", ability_ids = [4168128321814528] }
+duration_secs = 34.0
+color = [38, 210, 213, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "izax_p4_reposition_1st_m"
+name = "P4 Reposition 1st_M"
+trigger = { type = "effect_applied", effect_ids = [4173226447994880] }
+duration_secs = 80.0
+color = [205, 30, 177, 255]
+phases = ["p4"]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "izax_p4_missile_volley_1"
+name = "P4 Missile Volley 1"
+trigger = { type = "ability_cast", ability_ids = [4163854829355008] }
+duration_secs = 13.0
+color = [220, 37, 32, 255]
+phases = ["p4"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "izax_p4_missile_volley_2"
+name = "P4 Missile Volley 2"
+trigger = { type = "timer_expires", timer_id = "izax_p4_missile_volley_1" }
+duration_secs = 11.0
+color = [220, 38, 32, 255]
+phases = ["p4"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "izax_p4_missile_volley_3"
+name = "P4 Missile Volley 3"
+trigger = { type = "timer_expires", timer_id = "izax_p4_missile_volley_2" }
+duration_secs = 11.0
+color = [220, 31, 26, 255]
+phases = ["p4"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "izax_p4_missile_volley_4"
+name = "P4 Missile Volley 4"
+trigger = { type = "timer_expires", timer_id = "izax_p4_missile_volley_3" }
+duration_secs = 11.0
+color = [220, 32, 34, 255]
+phases = ["p4"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "izax_p5_scyva"
+name = "P5 SCYVA"
+trigger = { type = "timer_expires", timer_id = "izax_p4_missile_volley_4" }
+duration_secs = 11.0
+color = [18, 201, 205, 255]
+phases = ["p5"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "izax_p5_end"
+name = "P5 End"
+trigger = { type = "timer_expires", timer_id = "izax_p5_scyva" }
+duration_secs = 120.0
+color = [32, 220, 220, 255]
+phases = ["p5"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "izax_p5_explosion"
+name = "P5 Explosion"
+trigger = { type = "timer_expires", timer_id = "izax_p5_end" }
+duration_secs = 10.0
+color = [220, 36, 32, 255]
+phases = ["p5"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "izax_p6_wipe"
+name = "P6 Wipe"
+trigger = { type = "timer_expires", timer_id = "izax_p6_radiation" }
+duration_secs = 22.0
+color = [220, 40, 32, 255]
+phases = ["p6"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "izax_p3_shield_down"
+name = "P3 Shield Down"
+trigger = { type = "effect_removed", effect_ids = [4162922821451776] }
+duration_secs = 12.0
+color = [20, 159, 19, 255]
+phases = ["p3"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "izax_p3_tether_droids"
+name = "P3 Tether Droids"
+trigger = { type = "timer_expires", timer_id = "70103fbf-2538-4b50-94ca-1276a733619d" }
+duration_secs = 5.0
+color = [220, 37, 32, 255]
+phases = ["p3"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "izax_p4_reposition_m"
+name = "P4 Reposition_M"
+trigger = { type = "ability_cast", ability_ids = [4166341615419392] }
+duration_secs = 80.0
+color = [213, 31, 186, 255]
+phases = ["p4"]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "izax_p2_hull_cutters"
+name = "P2 Hull Cutters"
+trigger = { type = "ability_cast", ability_ids = [4160719503228928] }
+duration_secs = 36.0
+color = [205, 173, 30, 255]
+phases = ["p2"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "izax_p2_explosion_1"
+name = "P2 Explosion 1"
+trigger = { type = "ability_cast", ability_ids = [4168794041745408] }
+duration_secs = 12.0
+color = [205, 118, 30, 255]
+phases = ["p2"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "izax_p2_explosion_2"
+name = "P2 Explosion 2"
+trigger = { type = "timer_expires", timer_id = "izax_p2_explosion_1" }
+duration_secs = 7.0
+color = [205, 118, 30, 255]
+phases = ["p2"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "izax_p2_knockback"
+name = "P2 Knockback"
+trigger = { type = "effect_applied", effect_ids = [4161715935641600] }
+duration_secs = 15.0
+color = [220, 33, 32, 255]
+phases = ["p2"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "izax_p1_slam"
+name = "P1 Slam"
+trigger = { type = "combat_start" }
+duration_secs = 26.0
+color = [31, 213, 212, 255]
+phases = ["p1"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "izax_p6_radiation"
+name = "P6 Radiation"
+trigger = { type = "effect_applied", effect_ids = [4168746797105152] }
+duration_secs = 28.0
+color = [213, 43, 38, 255]
+phases = ["p6"]
+difficulties = ["veteran", "master"]

@@ -1,0 +1,46 @@
+# Enhanced Duneclaw - Czerka Core Meltdown
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "enhanced_duneclaw"
+name = "Enhanced Duneclaw"
+area_name = "Czerka Core Meltdown"
+difficulties = ["master", "veteran"]
+npc_names = ["Enhanced Duneclaw"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "enhanced_duneclaw_enrage"
+name = "Enrage"
+trigger = { type = "combat_start" }
+duration_secs = 360.0
+color = [213, 22, 19, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "enhanced_duneclaw_sandstorm"
+name = "Sandstorm"
+trigger = { type = "ability_cast", ability_ids = [3262049136148480] }
+duration_secs = 60.0
+color = [213, 108, 31, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "enhanced_duneclaw_sweep"
+name = "Sweep"
+trigger = { type = "ability_cast", ability_ids = [3261555214909440] }
+duration_secs = 12.0
+color = [38, 203, 213, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "enhanced_duneclaw_rampage"
+name = "Rampage"
+trigger = { type = "ability_cast", ability_ids = [3284563354714112] }
+duration_secs = 12.0
+color = [220, 196, 26, 255]
+difficulties = ["veteran", "master"]

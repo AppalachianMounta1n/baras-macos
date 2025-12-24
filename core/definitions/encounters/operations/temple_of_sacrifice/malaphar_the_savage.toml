@@ -1,0 +1,78 @@
+# Malaphar the Savage - Temple of Sacrifice
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "malaphar_the_savage"
+name = "Malaphar the Savage"
+area_name = "Temple of Sacrifice"
+difficulties = ["master", "veteran"]
+npc_names = ["Malaphar the Savage"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "malaphar_the_savage_adds"
+name = "Adds"
+trigger = { type = "ability_cast", ability_ids = [3469470286741504] }
+duration_secs = 45.0
+color = [21, 153, 20, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "malaphar_the_savage_adds_1st"
+name = "Adds 1st"
+trigger = { type = "combat_start" }
+duration_secs = 30.0
+color = [21, 153, 20, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "malaphar_the_savage_hammer_smash"
+name = "Hammer Smash"
+trigger = { type = "ability_cast", ability_ids = [3437760543195136] }
+duration_secs = 5.0
+color = [229, 123, 29, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "malaphar_the_savage_spear_toss"
+name = "Spear Toss"
+trigger = { type = "ability_cast", ability_ids = [3440333228605440] }
+duration_secs = 10.0
+color = [164, 29, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "malaphar_the_savage_spear_fixate"
+name = "Spear Fixate"
+trigger = { type = "effect_applied", effect_ids = [3437799197900800] }
+duration_secs = 3.0
+color = [164, 29, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "malaphar_the_savage_savagery_1st"
+name = "Savagery 1st"
+trigger = { type = "effect_applied", effect_ids = [3434788425826304] }
+duration_secs = 5.0
+color = [224, 24, 29, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "malaphar_the_savage_savagery"
+name = "Savagery_"
+trigger = { type = "timer_expires", timer_id = "malaphar_the_savage_savagery_2" }
+duration_secs = 5.0
+color = [224, 29, 30, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "malaphar_the_savage_savagery_2"
+name = "Savagery"
+trigger = { type = "timer_expires", timer_id = "malaphar_the_savage_savagery_1st" }
+duration_secs = 5.0
+color = [224, 34, 33, 255]
+difficulties = ["veteran", "master"]

@@ -1,0 +1,38 @@
+# Alpha Slybex - Crisis on Umbara
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "alpha_slybex"
+name = "Alpha Slybex"
+area_name = "Crisis on Umbara"
+difficulties = ["master", "veteran"]
+npc_names = ["Alpha Slybex"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "alpha_slybex_poison_breath"
+name = "Poison Breath"
+trigger = { type = "ability_cast", ability_ids = [4129623940005888] }
+duration_secs = 30.0
+color = [17, 144, 21, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "alpha_slybex_pounce"
+name = "Pounce"
+trigger = { type = "ability_cast", ability_ids = [4121394782666752] }
+duration_secs = 30.0
+color = [220, 19, 28, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "alpha_slybex_target_swap"
+name = "Target Swap"
+trigger = { type = "ability_cast", ability_ids = [4121652480704512] }
+duration_secs = 30.0
+color = [31, 208, 213, 255]
+difficulties = ["veteran", "master"]

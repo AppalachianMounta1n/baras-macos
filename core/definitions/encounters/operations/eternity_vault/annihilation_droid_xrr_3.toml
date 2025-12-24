@@ -1,0 +1,86 @@
+# Annihilation Droid XRR-3 - Eternity Vault
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "annihilation_droid_xrr_3"
+name = "Annihilation Droid XRR-3"
+area_name = "Eternity Vault"
+difficulties = ["master", "veteran"]
+npc_names = ["Annihilation Droid XRR-3"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "annihilation_droid_xrr_3_cone_swipe"
+name = "Cone Swipe"
+trigger = { type = "ability_cast", ability_ids = [2508518598901760] }
+duration_secs = 20.0
+color = [228, 158, 47, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "annihilation_droid_xrr_3_cone_swipe_2"
+name = "Cone Swipe_"
+trigger = { type = "ability_cast", ability_ids = [2045143167270912] }
+duration_secs = 9.0
+color = [228, 158, 47, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "annihilation_droid_xrr_3_cone_swipe_3"
+name = "Cone Swipe___"
+trigger = { type = "timer_expires", timer_id = "annihilation_droid_xrr_3_aw2" }
+duration_secs = 5.0
+color = [220, 153, 46, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "annihilation_droid_xrr_3_aw1"
+name = "AW1"
+trigger = { type = "ability_cast", ability_ids = [2508436994523136] }
+duration_secs = 26.0
+color = [32, 220, 220, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "annihilation_droid_xrr_3_aw2"
+name = "AW2"
+trigger = { type = "timer_expires", timer_id = "annihilation_droid_xrr_3_aw1" }
+duration_secs = 5.0
+color = [32, 220, 216, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "annihilation_droid_xrr_3_aw2_2"
+name = "AW2_"
+trigger = { type = "timer_expires", timer_id = "annihilation_droid_xrr_3_aw1" }
+duration_secs = 5.0
+color = [32, 220, 213, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "annihilation_droid_xrr_3_groundfire"
+name = "Groundfire"
+trigger = { type = "timer_expires", timer_id = "annihilation_droid_xrr_3_aw2_2" }
+duration_secs = 5.0
+color = [220, 32, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "annihilation_droid_xrr_3_aoe_swipe"
+name = "AOE Swipe"
+trigger = { type = "ability_cast", ability_ids = [2138743389552640] }
+duration_secs = 4.5
+color = [220, 153, 46, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "annihilation_droid_xrr_3_salvo"
+name = "Salvo"
+trigger = { type = "timer_expires", timer_id = "annihilation_droid_xrr_3_aoe_swipe" }
+duration_secs = 3.0
+color = [220, 40, 32, 255]
+difficulties = ["veteran", "master"]

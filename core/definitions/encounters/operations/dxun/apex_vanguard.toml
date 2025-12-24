@@ -1,0 +1,283 @@
+# Apex Vanguard - Dxun
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "apex_vanguard"
+name = "Apex Vanguard"
+area_name = "Dxun"
+difficulties = ["master", "story", "veteran"]
+npc_names = ["Apex Vanguard"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "apex_vanguard_venom_voltinator_2nd"
+name = "Venom/Voltinator 2nd"
+trigger = { type = "timer_expires", timer_id = "apex_vanguard_venom_voltinator" }
+duration_secs = 30.0
+color = [133, 34, 222, 255]
+difficulties = ["story", "veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_venom_voltinator"
+name = "Venom/Voltinator"
+trigger = { type = "timer_expires", timer_id = "apex_vanguard_venom_target_2nd" }
+duration_secs = 60.0
+color = [125, 30, 222, 255]
+difficulties = ["story", "veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_target_voltinator"
+name = "Target/Voltinator"
+trigger = { type = "timer_expires", timer_id = "apex_vanguard_venom_voltinator_2nd" }
+duration_secs = 60.0
+color = [13, 131, 127, 255]
+difficulties = ["story", "veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_target_voltinator_2nd"
+name = "Target/Voltinator 2nd"
+trigger = { type = "timer_expires", timer_id = "apex_vanguard_target_voltinator" }
+duration_secs = 30.0
+color = [15, 131, 129, 255]
+difficulties = ["story", "veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_apx_contagion"
+name = "APX: Contagion"
+trigger = { type = "ability_cast", ability_ids = [4306117031100416] }
+duration_secs = 63.0
+color = [102, 150, 63, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_photogenesis"
+name = "Photogenesis"
+trigger = { type = "timer_expires", timer_id = "f88146bf-6e4e-40be-9ffa-e20e5cf130ef" }
+duration_secs = 10.0
+color = [53, 211, 214, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_acid_deluge"
+name = "Acid Deluge"
+trigger = { type = "timer_expires", timer_id = "apex_vanguard_target_voltinator_2nd" }
+duration_secs = 60.0
+color = [14, 102, 10, 255]
+difficulties = ["story", "veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_p4_target"
+name = "P4 Target"
+trigger = { type = "timer_expires", timer_id = "apex_vanguard_p4_target_venom" }
+duration_secs = 30.0
+color = [145, 98, 72, 255]
+phases = ["p4"]
+difficulties = ["story", "veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_venom_target_2nd"
+name = "Venom/Target 2nd"
+trigger = { type = "timer_expires", timer_id = "apex_vanguard_venom_target" }
+duration_secs = 30.0
+color = [150, 70, 35, 255]
+difficulties = ["story", "veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_venom_target"
+name = "Venom/Target"
+trigger = { type = "timer_expires", timer_id = "apex_vanguard_voltinator_1st" }
+duration_secs = 60.0
+color = [155, 62, 33, 255]
+difficulties = ["story", "veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_p4_target_venom"
+name = "P4 Target+Venom"
+trigger = { type = "timer_expires", timer_id = "apex_vanguard_p4_venom" }
+duration_secs = 30.0
+color = [150, 104, 69, 255]
+phases = ["p4"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_p4_venom"
+name = "P4 Venom"
+trigger = { type = "timer_expires", timer_id = "apex_vanguard_p3_voltinator" }
+duration_secs = 60.0
+color = [232, 87, 27, 255]
+phases = ["p4"]
+difficulties = ["story", "veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_voltinator_1st"
+name = "Voltinator 1st"
+trigger = { type = "timer_expires", timer_id = "apex_vanguard_mass_target_1st" }
+duration_secs = 60.0
+color = [34, 62, 217, 255]
+difficulties = ["story", "veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_contagion_1st"
+name = "Contagion 1st"
+trigger = { type = "combat_start" }
+duration_secs = 30.0
+color = [100, 150, 68, 255]
+difficulties = ["story", "veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_acid_blast_1st"
+name = "Acid Blast 1st"
+trigger = { type = "combat_start" }
+duration_secs = 10.0
+color = [31, 184, 14, 255]
+difficulties = ["story", "veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_red_venom_1st"
+name = "Red Venom 1st"
+trigger = { type = "ability_cast", ability_ids = [4297819154284544] }
+duration_secs = 60.0
+color = [227, 85, 22, 255]
+difficulties = ["story", "veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_mass_target_1st"
+name = "Mass Target 1st"
+trigger = { type = "timer_expires", timer_id = "apex_vanguard_red_venom_1st" }
+duration_secs = 60.0
+color = [126, 94, 60, 255]
+difficulties = ["story", "veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_blood_lust_1st"
+name = "Blood Lust 1st"
+trigger = { type = "ability_cast", ability_ids = [4297819154284544] }
+duration_secs = 60.0
+color = [237, 113, 124, 255]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "apex_vanguard_blood_lust"
+name = "Blood Lust"
+trigger = { type = "ability_cast", ability_ids = [4385835919081472] }
+duration_secs = 63.0
+color = [246, 117, 118, 255]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "apex_vanguard_ultra_violence"
+name = "Ultra Violence"
+trigger = { type = "ability_cast", ability_ids = [4409239195877376] }
+duration_secs = 63.0
+color = [246, 108, 115, 255]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "apex_vanguard_p3_voltinator"
+name = "P3 Voltinator"
+trigger = { type = "timer_expires", timer_id = "apex_vanguard_p3_target_lock" }
+duration_secs = 30.0
+color = [33, 41, 213, 255]
+phases = ["p3"]
+difficulties = ["story", "veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_rocket_salvo_zd"
+name = "Rocket Salvo ZD"
+trigger = { type = "ability_cast", ability_ids = [4333050771013632] }
+duration_secs = 23.1
+color = [244, 12, 13, 255]
+difficulties = ["story", "veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_rocket_salvo_1st"
+name = "Rocket Salvo 1st"
+trigger = { type = "combat_start" }
+duration_secs = 16.0
+color = [255, 0, 9, 255]
+difficulties = ["story", "veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_p3_target_lock"
+name = "P3 Target Lock"
+trigger = { type = "ability_cast", ability_ids = [4330254747303936] }
+duration_secs = 30.0
+color = [140, 101, 67, 255]
+phases = ["p3"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_acid_deluge_2"
+name = "Acid Deluge"
+trigger = { type = "ability_cast", ability_ids = [4330254747303936] }
+duration_secs = 122.0
+color = [11, 97, 12, 255]
+difficulties = ["story", "veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_battery_explode"
+name = "Battery Explode"
+trigger = { type = "effect_applied", effect_ids = [4383095729946624] }
+duration_secs = 5.0
+color = [37, 219, 218, 255]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "apex_vanguard_zd_permission"
+name = "ZD Permission"
+trigger = { type = "effect_applied", effect_ids = [4296758297362432] }
+duration_secs = 5.0
+color = [222, 30, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_zone_defense_setup"
+name = "Zone Defense Setup"
+trigger = { type = "ability_cast", ability_ids = [4333050771013632] }
+duration_secs = 310.0
+color = [222, 30, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_acid_blast_setup"
+name = "Acid Blast Setup"
+trigger = { type = "ability_cast", ability_ids = [4305094828883968] }
+duration_secs = 22.0
+color = [18, 184, 27, 255]
+difficulties = ["story", "veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_acid_blast"
+name = "Acid Blast"
+trigger = { type = "timer_expires", timer_id = "apex_vanguard_acid_blast_setup" }
+duration_secs = 8.0
+color = [18, 184, 27, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_rocket_salvo"
+name = "Rocket Salvo_"
+trigger = { type = "effect_applied", effect_ids = [4383095729946624] }
+duration_secs = 5.0
+color = [224, 33, 29, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_rocket_salvo_setup"
+name = "Rocket Salvo Setup"
+trigger = { type = "ability_cast", ability_ids = [4308741256118272] }
+duration_secs = 19.0
+color = [244, 17, 19, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "apex_vanguard_rocket_salvo_2"
+name = "Rocket Salvo"
+trigger = { type = "timer_expires", timer_id = "apex_vanguard_rocket_salvo_setup" }
+duration_secs = 5.0
+color = [224, 29, 29, 255]
+difficulties = ["veteran", "master"]

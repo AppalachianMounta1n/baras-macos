@@ -130,6 +130,8 @@ pub enum OverlayType {
     Raid,
     /// The boss health bar overlay
     BossHealth,
+    /// Timer countdown bars
+    Timers,
 }
 
 impl OverlayType {
@@ -140,6 +142,7 @@ impl OverlayType {
             OverlayType::Personal => "personal",
             OverlayType::Raid => "raid",
             OverlayType::BossHealth => "boss_health",
+            OverlayType::Timers => "timers",
         }
     }
 
@@ -150,6 +153,7 @@ impl OverlayType {
             OverlayType::Personal => "baras-personal".to_string(),
             OverlayType::Raid => "baras-raid".to_string(),
             OverlayType::BossHealth => "baras-boss-health".to_string(),
+            OverlayType::Timers => "baras-timers".to_string(),
         }
     }
 
@@ -160,6 +164,7 @@ impl OverlayType {
             OverlayType::Personal => (350, 510),
             OverlayType::Raid => (650, 50),
             OverlayType::BossHealth => (650, 400),
+            OverlayType::Timers => (650, 550),
         }
     }
 }

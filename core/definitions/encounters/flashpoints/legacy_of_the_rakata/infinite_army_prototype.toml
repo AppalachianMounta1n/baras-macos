@@ -1,0 +1,30 @@
+# Infinite Army Prototype - Legacy of the Rakata
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "infinite_army_prototype"
+name = "Infinite Army Prototype"
+area_name = "Legacy of the Rakata"
+difficulties = ["master", "veteran"]
+npc_names = ["Infinite Army Prototype"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "infinite_army_prototype_knockback"
+name = "Knockback"
+trigger = { type = "ability_cast", ability_ids = [3511084224872448] }
+duration_secs = 12.0
+color = [228, 30, 27, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "infinite_army_prototype_shield"
+name = "Shield"
+trigger = { type = "ability_cast", ability_ids = [3516401394384896] }
+duration_secs = 60.0
+color = [32, 220, 220, 255]
+difficulties = ["veteran", "master"]

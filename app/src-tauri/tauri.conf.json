@@ -34,7 +34,8 @@
     "active": true,
     "targets": ["appimage", "deb", "nsis"],
     "resources": {
-      "../../core/definitions/builtin/*": "definitions/builtin/"
+      "../../core/definitions/effects/*": "definitions/effects/",
+      "../../core/definitions/encounters/**/*": "definitions/encounters/"
     },
     "icon": [
       "icons/32x32.png",

@@ -1,0 +1,78 @@
+# Master Jakir & Seldin - Objective Meridian
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "master_jakir_seldin"
+name = "Master Jakir & Seldin"
+area_name = "Objective Meridian"
+difficulties = ["master", "veteran"]
+npc_names = ["Master Jakir & Seldin"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "master_jakir_seldin_weakness"
+name = "Weakness"
+trigger = { type = "ability_cast", ability_ids = [4267470915371008] }
+duration_secs = 20.0
+color = [26, 220, 205, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_jakir_seldin_serenity"
+name = "Serenity"
+trigger = { type = "ability_cast", ability_ids = [4271160292278272] }
+duration_secs = 40.0
+color = [20, 136, 24, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_jakir_seldin_force_barrage"
+name = "Force Barrage"
+trigger = { type = "ability_cast", ability_ids = [4270885414371328] }
+duration_secs = 12.0
+color = [228, 110, 27, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_jakir_seldin_force_slam"
+name = "Force Slam"
+trigger = { type = "ability_cast", ability_ids = [4275025762844672] }
+duration_secs = 20.0
+color = [213, 30, 25, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_jakir_seldin_weakness_2"
+name = "Weakness_"
+trigger = { type = "combat_start" }
+duration_secs = 15.0
+color = [39, 214, 220, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_jakir_seldin_serentiy"
+name = "Serentiy"
+trigger = { type = "timer_expires", timer_id = "master_jakir_seldin_weakness_2" }
+duration_secs = 5.0
+color = [11, 128, 15, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_jakir_seldin_sweeping_slash"
+name = "Sweeping Slash"
+trigger = { type = "ability_cast", ability_ids = [4271310616133632] }
+duration_secs = 15.0
+color = [220, 32, 169, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_jakir_seldin_healing_trance"
+name = "Healing Trance"
+trigger = { type = "ability_cast", ability_ids = [4271417990316032] }
+duration_secs = 30.0
+color = [213, 201, 31, 255]
+difficulties = ["veteran", "master"]

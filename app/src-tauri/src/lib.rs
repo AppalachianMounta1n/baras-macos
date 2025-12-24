@@ -127,6 +127,20 @@ pub fn run() {
             commands::load_profile,
             commands::delete_profile,
             commands::rename_profile,
+            // Timer editor commands
+            commands::get_encounter_timers,
+            commands::update_encounter_timer,
+            commands::create_encounter_timer,
+            commands::delete_encounter_timer,
+            commands::duplicate_encounter_timer,
+            commands::get_encounter_bosses,
+            // Effect editor commands
+            commands::get_effect_definitions,
+            commands::update_effect_definition,
+            commands::create_effect_definition,
+            commands::delete_effect_definition,
+            commands::duplicate_effect_definition,
+            commands::get_effect_files,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

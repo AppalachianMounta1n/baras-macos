@@ -1,0 +1,38 @@
+# Troya Ajak - Spirit of Vengeance
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "troya_ajak"
+name = "Troya Ajak"
+area_name = "Spirit of Vengeance"
+difficulties = ["master", "veteran"]
+npc_names = ["Troya Ajak"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "troya_ajak_knocback_pickoff"
+name = "Knocback + Pickoff"
+trigger = { type = "ability_cast", ability_ids = [4432844336136192] }
+duration_secs = 15.0
+color = [213, 107, 31, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "troya_ajak_songbrid"
+name = "Songbrid_"
+trigger = { type = "ability_cast", ability_ids = [4432586638098432] }
+duration_secs = 6.0
+color = [213, 200, 31, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "troya_ajak_songbird"
+name = "Songbird"
+trigger = { type = "combat_start" }
+duration_secs = 5.0
+color = [213, 199, 19, 255]
+difficulties = ["veteran", "master"]

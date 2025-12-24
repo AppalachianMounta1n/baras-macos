@@ -1,0 +1,38 @@
+# Rasmus Blys - Czerka Corporate Labs
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "rasmus_blys"
+name = "Rasmus Blys"
+area_name = "Czerka Corporate Labs"
+difficulties = ["master", "veteran"]
+npc_names = ["Rasmus Blys"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "rasmus_blys_enrage"
+name = "Enrage"
+trigger = { type = "combat_start" }
+duration_secs = 360.0
+color = [213, 19, 19, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "rasmus_blys_escape"
+name = "Escape"
+trigger = { type = "ability_cast", ability_ids = [3271223186292736] }
+duration_secs = 45.0
+color = [38, 51, 213, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "rasmus_blys_adds"
+name = "Adds"
+trigger = { type = "ability_cast", ability_ids = [3258449953554432] }
+duration_secs = 30.0
+color = [34, 144, 26, 255]
+difficulties = ["veteran", "master"]

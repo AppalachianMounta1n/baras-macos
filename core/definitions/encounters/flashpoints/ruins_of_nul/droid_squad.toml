@@ -1,0 +1,22 @@
+# Droid Squad - Ruins of Nul
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "droid_squad"
+name = "Droid Squad"
+area_name = "Ruins of Nul"
+difficulties = ["master", "veteran"]
+npc_names = ["Droid Squad"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "droid_squad_hit_floaty"
+name = "Hit floaty"
+trigger = { type = "ability_cast", ability_ids = [4567908172693504] }
+duration_secs = 12.0
+color = [228, 46, 34, 255]
+difficulties = ["veteran", "master"]

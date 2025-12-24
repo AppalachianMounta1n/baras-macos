@@ -1,0 +1,38 @@
+# Gark the Indomitable - The Battle of Ilum
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "gark_the_indomitable"
+name = "Gark the Indomitable"
+area_name = "The Battle of Ilum"
+difficulties = ["master", "veteran"]
+npc_names = ["Gark the Indomitable"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "gark_the_indomitable_stockstrike"
+name = "Stockstrike"
+trigger = { type = "ability_cast", ability_ids = [1677953528233984] }
+duration_secs = 30.0
+color = [121, 74, 11, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "gark_the_indomitable_hail_of_bolts"
+name = "Hail Of Bolts"
+trigger = { type = "ability_cast", ability_ids = [1677919168495616] }
+duration_secs = 20.0
+color = [213, 31, 34, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "gark_the_indomitable_concussive_round"
+name = "Concussive Round"
+trigger = { type = "effect_applied", effect_ids = [2541662861525256] }
+duration_secs = 60.0
+color = [197, 185, 11, 255]
+difficulties = ["veteran", "master"]

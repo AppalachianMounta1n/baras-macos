@@ -1,0 +1,54 @@
+# Gharj - Eternity Vault
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "gharj"
+name = "Gharj"
+area_name = "Eternity Vault"
+difficulties = ["veteran"]
+npc_names = ["Gharj"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "gharj_leaping_smash_1st"
+name = "Leaping Smash 1st"
+trigger = { type = "ability_cast", ability_ids = [1794381501693952] }
+duration_secs = 8.0
+color = [33, 222, 224, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "gharj_jump"
+name = "Jump"
+trigger = { type = "ability_cast", ability_ids = [3592276286636032] }
+duration_secs = 24.0
+color = [224, 31, 29, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "gharj_pulverizing_slam_1st"
+name = "Pulverizing Slam 1st"
+trigger = { type = "timer_expires", timer_id = "gharj_leaping_smash_1st" }
+duration_secs = 14.0
+color = [224, 118, 29, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "gharj_leaping_smash"
+name = "Leaping Smash"
+trigger = { type = "ability_cast", ability_ids = [2508411224719360] }
+duration_secs = 24.0
+color = [32, 214, 209, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "gharj_pulverizing_slam"
+name = "Pulverizing Slam"
+trigger = { type = "ability_cast", ability_ids = [1954871544643584] }
+duration_secs = 25.0
+color = [224, 118, 29, 255]
+difficulties = ["veteran"]

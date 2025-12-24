@@ -8,16 +8,18 @@
 //!   --metric-16   - Moveable DPS meter with 16 players
 //!   --raid        - Three raid overlays side-by-side showing all interaction modes
 //!   --raid-timers - 16 frames with ticking effect timers
+//!   --timers      - Boss timer overlay with sample countdown bars
 
 use std::env;
 use std::time::{Duration, Instant};
 
 mod examples {
     use super::*;
-    use baras_core::context::OverlayAppearanceConfig;
+    use baras_core::context::{OverlayAppearanceConfig, TimerOverlayConfig};
     use baras_overlay::{
         colors, InteractionMode, MetricEntry, MetricOverlay, Overlay, OverlayConfig, PlayerRole,
         RaidEffect, RaidFrame, RaidGridLayout, RaidOverlay, RaidOverlayConfig,
+        TimerData, TimerEntry, TimerOverlay,
     };
 
     pub fn run_metric_overlay() {
@@ -637,6 +639,94 @@ mod examples {
             }
         }).collect()
     }
+
+    /// Run the timer overlay with sample boss mechanic timers
+    /// Timers tick down in real-time and refresh when expired
+    pub fn run_timer_overlay() {
+        let config = OverlayConfig {
+            x: 300,
+            y: 200,
+            width: 240,
+            height: 180,
+            namespace: "baras-timers".to_string(),
+            click_through: false,
+            target_monitor_id: None,
+        };
+
+        let timer_config = TimerOverlayConfig::default();
+
+        let mut overlay = match TimerOverlay::new(config, timer_config, 180) {
+            Ok(o) => o,
+            Err(e) => {
+                eprintln!("Failed to create timer overlay: {}", e);
+                return;
+            }
+        };
+
+        // Enable move mode for repositioning
+        overlay.set_move_mode(true);
+
+        let start = Instant::now();
+        let mut last_frame = Instant::now();
+        let frame_duration = Duration::from_millis(100); // 10 FPS for timers
+
+        println!("┌─────────────────────────────────────────────────────────────┐");
+        println!("│           Timer Overlay - Boss Mechanic Countdown           │");
+        println!("├─────────────────────────────────────────────────────────────┤");
+        println!("│  Timers tick down in real-time                              │");
+        println!("│  Drag anywhere to move the overlay                          │");
+        println!("│  Drag bottom-right corner to resize                         │");
+        println!("├─────────────────────────────────────────────────────────────┤");
+        println!("│  Press Ctrl+C to exit                                       │");
+        println!("└─────────────────────────────────────────────────────────────┘");
+
+        loop {
+            if !overlay.poll_events() {
+                break;
+            }
+
+            let now = Instant::now();
+            if now.duration_since(last_frame) >= frame_duration {
+                let elapsed = start.elapsed().as_secs_f32();
+
+                // Create sample timer entries with staggered durations
+                let entries = create_sample_timers(elapsed);
+                overlay.set_data(TimerData { entries });
+                overlay.render();
+                last_frame = now;
+            }
+
+            let sleep_ms = if overlay.is_interactive() { 4 } else { 50 };
+            std::thread::sleep(Duration::from_millis(sleep_ms));
+        }
+    }
+
+    /// Create sample boss timers that tick down based on elapsed time
+    fn create_sample_timers(elapsed: f32) -> Vec<TimerEntry> {
+        // Define sample boss mechanics with their cycle times
+        let mechanics = [
+            ("Doom", 30.0, [200, 50, 50, 255]),      // Red - big mechanic
+            ("Lightning Storm", 20.0, [100, 150, 255, 255]),  // Blue
+            ("Adds Spawn", 45.0, [180, 100, 220, 255]),       // Purple
+            ("Enrage Check", 60.0, [255, 180, 50, 255]),      // Orange
+            ("Tank Swap", 15.0, [100, 220, 100, 255]),        // Green
+        ];
+
+        mechanics
+            .iter()
+            .map(|(name, cycle, color)| {
+                // Calculate remaining time in the current cycle
+                let remaining = cycle - (elapsed % cycle);
+
+                TimerEntry {
+                    name: name.to_string(),
+                    remaining_secs: remaining,
+                    total_secs: *cycle,
+                    color: *color,
+                }
+            })
+            .collect()
+    }
 }
 
 fn main() {
@@ -650,6 +740,7 @@ fn main() {
         "--metric" => examples::run_metric_overlay(),
         "--metric-8" => examples::run_metric_overlay_8(),
         "--metric-16" => examples::run_metric_overlay_16(),
+        "--timers" => examples::run_timer_overlay(),
         _ => {
             println!("Usage: cargo run -p baras-overlay -- [OPTION]");
             println!();
@@ -659,6 +750,7 @@ fn main() {
             println!("  --metric-16   Moveable DPS meter with 16 players");
             println!("  --raid        Three raid overlays showing interaction modes");
             println!("  --raid-timers 16-frame stress test with ticking timers");
+            println!("  --timers      Boss timer overlay with countdown bars");
         }
     }
 }

@@ -1,0 +1,38 @@
+# Battlelord Kreshan - Hammer Station
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "battlelord_kreshan"
+name = "Battlelord Kreshan"
+area_name = "Hammer Station"
+difficulties = ["master", "veteran"]
+npc_names = ["Battlelord Kreshan"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "battlelord_kreshan_knockback"
+name = "Knockback"
+trigger = { type = "ability_cast", ability_ids = [2291077289607168] }
+duration_secs = 18.0
+color = [174, 173, 5, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "battlelord_kreshan_sweeping_gunfire"
+name = "Sweeping Gunfire"
+trigger = { type = "ability_cast", ability_ids = [2291098764443648] }
+duration_secs = 12.0
+color = [220, 34, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "battlelord_kreshan_adds"
+name = "Adds"
+trigger = { type = "ability_cast", ability_ids = [2276560300146688] }
+duration_secs = 30.0
+color = [15, 174, 41, 255]
+difficulties = ["veteran", "master"]

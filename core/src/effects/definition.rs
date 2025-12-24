@@ -141,6 +141,10 @@ pub struct EffectDefinition {
     #[serde(default)]
     pub max_stacks: u8,
 
+    /// Show this effect on raid frames (HOTs/shields typically true, DOTs false)
+    #[serde(default)]
+    pub show_on_raid_frames: bool,
+
     // ─── Behavior ───────────────────────────────────────────────────────────
     /// Should this effect persist after target dies?
     #[serde(default)]

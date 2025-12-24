@@ -266,3 +266,109 @@ pub async fn pick_directory(title: &str) -> Option<String> {
 pub async fn get_encounter_history() -> JsValue {
     invoke("get_encounter_history", JsValue::NULL).await
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Timer Editor Commands
+// ─────────────────────────────────────────────────────────────────────────────
+
+use crate::types::{BossListItem, TimerListItem};
+
+/// Get all encounter timers as a flat list
+pub async fn get_encounter_timers() -> Option<Vec<TimerListItem>> {
+    let result = invoke("get_encounter_timers", JsValue::NULL).await;
+    from_js(result)
+}
+
+/// Update an existing timer
+pub async fn update_encounter_timer(timer: &TimerListItem) -> bool {
+    let args = build_args("timer", timer);
+    let result = invoke("update_encounter_timer", args).await;
+    !result.is_null() && !result.is_undefined()
+}
+
+/// Delete a timer
+pub async fn delete_encounter_timer(timer_id: &str, boss_id: &str, file_path: &str) -> bool {
+    let obj = js_sys::Object::new();
+    js_sys::Reflect::set(&obj, &JsValue::from_str("timerId"), &JsValue::from_str(timer_id)).unwrap();
+    js_sys::Reflect::set(&obj, &JsValue::from_str("bossId"), &JsValue::from_str(boss_id)).unwrap();
+    js_sys::Reflect::set(&obj, &JsValue::from_str("filePath"), &JsValue::from_str(file_path)).unwrap();
+
+    let result = invoke("delete_encounter_timer", obj.into()).await;
+    !result.is_null() && !result.is_undefined()
+}
+
+/// Duplicate a timer
+pub async fn duplicate_encounter_timer(timer_id: &str, boss_id: &str, file_path: &str) -> Option<TimerListItem> {
+    let obj = js_sys::Object::new();
+    js_sys::Reflect::set(&obj, &JsValue::from_str("timerId"), &JsValue::from_str(timer_id)).unwrap();
+    js_sys::Reflect::set(&obj, &JsValue::from_str("bossId"), &JsValue::from_str(boss_id)).unwrap();
+    js_sys::Reflect::set(&obj, &JsValue::from_str("filePath"), &JsValue::from_str(file_path)).unwrap();
+
+    let result = invoke("duplicate_encounter_timer", obj.into()).await;
+    from_js(result)
+}
+
+/// Create a new timer
+pub async fn create_encounter_timer(timer: &TimerListItem) -> Option<TimerListItem> {
+    let args = build_args("timer", timer);
+    let result = invoke("create_encounter_timer", args).await;
+    from_js(result)
+}
+
+/// Get list of all bosses for the "New Timer" dropdown
+pub async fn get_encounter_bosses() -> Option<Vec<BossListItem>> {
+    let result = invoke("get_encounter_bosses", JsValue::NULL).await;
+    from_js(result)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Effect Editor Commands
+// ─────────────────────────────────────────────────────────────────────────────
+
+use crate::types::EffectListItem;
+
+/// Get all effect definitions as a flat list
+pub async fn get_effect_definitions() -> Option<Vec<EffectListItem>> {
+    let result = invoke("get_effect_definitions", JsValue::NULL).await;
+    from_js(result)
+}
+
+/// Update an existing effect
+pub async fn update_effect_definition(effect: &EffectListItem) -> bool {
+    let args = build_args("effect", effect);
+    let result = invoke("update_effect_definition", args).await;
+    !result.is_null() && !result.is_undefined()
+}
+
+/// Delete an effect
+pub async fn delete_effect_definition(effect_id: &str, file_path: &str) -> bool {
+    let obj = js_sys::Object::new();
+    js_sys::Reflect::set(&obj, &JsValue::from_str("effectId"), &JsValue::from_str(effect_id)).unwrap();
+    js_sys::Reflect::set(&obj, &JsValue::from_str("filePath"), &JsValue::from_str(file_path)).unwrap();
+
+    let result = invoke("delete_effect_definition", obj.into()).await;
+    !result.is_null() && !result.is_undefined()
+}
+
+/// Duplicate an effect
+pub async fn duplicate_effect_definition(effect_id: &str, file_path: &str) -> Option<EffectListItem> {
+    let obj = js_sys::Object::new();
+    js_sys::Reflect::set(&obj, &JsValue::from_str("effectId"), &JsValue::from_str(effect_id)).unwrap();
+    js_sys::Reflect::set(&obj, &JsValue::from_str("filePath"), &JsValue::from_str(file_path)).unwrap();
+
+    let result = invoke("duplicate_effect_definition", obj.into()).await;
+    from_js(result)
+}
+
+/// Create a new effect
+pub async fn create_effect_definition(effect: &EffectListItem) -> Option<EffectListItem> {
+    let args = build_args("effect", effect);
+    let result = invoke("create_effect_definition", args).await;
+    from_js(result)
+}
+
+/// Get list of effect files for "New Effect" file selection
+pub async fn get_effect_files() -> Option<Vec<String>> {
+    let result = invoke("get_effect_files", JsValue::NULL).await;
+    from_js(result)
+}

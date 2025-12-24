@@ -1,0 +1,54 @@
+# The Writhing Horror - Terror From Beyond
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "the_writhing_horror"
+name = "The Writhing Horror"
+area_name = "Terror From Beyond"
+difficulties = ["master", "veteran"]
+npc_names = ["The Writhing Horror"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "the_writhing_horror_teleport_1st"
+name = "Teleport 1st"
+trigger = { type = "combat_start" }
+duration_secs = 20.0
+color = [26, 220, 212, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "the_writhing_horror_teleport"
+name = "Teleport"
+trigger = { type = "ability_cast", ability_ids = [3016484380999680] }
+duration_secs = 45.0
+color = [26, 220, 212, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "the_writhing_horror_male_puddle_1st"
+name = "Male + Puddle 1st"
+trigger = { type = "combat_start" }
+duration_secs = 45.0
+color = [197, 17, 188, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "the_writhing_horror_male_puddle"
+name = "Male + Puddle_"
+trigger = { type = "timer_expires", timer_id = "the_writhing_horror_male_puddle_2" }
+duration_secs = 90.0
+color = [197, 17, 188, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "the_writhing_horror_male_puddle_2"
+name = "Male + Puddle"
+trigger = { type = "timer_expires", timer_id = "the_writhing_horror_male_puddle_1st" }
+duration_secs = 90.0
+color = [197, 17, 188, 255]
+difficulties = ["veteran", "master"]

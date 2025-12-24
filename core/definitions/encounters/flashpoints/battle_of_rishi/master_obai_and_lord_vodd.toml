@@ -1,0 +1,110 @@
+# Master Obai and Lord Vodd - Battle of Rishi
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "master_obai_and_lord_vodd"
+name = "Master Obai and Lord Vodd"
+area_name = "Battle of Rishi"
+difficulties = ["master", "veteran"]
+npc_names = ["Master Obai and Lord Vodd"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "master_obai_and_lord_vodd_forcewave_setup"
+name = "Forcewave Setup"
+trigger = { type = "ability_cast", ability_ids = [3384494358790144] }
+duration_secs = 25.0
+color = [171, 220, 39, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_obai_and_lord_vodd_forcewave"
+name = "Forcewave"
+trigger = { type = "timer_expires", timer_id = "master_obai_and_lord_vodd_forcewave_setup" }
+duration_secs = 20.0
+color = [192, 228, 34, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_obai_and_lord_vodd_forcewave_2"
+name = "Forcewave_"
+trigger = { type = "ability_cast", ability_ids = [3382269565730816] }
+duration_secs = 20.0
+color = [193, 220, 26, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_obai_and_lord_vodd_stun_setup"
+name = "Stun Setup"
+trigger = { type = "ability_cast", ability_ids = [3385636820090880] }
+duration_secs = 23.0
+color = [220, 33, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_obai_and_lord_vodd_stun"
+name = "Stun"
+trigger = { type = "timer_expires", timer_id = "master_obai_and_lord_vodd_stun_setup" }
+duration_secs = 22.0
+color = [220, 28, 26, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_obai_and_lord_vodd_stun_2"
+name = "Stun_"
+trigger = { type = "ability_cast", ability_ids = [3390880975159296] }
+duration_secs = 22.0
+color = [220, 33, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_obai_and_lord_vodd_ball_setup"
+name = "Ball Setup"
+trigger = { type = "ability_cast", ability_ids = [3390880975159296] }
+duration_secs = 27.0
+color = [220, 26, 205, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_obai_and_lord_vodd_lightning_ball"
+name = "Lightning Ball"
+trigger = { type = "timer_expires", timer_id = "master_obai_and_lord_vodd_ball_setup" }
+duration_secs = 20.0
+color = [220, 26, 188, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_obai_and_lord_vodd_lightning_ball_2"
+name = "Lightning Ball_"
+trigger = { type = "ability_cast", ability_ids = [3385636820090880] }
+duration_secs = 20.0
+color = [220, 32, 173, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_obai_and_lord_vodd_force_slash_setup"
+name = "Force Slash Setup"
+trigger = { type = "ability_cast", ability_ids = [3382269565730816] }
+duration_secs = 25.0
+color = [32, 213, 220, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_obai_and_lord_vodd_force_slash"
+name = "Force Slash"
+trigger = { type = "timer_expires", timer_id = "master_obai_and_lord_vodd_force_slash_setup" }
+duration_secs = 20.0
+color = [32, 213, 220, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_obai_and_lord_vodd_force_slash_2"
+name = "Force Slash_"
+trigger = { type = "ability_cast", ability_ids = [3384494358790144] }
+duration_secs = 20.0
+color = [27, 220, 228, 255]
+difficulties = ["veteran", "master"]

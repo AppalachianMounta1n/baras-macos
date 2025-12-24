@@ -6,6 +6,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::effects::EntityFilter;
+use crate::encounters::CounterCondition;
+use crate::game_data::Difficulty;
 
 /// What triggers a timer to start
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -46,6 +48,18 @@ pub enum TimerTrigger {
 
     /// Manually triggered (for testing/debug)
     Manual,
+
+    // ─── Logical Composition ─────────────────────────────────────────────────
+
+    /// All conditions must be met (AND logic)
+    AllOf {
+        conditions: Vec<TimerTrigger>,
+    },
+
+    /// Any condition suffices (OR logic)
+    AnyOf {
+        conditions: Vec<TimerTrigger>,
+    },
 }
 
 /// Definition of a timer (loaded from config)
@@ -119,6 +133,17 @@ pub struct TimerDefinition {
     /// Active difficulties: "story", "veteran", "master"
     #[serde(default)]
     pub difficulties: Vec<String>,
+
+    // ─── Phase/Counter Conditions (optional) ─────────────────────────────────
+    /// Only active during these phases (empty = all phases)
+    /// Only applies when fighting a boss with phase definitions
+    #[serde(default)]
+    pub phases: Vec<String>,
+
+    /// Only active when counter meets condition
+    /// Only applies when fighting a boss with counter definitions
+    #[serde(default)]
+    pub counter_condition: Option<CounterCondition>,
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -131,4 +156,109 @@ fn default_true() -> bool {
 
 fn default_timer_color() -> [u8; 4] {
     [200, 200, 200, 255] // Light grey
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Config File Structure
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Root structure for timer config files (TOML)
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TimerConfig {
+    /// Timer definitions in this file
+    #[serde(default, rename = "timer")]
+    pub timers: Vec<TimerDefinition>,
+}
+
+impl TimerDefinition {
+    /// Check if this timer matches a given ability ID
+    pub fn matches_ability(&self, ability_id: u64) -> bool {
+        match &self.trigger {
+            TimerTrigger::AbilityCast { ability_ids } => ability_ids.contains(&ability_id),
+            _ => false,
+        }
+    }
+
+    /// Check if this timer matches a given effect ID for apply triggers
+    pub fn matches_effect_applied(&self, effect_id: u64) -> bool {
+        match &self.trigger {
+            TimerTrigger::EffectApplied { effect_ids } => effect_ids.contains(&effect_id),
+            _ => false,
+        }
+    }
+
+    /// Check if this timer matches a given effect ID for remove triggers
+    pub fn matches_effect_removed(&self, effect_id: u64) -> bool {
+        match &self.trigger {
+            TimerTrigger::EffectRemoved { effect_ids } => effect_ids.contains(&effect_id),
+            _ => false,
+        }
+    }
+
+    /// Check if this timer is triggered by another timer expiring
+    pub fn matches_timer_expires(&self, timer_id: &str) -> bool {
+        match &self.trigger {
+            TimerTrigger::TimerExpires { timer_id: trigger_id } => trigger_id == timer_id,
+            _ => false,
+        }
+    }
+
+    /// Check if this timer triggers on combat start
+    pub fn triggers_on_combat_start(&self) -> bool {
+        matches!(&self.trigger, TimerTrigger::CombatStart)
+    }
+
+    /// Check if this timer is active for the current phase/counter state
+    pub fn is_active_for_state(&self, state: &crate::encounters::BossEncounterState) -> bool {
+        // Check phase filter
+        if !self.phases.is_empty() && !state.is_in_any_phase(&self.phases) {
+            return false;
+        }
+
+        // Check counter condition
+        if let Some(ref cond) = self.counter_condition {
+            if !state.check_counter_condition(cond) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    /// Check if this timer is active for a given encounter context
+    pub fn is_active_for_context(&self, encounter: Option<&str>, boss: Option<&str>, difficulty: Option<Difficulty>) -> bool {
+        // Check encounter filter
+        if !self.encounters.is_empty() {
+            if let Some(enc) = encounter {
+                if !self.encounters.iter().any(|e| e.eq_ignore_ascii_case(enc)) {
+                    return false;
+                }
+            } else {
+                return false; // Timer requires specific encounter but none provided
+            }
+        }
+
+        // Check boss filter
+        if let Some(timer_boss) = &self.boss {
+            if let Some(current_boss) = boss {
+                if !timer_boss.eq_ignore_ascii_case(current_boss) {
+                    return false;
+                }
+            } else {
+                return false; // Timer requires specific boss but none provided
+            }
+        }
+
+        // Check difficulty filter
+        if !self.difficulties.is_empty()
+            && let Some(diff) = difficulty {
+                // Match if the difficulty's config key matches any in the list
+                if !self.difficulties.iter().any(|d| diff.matches_config_key(d)) {
+                    return false;
+                }
+            // If no difficulty provided but timer has filter, allow it (be permissive)
+        }
+
+        true
+    }
 }

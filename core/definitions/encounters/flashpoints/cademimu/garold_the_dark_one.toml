@@ -1,0 +1,38 @@
+# Garold the Dark One - Cademimu
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "garold_the_dark_one"
+name = "Garold the Dark One"
+area_name = "Cademimu"
+difficulties = ["master", "veteran"]
+npc_names = ["Garold the Dark One"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "garold_the_dark_one_enrage"
+name = "Enrage"
+trigger = { type = "combat_start" }
+duration_secs = 240.0
+color = [228, 45, 34, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "garold_the_dark_one_pull_storm"
+name = "Pull + Storm"
+trigger = { type = "ability_cast", ability_ids = [2520518737526784] }
+duration_secs = 30.0
+color = [144, 27, 228, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "garold_the_dark_one_pull_storm_2"
+name = "Pull + Storm_"
+trigger = { type = "combat_start" }
+duration_secs = 30.0
+color = [147, 32, 220, 255]
+difficulties = ["veteran", "master"]

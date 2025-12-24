@@ -1,0 +1,22 @@
+# Tregg the Destroyer - The False Emperor
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "tregg_the_destroyer"
+name = "Tregg the Destroyer"
+area_name = "The False Emperor"
+difficulties = ["master", "veteran"]
+npc_names = ["Tregg the Destroyer"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "tregg_the_destroyer_leap_slash"
+name = "Leap + Slash"
+trigger = { type = "ability_cast", ability_ids = [2315786236461056] }
+duration_secs = 18.0
+color = [220, 34, 26, 255]
+difficulties = ["veteran", "master"]

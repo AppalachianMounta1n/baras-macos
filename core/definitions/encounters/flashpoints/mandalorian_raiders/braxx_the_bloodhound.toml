@@ -1,0 +1,46 @@
+# Braxx the Bloodhound - Mandalorian Raiders
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "braxx_the_bloodhound"
+name = "Braxx the Bloodhound"
+area_name = "Mandalorian Raiders"
+difficulties = ["master", "veteran"]
+npc_names = ["Braxx the Bloodhound"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "braxx_the_bloodhound_carbonize"
+name = "Carbonize"
+trigger = { type = "ability_cast", ability_ids = [2463666255429632] }
+duration_secs = 20.0
+color = [27, 228, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "braxx_the_bloodhound_carbonize_2"
+name = "Carbonize_"
+trigger = { type = "combat_start" }
+duration_secs = 10.0
+color = [27, 228, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "braxx_the_bloodhound_inspire_end"
+name = "Inspire End"
+trigger = { type = "ability_cast", ability_ids = [2439519949291520] }
+duration_secs = 15.0
+color = [220, 34, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "braxx_the_bloodhound_inspire"
+name = "Inspire"
+trigger = { type = "timer_expires", timer_id = "braxx_the_bloodhound_inspire_end" }
+duration_secs = 15.0
+color = [220, 33, 32, 255]
+difficulties = ["veteran", "master"]

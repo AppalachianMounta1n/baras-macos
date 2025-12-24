@@ -1,0 +1,38 @@
+# Darth Ikoral - The Red Reaper
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "darth_ikoral"
+name = "Darth Ikoral"
+area_name = "The Red Reaper"
+difficulties = ["master", "veteran"]
+npc_names = ["Darth Ikoral"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "darth_ikoral_enrage"
+name = "Enrage"
+trigger = { type = "combat_start" }
+duration_secs = 300.0
+color = [228, 36, 34, 255]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "darth_ikoral_empowered_mm"
+name = "Empowered MM"
+trigger = { type = "ability_cast", ability_ids = [2496982316744704] }
+duration_secs = 45.0
+color = [220, 125, 32, 255]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "darth_ikoral_empowered_vm"
+name = "Empowered VM"
+trigger = { type = "ability_cast", ability_ids = [2496982316744704] }
+duration_secs = 50.0
+color = [220, 118, 26, 255]
+difficulties = ["veteran"]

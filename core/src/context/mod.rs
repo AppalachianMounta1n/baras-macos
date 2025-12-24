@@ -8,7 +8,8 @@ pub mod watcher;
 pub use config::{
     AppConfig, AppConfigExt, BossHealthConfig, Color, HotkeySettings,
     OverlayAppearanceConfig, OverlayPositionConfig, OverlayProfile, OverlaySettings,
-    PersonalOverlayConfig, PersonalStat, RaidOverlaySettings, MAX_PROFILES, overlay_colors,
+    PersonalOverlayConfig, PersonalStat, RaidOverlaySettings, TimerOverlayConfig,
+    MAX_PROFILES, overlay_colors,
 };
 pub use background_tasks::BackgroundTasks;
 pub use log_files::{DirectoryIndex, parse_log_filename};

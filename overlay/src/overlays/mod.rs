@@ -13,6 +13,7 @@ mod boss_health;
 mod metric;
 mod personal;
 mod raid;
+mod timers;
 
 pub use boss_health::{BossHealthOverlay, BossHealthData};
 pub use metric::{MetricEntry, MetricOverlay};
@@ -24,6 +25,7 @@ pub use raid::{
     EFFECT_OFFSET_DEFAULT, EFFECT_OFFSET_MAX, EFFECT_OFFSET_MIN,
     EFFECT_SIZE_DEFAULT, EFFECT_SIZE_MAX, EFFECT_SIZE_MIN,
 };
+pub use timers::{TimerData, TimerEntry, TimerOverlay};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Registry Action (for raid overlay → service communication)
@@ -40,7 +42,7 @@ pub enum RaidRegistryAction {
 }
 
 use crate::frame::OverlayFrame;
-use baras_core::context::{OverlayAppearanceConfig, PersonalOverlayConfig, BossHealthConfig};
+use baras_core::context::{OverlayAppearanceConfig, PersonalOverlayConfig, BossHealthConfig, TimerOverlayConfig};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data Types
@@ -57,6 +59,8 @@ pub enum OverlayData {
     Raid(RaidFrameData),
     /// Boss health bar data
     BossHealth(BossHealthData),
+    /// Timer countdown bars
+    Timers(TimerData),
 }
 
 /// Configuration updates that can be sent to overlays
@@ -70,6 +74,8 @@ pub enum OverlayConfigUpdate {
     Raid(RaidOverlayConfig, u8),
     /// Config for boss health overlay (+ background alpha)
     BossHealth(BossHealthConfig, u8),
+    /// Config for timer overlay (+ background alpha)
+    Timers(TimerOverlayConfig, u8),
 }
 
 /// Position information for an overlay

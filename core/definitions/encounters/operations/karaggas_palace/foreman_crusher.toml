@@ -1,0 +1,22 @@
+# Foreman Crusher - Karagga's Palace
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "foreman_crusher"
+name = "Foreman Crusher"
+area_name = "Karagga's Palace"
+difficulties = ["veteran"]
+npc_names = ["Foreman Crusher"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "foreman_crusher_frenzy_1st"
+name = "Frenzy 1st"
+trigger = { type = "combat_start" }
+duration_secs = 45.0
+color = [224, 33, 181, 255]
+difficulties = ["veteran"]

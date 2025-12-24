@@ -1,0 +1,103 @@
+# IP-CPT - R4
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "ip_cpt"
+name = "IP-CPT"
+area_name = "R4"
+difficulties = ["veteran"]
+npc_names = ["IP-CPT"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "ip_cpt_p2_bombs_1"
+name = "P2 Bombs 1"
+trigger = { type = "timer_expires", timer_id = "9aa0edbc-fe10-4ab6-a3ac-9c1118f91cc7" }
+duration_secs = 4.5
+color = [32, 219, 213, 255]
+phases = ["p2"]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "ip_cpt_p2_bombs_2"
+name = "P2 Bombs 2"
+trigger = { type = "timer_expires", timer_id = "ip_cpt_p2_droids" }
+duration_secs = 30.0
+color = [32, 219, 213, 255]
+phases = ["p2"]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "ip_cpt_p2_turrets"
+name = "P2 Turrets"
+trigger = { type = "timer_expires", timer_id = "ip_cpt_p2_bombs_2" }
+duration_secs = 5.0
+color = [32, 219, 213, 255]
+phases = ["p2"]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "ip_cpt_p2_droids"
+name = "P2 Droids"
+trigger = { type = "timer_expires", timer_id = "ip_cpt_p2_bombs_1" }
+duration_secs = 15.0
+color = [32, 219, 213, 255]
+phases = ["p2"]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "ip_cpt_p4_bombs_1"
+name = "P4 Bombs 1"
+trigger = { type = "timer_expires", timer_id = "77293129-f069-417a-bd2b-846d62bb6e8d" }
+duration_secs = 4.5
+color = [29, 224, 217, 255]
+phases = ["p4"]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "ip_cpt_p4_turrets"
+name = "P4 Turrets"
+trigger = { type = "timer_expires", timer_id = "ip_cpt_p4_bombs_1" }
+duration_secs = 15.0
+color = [29, 224, 217, 255]
+phases = ["p4"]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "ip_cpt_p4_bombs_2"
+name = "P4 Bombs 2"
+trigger = { type = "timer_expires", timer_id = "ip_cpt_p4_turrets" }
+duration_secs = 30.0
+color = [29, 224, 217, 255]
+phases = ["p4"]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "ip_cpt_p4_droids"
+name = "P4 Droids"
+trigger = { type = "timer_expires", timer_id = "ip_cpt_p4_bombs_2" }
+duration_secs = 5.0
+color = [29, 224, 217, 255]
+phases = ["p4"]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "ip_cpt_p6_burn_rng_flor"
+name = "P6 Burn RNG flor"
+trigger = { type = "timer_expires", timer_id = "bfb2ec6b-c301-446f-84a2-cccc768677ad" }
+duration_secs = 4.8
+color = [219, 32, 34, 255]
+phases = ["p6"]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "ip_cpt_big_grenade"
+name = "Big Grenade"
+trigger = { type = "effect_applied", effect_ids = [4471271408533778] }
+duration_secs = 8.5
+color = [20, 153, 33, 255]
+difficulties = ["veteran"]

@@ -1,0 +1,38 @@
+# Chief Engineer Kels - Boarding Party
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "chief_engineer_kels"
+name = "Chief Engineer Kels"
+area_name = "Boarding Party"
+difficulties = ["master", "veteran"]
+npc_names = ["Chief Engineer Kels"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "chief_engineer_kels_enrage"
+name = "Enrage"
+trigger = { type = "combat_start" }
+duration_secs = 105.0
+color = [220, 33, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "chief_engineer_kels_reflective_shield"
+name = "Reflective Shield"
+trigger = { type = "ability_cast", ability_ids = [2541542602440704] }
+duration_secs = 30.0
+color = [32, 208, 220, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "chief_engineer_kels_reactor_pulse"
+name = "Reactor Pulse"
+trigger = { type = "ability_cast", ability_ids = [2535314899861504] }
+duration_secs = 5.0
+color = [220, 113, 26, 255]
+difficulties = ["veteran", "master"]

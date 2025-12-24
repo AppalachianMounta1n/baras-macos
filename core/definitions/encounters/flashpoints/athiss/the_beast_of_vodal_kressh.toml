@@ -1,0 +1,38 @@
+# The Beast of Vodal Kressh - Athiss
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "the_beast_of_vodal_kressh"
+name = "The Beast of Vodal Kressh"
+area_name = "Athiss"
+difficulties = ["master", "veteran"]
+npc_names = ["The Beast of Vodal Kressh"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "the_beast_of_vodal_kressh_roar"
+name = "Roar"
+trigger = { type = "ability_cast", ability_ids = [2276418566225920] }
+duration_secs = 30.0
+color = [190, 157, 11, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "the_beast_of_vodal_kressh_knockback_right"
+name = "Knockback Right"
+trigger = { type = "ability_cast", ability_ids = [2275117191135232] }
+duration_secs = 15.0
+color = [26, 217, 220, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "the_beast_of_vodal_kressh_knockback_left"
+name = "Knockback Left"
+trigger = { type = "ability_cast", ability_ids = [2275117191135232] }
+duration_secs = 15.0
+color = [228, 33, 27, 255]
+difficulties = ["veteran", "master"]

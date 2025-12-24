@@ -1,0 +1,22 @@
+# Captain Grimyk - Cademimu
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "captain_grimyk"
+name = "Captain Grimyk"
+area_name = "Cademimu"
+difficulties = ["master", "veteran"]
+npc_names = ["Captain Grimyk"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "captain_grimyk_grenade"
+name = "Grenade"
+trigger = { type = "ability_cast", ability_ids = [2506302395777024] }
+duration_secs = 15.0
+color = [167, 158, 15, 255]
+difficulties = ["veteran", "master"]

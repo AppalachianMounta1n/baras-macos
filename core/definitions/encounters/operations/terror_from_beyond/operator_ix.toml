@@ -1,0 +1,22 @@
+# Operator IX - Terror From Beyond
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "operator_ix"
+name = "Operator IX"
+area_name = "Terror From Beyond"
+difficulties = ["master", "veteran"]
+npc_names = ["Operator IX"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "operator_ix_black_obtuse"
+name = "Black Obtuse"
+trigger = { type = "ability_cast", ability_ids = [2998471288160256] }
+duration_secs = 30.0
+color = [227, 112, 31, 255]
+difficulties = ["veteran", "master"]

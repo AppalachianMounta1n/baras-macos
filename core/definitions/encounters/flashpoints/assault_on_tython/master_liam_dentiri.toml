@@ -1,0 +1,30 @@
+# Master Liam Dentiri - Assault on Tython
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "master_liam_dentiri"
+name = "Master Liam Dentiri"
+area_name = "Assault on Tython"
+difficulties = ["master", "veteran"]
+npc_names = ["Master Liam Dentiri"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "master_liam_dentiri_adds"
+name = "Adds"
+trigger = { type = "ability_cast", ability_ids = [3327766430744576] }
+duration_secs = 45.0
+color = [17, 144, 17, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_liam_dentiri_backstab"
+name = "Backstab"
+trigger = { type = "ability_cast", ability_ids = [3328002653945856] }
+duration_secs = 22.0
+color = [31, 207, 213, 255]
+difficulties = ["veteran", "master"]

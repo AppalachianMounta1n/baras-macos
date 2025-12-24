@@ -1,0 +1,110 @@
+# Dread Master Raptus - The Dread Palace
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "dread_master_raptus"
+name = "Dread Master Raptus"
+area_name = "The Dread Palace"
+difficulties = ["master", "veteran"]
+npc_names = ["Dread Master Raptus"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "dread_master_raptus_challenge"
+name = "Challenge"
+trigger = { type = "ability_cast", ability_ids = [3302168425660416] }
+duration_secs = 60.0
+color = [219, 31, 28, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_raptus_raptus_shield"
+name = "Raptus Shield"
+trigger = { type = "ability_cast", ability_ids = [3302078231347200] }
+duration_secs = 15.0
+color = [37, 224, 218, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_raptus_raptus_teleprot"
+name = "Raptus Teleprot"
+trigger = { type = "timer_expires", timer_id = "dread_master_raptus_raptus_shield" }
+duration_secs = 105.0
+color = [28, 219, 216, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_raptus_spinning"
+name = "Spinning"
+trigger = { type = "timer_expires", timer_id = "dread_master_raptus_spinnin_over" }
+duration_secs = 40.0
+color = [224, 33, 29, 255]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "dread_master_raptus_spinnin_over"
+name = "Spinnin Over"
+trigger = { type = "ability_cast", ability_ids = [3356173344440320] }
+duration_secs = 23.0
+color = [214, 28, 27, 255]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "dread_master_raptus_force_execution"
+name = "Force Execution"
+trigger = { type = "ability_cast", ability_ids = [3301391036579840] }
+duration_secs = 38.0
+color = [189, 24, 149, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_raptus_force_wave"
+name = "Force Wave"
+trigger = { type = "ability_cast", ability_ids = [3300643712270336] }
+duration_secs = 10.0
+color = [24, 129, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_raptus_deadly_slash"
+name = "Deadly Slash"
+trigger = { type = "ability_cast", ability_ids = [3299265027768320] }
+duration_secs = 35.0
+color = [53, 32, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_raptus_challenge_end"
+name = "Challenge END"
+trigger = { type = "timer_expires", timer_id = "dread_master_raptus_challenge" }
+duration_secs = 60.0
+color = [219, 28, 28, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_raptus_the_void"
+name = "The Void"
+trigger = { type = "ability_cast", ability_ids = [3300673777041408] }
+duration_secs = 30.0
+color = [224, 190, 33, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_raptus_into_the_void"
+name = "Into The Void"
+trigger = { type = "effect_applied", effect_ids = [3300673777041696] }
+duration_secs = 5.0
+color = [224, 190, 33, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_raptus_rising_slash"
+name = "Rising Slash"
+trigger = { type = "ability_cast", ability_ids = [3299355222081536] }
+duration_secs = 20.0
+color = [219, 101, 28, 255]
+difficulties = ["veteran", "master"]

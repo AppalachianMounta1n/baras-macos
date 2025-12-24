@@ -1,0 +1,22 @@
+# Interrogator - Directive 7
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "interrogator"
+name = "Interrogator"
+area_name = "Directive 7"
+difficulties = ["master", "veteran"]
+npc_names = ["Interrogator"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "interrogator_immunity"
+name = "Immunity"
+trigger = { type = "effect_applied", effect_ids = [1790159548842247] }
+duration_secs = 24.0
+color = [213, 33, 31, 255]
+difficulties = ["veteran", "master"]

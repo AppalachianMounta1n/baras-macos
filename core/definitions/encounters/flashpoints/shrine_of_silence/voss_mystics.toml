@@ -1,0 +1,78 @@
+# Voss Mystics - Shrine of Silence
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "voss_mystics"
+name = "Voss Mystics"
+area_name = "Shrine of Silence"
+difficulties = ["master", "veteran"]
+npc_names = ["Voss Mystics"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "voss_mystics_lightning_storm"
+name = "Lightning Storm"
+trigger = { type = "combat_start" }
+duration_secs = 16.0
+color = [34, 44, 228, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "voss_mystics_force_push"
+name = "Force Push"
+trigger = { type = "combat_start" }
+duration_secs = 25.0
+color = [228, 31, 20, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "voss_mystics_corrupted_spirit"
+name = "Corrupted Spirit "
+trigger = { type = "combat_start" }
+duration_secs = 20.0
+color = [8, 136, 15, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "voss_mystics_light_beam"
+name = "Light Beam"
+trigger = { type = "combat_start" }
+duration_secs = 8.0
+color = [213, 199, 31, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "voss_mystics_force_push_2"
+name = "Force Push_"
+trigger = { type = "ability_cast", ability_ids = [4677717601550336] }
+duration_secs = 31.0
+color = [228, 39, 34, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "voss_mystics_light_beam_2"
+name = "Light Beam_"
+trigger = { type = "ability_cast", ability_ids = [4679573027422208] }
+duration_secs = 31.0
+color = [211, 213, 38, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "voss_mystics_corrupted_spirit_2"
+name = "Corrupted Spirit_"
+trigger = { type = "ability_cast", ability_ids = [4679839315394560] }
+duration_secs = 31.0
+color = [19, 128, 28, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "voss_mystics_lightning_storm_2"
+name = "Lightning Storm_"
+trigger = { type = "ability_cast", ability_ids = [4679568732454912] }
+duration_secs = 21.0
+color = [25, 213, 212, 255]
+difficulties = ["veteran", "master"]

@@ -1,0 +1,70 @@
+# The Curse - Shrine of Silence
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "the_curse"
+name = "The Curse"
+area_name = "Shrine of Silence"
+difficulties = ["master", "veteran"]
+npc_names = ["The Curse"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "the_curse_forceful_slam"
+name = "Forceful Slam"
+trigger = { type = "combat_start" }
+duration_secs = 8.0
+color = [132, 34, 228, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "the_curse_forceful_slam_2"
+name = "Forceful Slam_"
+trigger = { type = "ability_cast", ability_ids = [4684585254256640] }
+duration_secs = 11.0
+color = [126, 30, 205, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "the_curse_summon_the_corrupted"
+name = "Summon the Corrupted"
+trigger = { type = "combat_start" }
+duration_secs = 12.0
+color = [220, 208, 19, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "the_curse_summon_the_corrupted_2"
+name = "Summon the Corrupted_"
+trigger = { type = "ability_cast", ability_ids = [4684589549223936] }
+duration_secs = 46.0
+color = [203, 205, 36, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "the_curse_corrupt_the_weak"
+name = "Corrupt the Weak"
+trigger = { type = "combat_start" }
+duration_secs = 25.0
+color = [228, 110, 27, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "the_curse_corrupt_the_weak_2"
+name = "Corrupt the Weak_"
+trigger = { type = "ability_cast", ability_ids = [4684593844191232] }
+duration_secs = 74.0
+color = [213, 116, 31, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "the_curse_creeping_roots"
+name = "Creeping Roots"
+trigger = { type = "ability_cast", ability_ids = [4695185233543168] }
+duration_secs = 31.0
+color = [24, 136, 41, 255]
+difficulties = ["veteran", "master"]

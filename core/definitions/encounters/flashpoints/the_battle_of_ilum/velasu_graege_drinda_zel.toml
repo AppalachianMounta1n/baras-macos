@@ -1,0 +1,62 @@
+# Velasu Graege & Drinda-Zel - The Battle of Ilum
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "velasu_graege_drinda_zel"
+name = "Velasu Graege & Drinda-Zel"
+area_name = "The Battle of Ilum"
+difficulties = ["master", "veteran"]
+npc_names = ["Velasu Graege & Drinda-Zel"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "velasu_graege_drinda_zel_concussion_charge_vm"
+name = "Concussion Charge VM"
+trigger = { type = "ability_cast", ability_ids = [2058079608766464] }
+duration_secs = 13.5
+color = [220, 163, 59, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "velasu_graege_drinda_zel_concussion_charge_mm"
+name = "Concussion Charge MM"
+trigger = { type = "ability_cast", ability_ids = [2522361278496768] }
+duration_secs = 13.5
+color = [197, 160, 65, 255]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "velasu_graege_drinda_zel_concussion_missile_mm"
+name = "Concussion Missile MM"
+trigger = { type = "ability_cast", ability_ids = [2522365573464064] }
+duration_secs = 15.0
+color = [197, 35, 145, 255]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "velasu_graege_drinda_zel_concussion_missile_vm"
+name = "Concussion Missile VM"
+trigger = { type = "ability_cast", ability_ids = [2058908537454592] }
+duration_secs = 15.0
+color = [197, 41, 124, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "velasu_graege_drinda_zel_force_lightning_mm"
+name = "Force Lightning MM"
+trigger = { type = "effect_applied", effect_ids = [2522344098627843] }
+duration_secs = 12.0
+color = [150, 39, 220, 255]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "velasu_graege_drinda_zel_force_lightning_vm"
+name = "Force Lightning VM"
+trigger = { type = "effect_applied", effect_ids = [2057937874845954] }
+duration_secs = 12.0
+color = [161, 39, 220, 255]
+difficulties = ["veteran"]

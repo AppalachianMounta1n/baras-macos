@@ -1,0 +1,46 @@
+# Darth Malgus - The False Emperor
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "darth_malgus"
+name = "Darth Malgus"
+area_name = "The False Emperor"
+difficulties = ["master", "veteran"]
+npc_names = ["Darth Malgus"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "darth_malgus_unlimited_power"
+name = "Unlimited Power"
+trigger = { type = "ability_cast", ability_ids = [2467746474360832] }
+duration_secs = 20.0
+color = [220, 26, 200, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "darth_malgus_doubt"
+name = "Doubt"
+trigger = { type = "ability_cast", ability_ids = [2161579730665472] }
+duration_secs = 60.0
+color = [19, 106, 213, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "darth_malgus_choke"
+name = "Choke"
+trigger = { type = "ability_cast", ability_ids = [2161579730665472] }
+duration_secs = 18.0
+color = [220, 32, 26, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "darth_malgus_choke_end"
+name = "Choke END"
+trigger = { type = "ability_cast", ability_ids = [2163151688695808] }
+duration_secs = 15.0
+color = [12, 136, 30, 255]
+difficulties = ["veteran", "master"]

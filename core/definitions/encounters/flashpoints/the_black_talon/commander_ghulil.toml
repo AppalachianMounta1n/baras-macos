@@ -1,0 +1,30 @@
+# Commander Ghulil - The Black Talon
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "commander_ghulil"
+name = "Commander Ghulil"
+area_name = "The Black Talon"
+difficulties = ["master", "veteran"]
+npc_names = ["Commander Ghulil"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "commander_ghulil_plasma_probe"
+name = "Plasma Probe"
+trigger = { type = "ability_cast", ability_ids = [2042587661729792] }
+duration_secs = 11.0
+color = [220, 190, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "commander_ghulil_enrage"
+name = "Enrage"
+trigger = { type = "combat_start" }
+duration_secs = 90.0
+color = [220, 42, 39, 255]
+difficulties = ["master"]

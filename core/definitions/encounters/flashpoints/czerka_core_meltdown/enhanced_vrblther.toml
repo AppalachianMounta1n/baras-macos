@@ -1,0 +1,38 @@
+# Enhanced Vrblther - Czerka Core Meltdown
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "enhanced_vrblther"
+name = "Enhanced Vrblther"
+area_name = "Czerka Core Meltdown"
+difficulties = ["master", "veteran"]
+npc_names = ["Enhanced Vrblther"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "enhanced_vrblther_enrage"
+name = "Enrage"
+trigger = { type = "combat_start" }
+duration_secs = 360.0
+color = [228, 44, 34, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "enhanced_vrblther_lift"
+name = "Lift"
+trigger = { type = "ability_cast", ability_ids = [3261890222358528] }
+duration_secs = 10.0
+color = [228, 39, 27, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "enhanced_vrblther_smash"
+name = "Smash"
+trigger = { type = "ability_cast", ability_ids = [3261898812293120] }
+duration_secs = 15.0
+color = [32, 141, 220, 255]
+difficulties = ["veteran", "master"]

@@ -1,0 +1,38 @@
+# Vixian Mauler - Crisis on Umbara
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "vixian_mauler"
+name = "Vixian Mauler"
+area_name = "Crisis on Umbara"
+difficulties = ["master", "veteran"]
+npc_names = ["Vixian Mauler"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "vixian_mauler_ground_pound"
+name = "Ground Pound"
+trigger = { type = "ability_cast", ability_ids = [4116970966351872] }
+duration_secs = 12.0
+color = [228, 27, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "vixian_mauler_fierce_swipe"
+name = "Fierce Swipe"
+trigger = { type = "ability_cast", ability_ids = [4116983851253760] }
+duration_secs = 15.0
+color = [220, 114, 26, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "vixian_mauler_enraged_pounding"
+name = "Enraged Pounding"
+trigger = { type = "ability_cast", ability_ids = [4117353218441216] }
+duration_secs = 9.0
+color = [213, 40, 31, 255]
+difficulties = ["veteran", "master"]

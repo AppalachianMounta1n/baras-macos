@@ -7,7 +7,7 @@
 pub use baras_types::{
     AppConfig, BossHealthConfig, Color, HotkeySettings, OverlayAppearanceConfig,
     OverlayPositionConfig, OverlayProfile, OverlaySettings, PersonalOverlayConfig,
-    PersonalStat, RaidOverlaySettings, MAX_PROFILES, overlay_colors,
+    PersonalStat, RaidOverlaySettings, TimerOverlayConfig, MAX_PROFILES, overlay_colors,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -22,8 +22,8 @@ use baras_core::encounter::EncounterState;
 use baras_core::encounter::summary::classify_encounter;
 use baras_core::directory_watcher::DirectoryWatcher;
 use baras_core::game_data::{Discipline, Role};
-use baras_core::{ActiveEffect, DefinitionConfig, DefinitionSet, EffectCategory, EntityType, GameSignal, PlayerMetrics, Reader, SignalHandler};
-use baras_overlay::{BossHealthData, PersonalStats, PlayerRole, RaidEffect, RaidFrame, RaidFrameData};
+use baras_core::{ActiveEffect, BossDefinition, DefinitionConfig, DefinitionSet, EffectCategory, EntityType, GameSignal, PlayerMetrics, Reader, SignalHandler, TimerDefinition};
+use baras_overlay::{BossHealthData, PersonalStats, PlayerRole, RaidEffect, RaidFrame, RaidFrameData, TimerData, TimerEntry};
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -53,6 +53,8 @@ pub enum OverlayUpdate {
     EffectsUpdated(RaidFrameData),
     /// Boss health data for boss health overlay
     BossHealthUpdated(BossHealthData),
+    /// Timer data for timer overlay
+    TimersUpdated(TimerData),
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -116,8 +118,12 @@ pub struct CombatService {
     directory_handle: Option<tokio::task::JoinHandle<()>>,
     metrics_handle: Option<tokio::task::JoinHandle<()>>,
     effects_handle: Option<tokio::task::JoinHandle<()>>,
-    /// Effect/timer definitions loaded at startup for overlay tracking
+    /// Effect definitions loaded at startup for overlay tracking
     definitions: DefinitionSet,
+    /// Timer definitions loaded at startup for boss mechanic timers
+    timer_definitions: Vec<TimerDefinition>,
+    /// Boss definitions for boss detection and phase tracking
+    boss_definitions: Vec<BossDefinition>,
 }
 
 impl CombatService {
@@ -129,8 +135,14 @@ impl CombatService {
         let directory_index = DirectoryIndex::build_index(&PathBuf::from(&config.log_directory))
             .unwrap_or_default();
 
-        // Load effect/timer definitions from builtin and user directories
+        // Load effect definitions from builtin and user directories
         let definitions = Self::load_effect_definitions(&app_handle);
+
+        // Load timer definitions from builtin directory
+        let timer_definitions = Self::load_timer_definitions(&app_handle);
+
+        // Load boss definitions for boss detection/phases
+        let boss_definitions = Self::load_boss_definitions(&app_handle);
 
         let shared = Arc::new(SharedState::new(config, directory_index));
 
@@ -145,6 +157,8 @@ impl CombatService {
             metrics_handle: None,
             effects_handle: None,
             definitions,
+            timer_definitions,
+            boss_definitions,
         };
 
         let handle = ServiceHandle { cmd_tx, shared };
@@ -152,29 +166,29 @@ impl CombatService {
         (service, handle)
     }
 
-    /// Load effect definitions from builtin and user config directories
+    /// Load effect definitions from bundled and user config directories
     fn load_effect_definitions(app_handle: &AppHandle) -> DefinitionSet {
-        // Builtin definitions: bundled with the app in resources
-        let builtin_dir = app_handle
+        // Bundled definitions: shipped with the app in resources
+        let bundled_dir = app_handle
             .path()
-            .resolve("definitions/builtin", tauri::path::BaseDirectory::Resource)
+            .resolve("definitions/effects", tauri::path::BaseDirectory::Resource)
             .ok();
 
         // Custom definitions: user's config directory
-        let custom_dir = dirs::config_dir().map(|p| p.join("baras").join("definitions"));
+        let custom_dir = dirs::config_dir().map(|p| p.join("baras").join("effects"));
 
-        eprintln!("[DEFINITIONS] Looking for builtin definitions at: {:?}", builtin_dir);
-        eprintln!("[DEFINITIONS] Looking for custom definitions at: {:?}", custom_dir);
+        eprintln!("[DEFINITIONS] Looking for bundled effect definitions at: {:?}", bundled_dir);
+        eprintln!("[DEFINITIONS] Looking for custom effect definitions at: {:?}", custom_dir);
 
         // Load definitions from TOML files
         let mut set = DefinitionSet::new();
 
-        // Load from builtin directory
-        if let Some(ref path) = builtin_dir && path.exists() {
-            Self::load_definitions_from_dir(&mut set, path, "builtin");
+        // Load from bundled directory
+        if let Some(ref path) = bundled_dir && path.exists() {
+            Self::load_definitions_from_dir(&mut set, path, "bundled");
         }
 
-        // Load from custom directory (overrides builtins)
+        // Load from custom directory (overrides bundled)
         if let Some(ref path) = custom_dir && path.exists() {
             Self::load_definitions_from_dir(&mut set, path, "custom");
         }
@@ -213,6 +227,102 @@ impl CombatService {
                 }
             }
         }
+    }
+
+    /// Load timer definitions from builtin and user config directories
+    fn load_timer_definitions(app_handle: &AppHandle) -> Vec<TimerDefinition> {
+        use baras_core::timers::load_timers_from_dir;
+
+        // Builtin definitions: bundled with the app in resources
+        let builtin_dir = app_handle
+            .path()
+            .resolve("definitions/timers", tauri::path::BaseDirectory::Resource)
+            .ok();
+
+        // Custom definitions: user's config directory
+        let custom_dir = dirs::config_dir().map(|p| p.join("baras").join("timers"));
+
+        eprintln!("[TIMERS] Looking for builtin timer definitions at: {:?}", builtin_dir);
+        eprintln!("[TIMERS] Looking for custom timer definitions at: {:?}", custom_dir);
+
+        let mut all_timers = Vec::new();
+
+        // Load from builtin directory
+        if let Some(ref path) = builtin_dir {
+            if path.exists() {
+                match load_timers_from_dir(path) {
+                    Ok(timers) => {
+                        eprintln!("[TIMERS] Loaded {} builtin timer definitions", timers.len());
+                        all_timers.extend(timers);
+                    }
+                    Err(e) => eprintln!("[TIMERS] Failed to load builtin timers: {}", e),
+                }
+            }
+        }
+
+        // Load from custom directory (can override builtins)
+        if let Some(ref path) = custom_dir {
+            if path.exists() {
+                match load_timers_from_dir(path) {
+                    Ok(timers) => {
+                        eprintln!("[TIMERS] Loaded {} custom timer definitions", timers.len());
+                        all_timers.extend(timers);
+                    }
+                    Err(e) => eprintln!("[TIMERS] Failed to load custom timers: {}", e),
+                }
+            }
+        }
+
+        eprintln!("[TIMERS] Total: {} timer definitions loaded", all_timers.len());
+        all_timers
+    }
+
+    /// Load boss definitions from builtin and user config directories
+    fn load_boss_definitions(app_handle: &AppHandle) -> Vec<BossDefinition> {
+        use baras_core::encounters::load_bosses_from_dir;
+
+        // Builtin definitions: bundled with the app in resources
+        let builtin_dir = app_handle
+            .path()
+            .resolve("definitions/encounters", tauri::path::BaseDirectory::Resource)
+            .ok();
+
+        // Custom definitions: user's config directory
+        let custom_dir = dirs::config_dir().map(|p| p.join("baras").join("encounters"));
+
+        eprintln!("[BOSSES] Looking for builtin boss definitions at: {:?}", builtin_dir);
+        eprintln!("[BOSSES] Looking for custom boss definitions at: {:?}", custom_dir);
+
+        let mut all_bosses = Vec::new();
+
+        // Load from builtin directory
+        if let Some(ref path) = builtin_dir {
+            if path.exists() {
+                match load_bosses_from_dir(path) {
+                    Ok(bosses) => {
+                        eprintln!("[BOSSES] Loaded {} builtin boss definitions", bosses.len());
+                        all_bosses.extend(bosses);
+                    }
+                    Err(e) => eprintln!("[BOSSES] Failed to load builtin bosses: {}", e),
+                }
+            }
+        }
+
+        // Load from custom directory (can override builtins)
+        if let Some(ref path) = custom_dir {
+            if path.exists() {
+                match load_bosses_from_dir(path) {
+                    Ok(bosses) => {
+                        eprintln!("[BOSSES] Loaded {} custom boss definitions", bosses.len());
+                        all_bosses.extend(bosses);
+                    }
+                    Err(e) => eprintln!("[BOSSES] Failed to load custom bosses: {}", e),
+                }
+            }
+        }
+
+        eprintln!("[BOSSES] Total: {} boss definitions loaded", all_bosses.len());
+        all_bosses
     }
 
     /// Run the service event loop
@@ -406,6 +516,12 @@ impl CombatService {
 
         let mut session = ParsingSession::new(path.clone(), self.definitions.clone());
 
+        // Load timer definitions into the session
+        session.set_timer_definitions(self.timer_definitions.clone());
+
+        // Load boss definitions for boss detection and phase tracking
+        session.set_boss_definitions(self.boss_definitions.clone());
+
         // Add signal handler that triggers metrics on combat state changes
         let handler = CombatSignalHandler::new(self.shared.clone(), trigger_tx.clone());
         session.add_signal_handler(Box::new(handler));
@@ -517,6 +633,11 @@ impl CombatService {
                 // Send boss health data
                 if let Some(data) = build_boss_health_data(&shared).await {
                     let _ = overlay_tx.try_send(OverlayUpdate::BossHealthUpdated(data));
+                }
+
+                // Send timer data
+                if let Some(data) = build_timer_data(&shared).await {
+                    let _ = overlay_tx.try_send(OverlayUpdate::TimersUpdated(data));
                 }
             }
         });
@@ -738,6 +859,47 @@ async fn build_boss_health_data(shared: &Arc<SharedState>) -> Option<BossHealthD
 
     let entries = cache.get_boss_health();
     Some(BossHealthData { entries })
+}
+
+/// Build timer data from active timers
+async fn build_timer_data(shared: &Arc<SharedState>) -> Option<TimerData> {
+    let session_guard = shared.session.read().await;
+    let session = session_guard.as_ref()?;
+    let session = session.read().await;
+
+    // Get active timers from timer manager
+    let timer_mgr = session.timer_manager();
+    let timer_mgr = timer_mgr.lock().ok()?;
+
+    // If not in combat, return empty data
+    let in_combat = shared.in_combat.load(Ordering::SeqCst);
+    if !in_combat {
+        return Some(TimerData::default());
+    }
+
+    // Get current time for remaining calculations
+    use chrono::Local;
+    let now = Local::now().naive_local();
+
+    // Convert active timers to TimerEntry format
+    let entries: Vec<TimerEntry> = timer_mgr
+        .active_timers()
+        .iter()
+        .filter_map(|timer| {
+            let remaining = timer.remaining_secs(now);
+            if remaining <= 0.0 {
+                return None;
+            }
+            Some(TimerEntry {
+                name: timer.name.clone(),
+                remaining_secs: remaining,
+                total_secs: timer.duration.as_secs_f32(),
+                color: timer.color,
+            })
+        })
+        .collect();
+
+    Some(TimerData { entries })
 }
 
 /// Convert an ActiveEffect (core) to RaidEffect (overlay)

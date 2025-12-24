@@ -1,0 +1,46 @@
+# Master Riilna - Korriban Incursion
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "master_riilna"
+name = "Master Riilna"
+area_name = "Korriban Incursion"
+difficulties = ["master", "veteran"]
+npc_names = ["Master Riilna"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "master_riilna_quake"
+name = "Quake"
+trigger = { type = "ability_cast", ability_ids = [3342210405761024] }
+duration_secs = 30.0
+color = [220, 216, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_riilna_knocback"
+name = "Knocback"
+trigger = { type = "ability_cast", ability_ids = [3483446110322688] }
+duration_secs = 13.5
+color = [228, 35, 27, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_riilna_mind_crush"
+name = "Mind Crush"
+trigger = { type = "ability_cast", ability_ids = [3342300600074240] }
+duration_secs = 12.0
+color = [147, 31, 213, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "master_riilna_throw"
+name = "Throw"
+trigger = { type = "ability_cast", ability_ids = [3342197520859136] }
+duration_secs = 20.0
+color = [228, 112, 20, 255]
+difficulties = ["veteran", "master"]

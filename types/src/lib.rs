@@ -336,6 +336,41 @@ impl Default for BossHealthConfig {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Timer Overlay Configuration
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Configuration for the timer bar overlay
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TimerOverlayConfig {
+    /// Default bar color for timers (individual timers may override)
+    #[serde(default = "default_timer_bar_color")]
+    pub default_bar_color: Color,
+    /// Font color for timer text
+    #[serde(default = "default_font_color")]
+    pub font_color: Color,
+    /// Maximum number of timers to display
+    #[serde(default = "default_max_timers")]
+    pub max_display: u8,
+    /// Sort by remaining time (vs. activation order)
+    #[serde(default = "default_true")]
+    pub sort_by_remaining: bool,
+}
+
+fn default_timer_bar_color() -> Color { [100, 180, 220, 255] }
+fn default_max_timers() -> u8 { 10 }
+
+impl Default for TimerOverlayConfig {
+    fn default() -> Self {
+        Self {
+            default_bar_color: default_timer_bar_color(),
+            font_color: overlay_colors::WHITE,
+            max_display: 10,
+            sort_by_remaining: true,
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Hotkey Settings
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -404,6 +439,10 @@ pub struct OverlaySettings {
     pub boss_health: BossHealthConfig,
     #[serde(default = "default_opacity")]
     pub boss_health_opacity: u8,
+    #[serde(default)]
+    pub timer_overlay: TimerOverlayConfig,
+    #[serde(default = "default_opacity")]
+    pub timer_opacity: u8,
 }
 
 impl Default for OverlaySettings {
@@ -423,6 +462,8 @@ impl Default for OverlaySettings {
             raid_opacity: 180,
             boss_health: BossHealthConfig::default(),
             boss_health_opacity: 180,
+            timer_overlay: TimerOverlayConfig::default(),
+            timer_opacity: 180,
         }
     }
 }

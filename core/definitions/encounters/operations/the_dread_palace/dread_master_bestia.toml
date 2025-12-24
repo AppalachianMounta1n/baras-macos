@@ -1,0 +1,176 @@
+# Dread Master Bestia - The Dread Palace
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "dread_master_bestia"
+name = "Dread Master Bestia"
+area_name = "The Dread Palace"
+difficulties = ["master", "veteran"]
+npc_names = ["Dread Master Bestia"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "dread_master_bestia_soft_enrage"
+name = "Soft Enrage"
+trigger = { type = "combat_start" }
+duration_secs = 495.0
+color = [224, 31, 24, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_bestia_a2_monster"
+name = "A2: Monster "
+trigger = { type = "timer_expires", timer_id = "dread_master_bestia_a1_tentacle" }
+duration_secs = 15.0
+color = [32, 72, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_bestia_a3_larva"
+name = "A3: larva "
+trigger = { type = "timer_expires", timer_id = "dread_master_bestia_a2_monster" }
+duration_secs = 15.0
+color = [32, 72, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_bestia_a4_monster"
+name = "A4: Monster"
+trigger = { type = "timer_expires", timer_id = "dread_master_bestia_a3_larva" }
+duration_secs = 15.0
+color = [32, 72, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_bestia_a5_tentacle"
+name = "A5: Tentacle"
+trigger = { type = "timer_expires", timer_id = "dread_master_bestia_a4_monster" }
+duration_secs = 15.0
+color = [32, 72, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_bestia_a6_larva"
+name = "A6: Larva"
+trigger = { type = "timer_expires", timer_id = "dread_master_bestia_a5_tentacle" }
+duration_secs = 15.0
+color = [32, 72, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_bestia_a1_tentacle"
+name = "A1: Tentacle "
+trigger = { type = "combat_start" }
+duration_secs = 15.0
+color = [32, 72, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_bestia_a8_monster_tentacle_1st"
+name = "A8: Monster + Tentacle 1st"
+trigger = { type = "timer_expires", timer_id = "940a0fb0-685d-459e-b714-531556635c05" }
+duration_secs = 48.0
+color = [32, 72, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_bestia_a9_monster_larva_2nd"
+name = "A9: Monster + Larva 2nd"
+trigger = { type = "timer_expires", timer_id = "dread_master_bestia_a8_monster_tentacle_1st" }
+duration_secs = 48.0
+color = [32, 72, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_bestia_a10_monster_tentacle_2nd"
+name = "A10: Monster + Tentacle 2nd"
+trigger = { type = "timer_expires", timer_id = "dread_master_bestia_a9_monster_larva_2nd" }
+duration_secs = 48.0
+color = [32, 72, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_bestia_a11_monster_larva_3rd"
+name = "A11: Monster + Larva 3rd"
+trigger = { type = "timer_expires", timer_id = "dread_master_bestia_a10_monster_tentacle_2nd" }
+duration_secs = 48.0
+color = [32, 72, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_bestia_a12_tentacle_larva"
+name = "A12: Tentacle + Larva"
+trigger = { type = "timer_expires", timer_id = "dread_master_bestia_a11_monster_larva_3rd" }
+duration_secs = 48.0
+color = [32, 72, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_bestia_swelling_despair"
+name = "Swelling Despair"
+trigger = { type = "ability_cast", ability_ids = [3294098182111232] }
+duration_secs = 24.0
+color = [98, 21, 163, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_bestia_dread_strike"
+name = "Dread Strike"
+trigger = { type = "ability_cast", ability_ids = [3294841211453440] }
+duration_secs = 24.0
+color = [204, 22, 133, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_bestia_combusting_seed"
+name = "Combusting Seed"
+trigger = { type = "ability_cast", ability_ids = [3294102477078528] }
+duration_secs = 24.0
+color = [224, 97, 24, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_bestia_dread_pool"
+name = "Dread Pool"
+trigger = { type = "ability_cast", ability_ids = [3301519885598720] }
+duration_secs = 24.0
+color = [234, 182, 25, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_bestia_bestia_active_vm"
+name = "Bestia Active_VM"
+trigger = { type = "timer_expires", timer_id = "dread_master_bestia_a6_larva" }
+duration_secs = 30.0
+color = [58, 204, 38, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "dread_master_bestia_bestia_active_mm"
+name = "Bestia Active_MM"
+trigger = { type = "timer_expires", timer_id = "dread_master_bestia_a6_larva" }
+duration_secs = 30.0
+color = [58, 204, 38, 255]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "dread_master_bestia_p3_timer_mm"
+name = "P3 Timer_MM"
+trigger = { type = "timer_expires", timer_id = "dread_master_bestia_bestia_active_mm" }
+duration_secs = 60.0
+color = [58, 204, 38, 255]
+phases = ["p3"]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "dread_master_bestia_p3_timer_vm"
+name = "P3 Timer_VM"
+trigger = { type = "timer_expires", timer_id = "dread_master_bestia_bestia_active_vm" }
+duration_secs = 120.0
+color = [58, 204, 38, 255]
+phases = ["p3"]
+difficulties = ["veteran"]

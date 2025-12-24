@@ -1,0 +1,22 @@
+# Nil-Uu - Shrine of Silence
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "nil_uu"
+name = "Nil-Uu"
+area_name = "Shrine of Silence"
+difficulties = ["master", "veteran"]
+npc_names = ["Nil-Uu"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "nil_uu_electrocution"
+name = "Electrocution"
+trigger = { type = "ability_cast", ability_ids = [811933502537728] }
+duration_secs = 45.0
+color = [220, 35, 32, 255]
+difficulties = ["veteran", "master"]

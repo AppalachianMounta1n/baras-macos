@@ -9,6 +9,8 @@ use crate::context::{AppConfig, parse_log_filename};
 use crate::effects::{DefinitionSet, EffectTracker};
 use crate::events::{EventProcessor, GameSignal, SignalHandler};
 use crate::state::SessionCache;
+use crate::encounters::BossDefinition;
+use crate::timers::{TimerDefinition, TimerManager};
 
 /// A live parsing session that processes combat events and tracks game state.
 ///
@@ -29,6 +31,9 @@ pub struct ParsingSession {
     /// Effect tracker for HoT/debuff/shield overlay display.
     /// Wrapped in Arc<Mutex> for shared access between signal dispatch and overlay queries.
     effect_tracker: Arc<Mutex<EffectTracker>>,
+    /// Timer manager for boss/mechanic countdown timers.
+    /// Wrapped in Arc<Mutex> for shared access between signal dispatch and overlay queries.
+    timer_manager: Arc<Mutex<TimerManager>>,
 }
 
 impl Default for ParsingSession {
@@ -41,6 +46,7 @@ impl Default for ParsingSession {
             processor: EventProcessor::new(),
             signal_handlers: Vec::new(),
             effect_tracker: Arc::new(Mutex::new(EffectTracker::default())),
+            timer_manager: Arc::new(Mutex::new(TimerManager::default())),
         }
     }
 }
@@ -65,6 +71,7 @@ impl ParsingSession {
             processor: EventProcessor::new(),
             signal_handlers: Vec::new(),
             effect_tracker: Arc::new(Mutex::new(EffectTracker::new(definitions))),
+            timer_manager: Arc::new(Mutex::new(TimerManager::default())),
         }
     }
 
@@ -105,6 +112,11 @@ impl ParsingSession {
         if let Ok(mut tracker) = self.effect_tracker.lock() {
             tracker.handle_signals(signals);
         }
+
+        // Forward to timer manager
+        if let Ok(mut timer_mgr) = self.timer_manager.lock() {
+            timer_mgr.handle_signals(signals);
+        }
     }
 
     /// Get a shared reference to the effect tracker for overlay queries.
@@ -115,13 +127,21 @@ impl ParsingSession {
         Arc::clone(&self.effect_tracker)
     }
 
-    /// Tick the effect tracker to update expiration state and remove stale effects.
+    /// Get a shared reference to the timer manager for overlay queries.
+    pub fn timer_manager(&self) -> Arc<Mutex<TimerManager>> {
+        Arc::clone(&self.timer_manager)
+    }
+
+    /// Tick the effect tracker and timer manager to update expiration state.
     ///
     /// Call this periodically (e.g., at overlay refresh rate ~10fps) to ensure
-    /// duration-expired effects are cleaned up even without new events.
+    /// duration-expired effects and timers are updated.
     pub fn tick(&self) {
         if let Ok(mut tracker) = self.effect_tracker.lock() {
             tracker.tick();
+        }
+        if let Ok(mut timer_mgr) = self.timer_manager.lock() {
+            timer_mgr.tick();
         }
     }
 
@@ -137,6 +157,20 @@ impl ParsingSession {
     pub fn set_effect_live_mode(&self, enabled: bool) {
         if let Ok(mut tracker) = self.effect_tracker.lock() {
             tracker.set_live_mode(enabled);
+        }
+    }
+
+    /// Update timer definitions (e.g., after config reload).
+    pub fn set_timer_definitions(&self, definitions: Vec<TimerDefinition>) {
+        if let Ok(mut timer_mgr) = self.timer_manager.lock() {
+            timer_mgr.set_definitions(definitions);
+        }
+    }
+
+    /// Update boss definitions (for boss detection and phase tracking).
+    pub fn set_boss_definitions(&self, bosses: Vec<BossDefinition>) {
+        if let Ok(mut timer_mgr) = self.timer_manager.lock() {
+            timer_mgr.load_boss_definitions(bosses);
         }
     }
 }

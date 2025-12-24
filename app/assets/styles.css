@@ -1904,3 +1904,1230 @@ details[open] .collapsible-summary::before {
   flex-direction: column;
   min-height: 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Timer Editor Panel
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.timer-editor-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: rgba(35, 35, 40, 0.8);
+  border-radius: 8px;
+  padding: 1em;
+  overflow: hidden;
+}
+
+.timer-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75em;
+}
+
+.timer-editor-header h2 {
+  margin: 0;
+  font-size: 1.1em;
+  color: #ddd;
+}
+
+.timer-count {
+  color: #888;
+  font-size: 0.85em;
+}
+
+.timer-search-bar {
+  display: flex;
+  gap: 0.5em;
+  margin-bottom: 0.75em;
+}
+
+.timer-search-input {
+  flex: 1;
+  padding: 0.5em 0.75em;
+  background: rgba(50, 50, 55, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #eee;
+  font-size: 0.9em;
+}
+
+.timer-search-input::placeholder {
+  color: #666;
+}
+
+.timer-category-filter {
+  padding: 0.5em 0.75em;
+  background: #2a2a2f;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: #eee;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+
+/* Native select dropdown styling */
+.timer-category-filter option {
+  background: #2a2a2f;
+  color: #eee;
+}
+
+.boss-select option {
+  background: #2a2a2f;
+  color: #eee;
+}
+
+/* General select/option styling for timer editor */
+.timer-editor-panel select option,
+.new-timer-form select option {
+  background: #2a2a2f;
+  color: #222;
+}
+
+.timer-loading,
+.timer-empty {
+  text-align: center;
+  color: #888;
+  padding: 2em;
+  font-size: 0.95em;
+}
+
+.timer-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+}
+
+/* Timer Row */
+.timer-row {
+  background: rgba(45, 45, 50, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.timer-row:hover {
+  background: rgba(55, 55, 60, 0.7);
+}
+
+.timer-row.expanded {
+  background: rgba(55, 60, 70, 0.7);
+  border-color: rgba(100, 140, 200, 0.3);
+}
+
+.timer-row-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.5em 0.75em;
+  cursor: pointer;
+}
+
+.timer-expand-icon {
+  width: 1em;
+  color: #888;
+  font-size: 0.8em;
+}
+
+.timer-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.timer-boss-name {
+  color: #999;
+  font-size: 0.85em;
+}
+
+.timer-separator {
+  color: #555;
+}
+
+.timer-name {
+  color: #ddd;
+  font-weight: 500;
+}
+
+.timer-id-inline {
+  color: #666;
+  font-size: 0.75em;
+  font-family: monospace;
+  margin-left: 0.5em;
+  flex: 1;
+}
+
+.timer-duration {
+  color: #8af;
+  font-size: 0.85em;
+  margin-left: auto;
+  padding-right: 0.5em;
+}
+
+.timer-status {
+  font-size: 0.85em;
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+}
+
+.timer-status.enabled {
+  color: #6d6;
+  background: rgba(100, 200, 100, 0.1);
+}
+
+.timer-status.disabled {
+  color: #888;
+  background: rgba(100, 100, 100, 0.1);
+}
+
+/* Timer Edit Form */
+.timer-edit-form {
+  padding: 0.75em 1em 1em;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+}
+
+.timer-id-row {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.3em 0.5em;
+  border-radius: 4px;
+  margin-bottom: 0.3em;
+}
+
+.timer-id-display {
+  background: rgba(100, 180, 255, 0.1);
+  color: #8cf;
+  padding: 0.2em 0.5em;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.9em;
+  user-select: all;
+}
+
+.timer-id-hint {
+  color: #666;
+  font-size: 0.75em;
+  margin-left: 0.75em;
+  font-style: italic;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+}
+
+.form-row label {
+  width: 100px;
+  color: #999;
+  font-size: 0.85em;
+}
+
+.form-row input[type="text"],
+.form-row input[type="number"] {
+  flex: 1;
+  padding: 0.4em 0.6em;
+  background: #2a2a2f !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: #eee !important;
+  font-size: 0.9em;
+}
+
+/* Ensure all inputs in timer editor have dark background */
+.timer-editor-panel input[type="text"],
+.timer-editor-panel input[type="number"],
+.timer-editor-panel select,
+.new-timer-form input[type="text"],
+.new-timer-form input[type="number"],
+.new-timer-form select {
+  background: #2a2a2f !important;
+  color: #eee !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.form-row-inline {
+  display: flex;
+  gap: 1em;
+  flex-wrap: wrap;
+}
+
+.form-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.form-field label {
+  color: #999;
+  font-size: 0.85em;
+}
+
+.form-field input[type="number"] {
+  width: 70px;
+  padding: 0.4em 0.5em;
+  background: rgba(40, 40, 45, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #eee;
+  font-size: 0.9em;
+}
+
+.form-field input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.trigger-display {
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+  flex: 1;
+}
+
+.trigger-type {
+  background: rgba(70, 100, 140, 0.4);
+  padding: 0.2em 0.5em;
+  border-radius: 3px;
+  color: #adf;
+  font-size: 0.85em;
+}
+
+.trigger-ids {
+  color: #888;
+  font-size: 0.8em;
+  font-family: monospace;
+}
+
+.difficulty-toggles {
+  display: flex;
+  gap: 0.3em;
+}
+
+.diff-btn {
+  padding: 0.25em 0.6em;
+  background: rgba(50, 50, 55, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  color: #888;
+  font-size: 0.8em;
+  cursor: pointer;
+  text-transform: capitalize;
+  transition: all 0.15s;
+}
+
+.diff-btn:hover {
+  background: rgba(60, 60, 70, 0.7);
+  color: #bbb;
+}
+
+.diff-btn.active {
+  background: rgba(70, 120, 70, 0.5);
+  border-color: rgba(100, 180, 100, 0.4);
+  color: #afa;
+}
+
+.phase-tags {
+  display: flex;
+  gap: 0.3em;
+  flex-wrap: wrap;
+}
+
+.phase-tag {
+  background: rgba(100, 80, 140, 0.4);
+  padding: 0.15em 0.5em;
+  border-radius: 3px;
+  color: #caf;
+  font-size: 0.8em;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5em;
+  margin-top: 0.5em;
+  padding-top: 0.5em;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.btn-save {
+  padding: 0.4em 1em;
+  background: rgba(60, 120, 60, 0.6);
+  border: 1px solid rgba(100, 180, 100, 0.4);
+  border-radius: 4px;
+  color: #afa;
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-save:hover:not(:disabled) {
+  background: rgba(70, 140, 70, 0.7);
+}
+
+.btn-save:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-duplicate {
+  padding: 0.4em 0.8em;
+  background: rgba(60, 80, 120, 0.5);
+  border: 1px solid rgba(100, 140, 200, 0.3);
+  border-radius: 4px;
+  color: #adf;
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-duplicate:hover {
+  background: rgba(70, 100, 140, 0.6);
+}
+
+.btn-delete {
+  padding: 0.4em 0.8em;
+  background: rgba(120, 50, 50, 0.4);
+  border: 1px solid rgba(200, 100, 100, 0.3);
+  border-radius: 4px;
+  color: #faa;
+  font-size: 0.85em;
+  cursor: pointer;
+  margin-left: auto;
+  transition: all 0.15s;
+}
+
+.btn-delete:hover {
+  background: rgba(140, 60, 60, 0.5);
+}
+
+.delete-confirm {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  margin-left: auto;
+  color: #faa;
+  font-size: 0.85em;
+}
+
+.btn-delete-yes,
+.btn-delete-no {
+  padding: 0.25em 0.6em;
+  border-radius: 3px;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+.btn-delete-yes {
+  background: rgba(180, 60, 60, 0.6);
+  border: 1px solid rgba(220, 100, 100, 0.4);
+  color: #fcc;
+}
+
+.btn-delete-no {
+  background: rgba(60, 60, 65, 0.6);
+  border: 1px solid rgba(100, 100, 110, 0.3);
+  color: #bbb;
+}
+
+.timer-file-info {
+  margin-top: 0.5em;
+  font-size: 0.75em;
+  color: #666;
+  font-family: monospace;
+}
+
+/* Header right section */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+}
+
+.btn-new-timer {
+  padding: 0.4em 0.8em;
+  background: rgba(60, 120, 60, 0.5);
+  border: 1px solid rgba(100, 180, 100, 0.4);
+  border-radius: 4px;
+  color: #afa;
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-new-timer:hover {
+  background: rgba(70, 140, 70, 0.6);
+}
+
+/* Boss headers (collapsible groups) */
+.boss-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.6em 0.75em;
+  background: rgba(50, 55, 65, 0.7);
+  border: 1px solid rgba(100, 140, 200, 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 0.5em;
+  transition: background 0.15s;
+}
+
+.boss-header:first-child {
+  margin-top: 0;
+}
+
+.boss-header:hover {
+  background: rgba(60, 65, 75, 0.8);
+}
+
+.boss-expand-icon {
+  width: 1em;
+  color: #8af;
+  font-size: 0.8em;
+}
+
+.boss-name {
+  color: #cdf;
+  font-weight: 500;
+  font-size: 0.95em;
+}
+
+.boss-timer-count {
+  color: #888;
+  font-size: 0.85em;
+  margin-left: 0.25em;
+}
+
+.boss-timers {
+  margin-left: 1em;
+  border-left: 2px solid rgba(100, 140, 200, 0.15);
+  padding-left: 0.5em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  margin-top: 0.25em;
+}
+
+/* Timer trigger badge in summary */
+.timer-trigger-badge {
+  background: rgba(70, 100, 140, 0.3);
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+  color: #8af;
+  font-size: 0.75em;
+}
+
+/* Trigger Editor */
+.trigger-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  flex: 1;
+}
+
+.trigger-type-select {
+  padding: 0.4em 0.6em;
+  background: rgba(40, 40, 45, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #eee;
+  font-size: 0.9em;
+  max-width: 200px;
+}
+
+.trigger-hint {
+  color: #888;
+  font-size: 0.8em;
+  font-style: italic;
+}
+
+.trigger-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.trigger-field label {
+  color: #999;
+  font-size: 0.85em;
+  min-width: 60px;
+}
+
+.trigger-field input[type="text"],
+.trigger-field input[type="number"] {
+  padding: 0.35em 0.5em;
+  background: rgba(40, 40, 45, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #eee;
+  font-size: 0.9em;
+}
+
+.trigger-field input[type="number"] {
+  width: 70px;
+}
+
+.trigger-field-inline {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  flex-wrap: wrap;
+}
+
+/* ID List (for ability/effect IDs) */
+.trigger-id-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+
+.trigger-id-list > label {
+  color: #999;
+  font-size: 0.8em;
+}
+
+.id-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3em;
+}
+
+.id-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  background: rgba(60, 80, 100, 0.5);
+  padding: 0.2em 0.5em;
+  border-radius: 3px;
+  color: #adf;
+  font-size: 0.8em;
+  font-family: monospace;
+}
+
+.id-chip-remove {
+  background: none;
+  border: none;
+  color: #f88;
+  cursor: pointer;
+  padding: 0 0.2em;
+  font-size: 1em;
+  line-height: 1;
+}
+
+.id-chip-remove:hover {
+  color: #faa;
+}
+
+.id-add-row {
+  display: flex;
+  gap: 0.3em;
+  margin-top: 0.25em;
+}
+
+.id-add-row input {
+  padding: 0.3em 0.5em;
+  background: rgba(40, 40, 45, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #eee;
+  font-size: 0.85em;
+  width: 140px;
+  font-family: monospace;
+}
+
+.btn-add-id {
+  padding: 0.3em 0.6em;
+  background: rgba(60, 100, 60, 0.5);
+  border: 1px solid rgba(100, 160, 100, 0.3);
+  border-radius: 4px;
+  color: #afa;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.btn-add-id:hover {
+  background: rgba(70, 120, 70, 0.6);
+}
+
+/* New Timer Form */
+.new-timer-form {
+  background: rgba(45, 50, 60, 0.8);
+  border: 1px solid rgba(100, 140, 200, 0.3);
+  border-radius: 6px;
+  padding: 1em;
+  margin-bottom: 0.75em;
+}
+
+.new-timer-form h3 {
+  margin: 0 0 0.75em 0;
+  color: #cdf;
+  font-size: 1em;
+}
+
+.boss-select {
+  flex: 1;
+  padding: 0.4em 0.6em;
+  background: rgba(40, 40, 45, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #eee;
+  font-size: 0.9em;
+}
+
+.boss-select optgroup {
+  background: #333;
+  color: #cdf;
+  font-weight: 600;
+}
+
+.boss-select option {
+  background: #2a2a2f;
+  color: #ddd;
+}
+
+.btn-cancel {
+  padding: 0.4em 0.8em;
+  background: rgba(60, 60, 65, 0.6);
+  border: 1px solid rgba(100, 100, 110, 0.3);
+  border-radius: 4px;
+  color: #bbb;
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-cancel:hover {
+  background: rgba(70, 70, 75, 0.7);
+  color: #ddd;
+}
+
+.color-picker {
+  width: 40px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Composable Trigger Editor */
+.composable-trigger-editor {
+  flex: 1;
+}
+
+.trigger-node {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+
+.trigger-compose-actions {
+  display: flex;
+  gap: 0.3em;
+  margin-top: 0.3em;
+}
+
+.btn-compose {
+  padding: 0.2em 0.5em;
+  background: rgba(60, 80, 100, 0.4);
+  border: 1px solid rgba(100, 140, 180, 0.3);
+  border-radius: 3px;
+  color: #8cf;
+  font-size: 0.75em;
+  cursor: pointer;
+}
+
+.btn-compose:hover {
+  background: rgba(70, 100, 130, 0.5);
+}
+
+/* Composite Trigger */
+.composite-trigger {
+  background: rgba(40, 50, 60, 0.5);
+  border: 1px solid rgba(100, 140, 180, 0.3);
+  border-radius: 4px;
+  padding: 0.5em;
+}
+
+.composite-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.5em;
+  padding-bottom: 0.4em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.composite-label {
+  color: #8cf;
+  font-weight: 500;
+  font-size: 0.85em;
+}
+
+.btn-toggle-type,
+.btn-unwrap {
+  padding: 0.15em 0.4em;
+  background: rgba(60, 60, 70, 0.6);
+  border: 1px solid rgba(100, 100, 120, 0.3);
+  border-radius: 3px;
+  color: #aaa;
+  font-size: 0.75em;
+  cursor: pointer;
+}
+
+.btn-toggle-type:hover,
+.btn-unwrap:hover {
+  background: rgba(70, 70, 80, 0.7);
+  color: #ccc;
+}
+
+.composite-conditions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+  margin-left: 0.5em;
+  padding-left: 0.5em;
+  border-left: 2px solid rgba(100, 140, 180, 0.3);
+}
+
+.condition-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+}
+
+.btn-remove-condition {
+  padding: 0.1em 0.4em;
+  background: rgba(120, 50, 50, 0.4);
+  border: 1px solid rgba(180, 80, 80, 0.3);
+  border-radius: 3px;
+  color: #f88;
+  font-size: 0.8em;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.btn-remove-condition:hover {
+  background: rgba(140, 60, 60, 0.5);
+}
+
+.btn-add-condition {
+  padding: 0.25em 0.5em;
+  background: rgba(60, 100, 60, 0.4);
+  border: 1px solid rgba(100, 160, 100, 0.3);
+  border-radius: 3px;
+  color: #afa;
+  font-size: 0.8em;
+  cursor: pointer;
+  margin-top: 0.3em;
+}
+
+.btn-add-condition:hover {
+  background: rgba(70, 120, 70, 0.5);
+}
+
+/* Simple Trigger Editor */
+.simple-trigger-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+
+/* ID List Editor */
+.id-list-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.id-label {
+  color: #999;
+  font-size: 0.8em;
+}
+
+.id-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3em;
+}
+
+.id-input {
+  width: 100px;
+  padding: 0.25em 0.4em;
+  background: #2a2a2f !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  color: #eee !important;
+  font-size: 0.8em;
+  font-family: monospace;
+}
+
+/* Trigger section styling */
+.trigger-section {
+  flex-direction: column;
+  align-items: flex-start !important;
+}
+
+.trigger-section > label {
+  margin-bottom: 0.3em;
+}
+
+/* New Timer Form header */
+.new-timer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75em;
+}
+
+.new-timer-header h3 {
+  margin: 0;
+  color: #cdf;
+  font-size: 1em;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 1.2em;
+  cursor: pointer;
+  padding: 0.2em 0.4em;
+}
+
+.btn-close:hover {
+  color: #faa;
+}
+
+/* Optgroup-style labels in select */
+.optgroup-label {
+  color: #8af !important;
+  font-weight: 600;
+  background: #333 !important;
+}
+
+/* Debug displays */
+.category-debug,
+.boss-count-debug {
+  color: #f80;
+  font-size: 0.75em;
+  margin-left: 0.5em;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Effect Editor Panel
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.effect-editor-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: rgba(35, 35, 40, 0.8);
+  border-radius: 8px;
+  padding: 1em;
+  overflow: hidden;
+}
+
+.effect-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75em;
+}
+
+.effect-editor-header h2 {
+  margin: 0;
+  font-size: 1.1em;
+  color: #ddd;
+}
+
+.effect-count {
+  color: #888;
+  font-size: 0.85em;
+}
+
+.effect-search-bar {
+  display: flex;
+  gap: 0.5em;
+  margin-bottom: 0.75em;
+}
+
+.effect-search-input {
+  flex: 1;
+  padding: 0.5em 0.75em;
+  background: rgba(50, 50, 55, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #eee;
+  font-size: 0.9em;
+}
+
+.effect-search-input::placeholder {
+  color: #666;
+}
+
+.effect-loading,
+.effect-empty {
+  text-align: center;
+  color: #888;
+  padding: 2em;
+  font-size: 0.95em;
+}
+
+.effect-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+}
+
+/* File headers (collapsible groups) */
+.file-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.6em 0.75em;
+  background: rgba(50, 55, 65, 0.7);
+  border: 1px solid rgba(100, 180, 140, 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 0.5em;
+  transition: background 0.15s;
+}
+
+.file-header:first-child {
+  margin-top: 0;
+}
+
+.file-header:hover {
+  background: rgba(60, 65, 75, 0.8);
+}
+
+.file-expand-icon {
+  width: 1em;
+  color: #8fa;
+  font-size: 0.8em;
+}
+
+.file-name {
+  color: #afd;
+  font-weight: 500;
+  font-size: 0.95em;
+}
+
+.file-effect-count {
+  color: #888;
+  font-size: 0.85em;
+  margin-left: 0.25em;
+}
+
+.file-effects {
+  margin-left: 1em;
+  border-left: 2px solid rgba(100, 180, 140, 0.15);
+  padding-left: 0.5em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  margin-top: 0.25em;
+}
+
+/* Effect Row */
+.effect-row {
+  background: rgba(45, 45, 50, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.effect-row:hover {
+  background: rgba(55, 55, 60, 0.7);
+}
+
+.effect-row.expanded {
+  background: rgba(50, 60, 55, 0.7);
+  border-color: rgba(100, 180, 140, 0.3);
+}
+
+.effect-row-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.5em 0.75em;
+  cursor: pointer;
+}
+
+.effect-expand-icon {
+  width: 1em;
+  color: #888;
+  font-size: 0.8em;
+}
+
+.effect-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.effect-name {
+  color: #ddd;
+  font-weight: 500;
+}
+
+.effect-id-inline {
+  color: #666;
+  font-size: 0.75em;
+  font-family: monospace;
+  margin-left: 0.5em;
+  flex: 1;
+}
+
+.effect-category-badge {
+  background: rgba(80, 140, 100, 0.3);
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+  color: #8fa;
+  font-size: 0.75em;
+}
+
+.effect-duration {
+  color: #8fa;
+  font-size: 0.85em;
+  padding-right: 0.5em;
+}
+
+.effect-status {
+  font-size: 0.85em;
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+}
+
+.effect-status.enabled {
+  color: #6d6;
+  background: rgba(100, 200, 100, 0.1);
+}
+
+.effect-status.disabled {
+  color: #888;
+  background: rgba(100, 100, 100, 0.1);
+}
+
+/* Effect Edit Form */
+.effect-edit-form {
+  padding: 0.75em 1em 1em;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+}
+
+.effect-id-row {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.3em 0.5em;
+  border-radius: 4px;
+  margin-bottom: 0.3em;
+}
+
+.effect-id-display {
+  background: rgba(100, 200, 150, 0.1);
+  color: #8fc;
+  padding: 0.2em 0.5em;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.9em;
+  user-select: all;
+}
+
+.effect-file-info {
+  margin-top: 0.5em;
+  font-size: 0.75em;
+  color: #666;
+  font-family: monospace;
+}
+
+/* Effect editor select styling */
+.effect-editor-panel select,
+.effect-edit-form select,
+.new-effect-form select {
+  padding: 0.4em 0.6em;
+  background: #2a2a2f !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: #eee !important;
+  font-size: 0.9em;
+}
+
+.effect-editor-panel select option,
+.effect-edit-form select option,
+.new-effect-form select option {
+  background: #2a2a2f;
+  color: #eee;
+}
+
+/* New Effect button */
+.btn-new-effect {
+  padding: 0.4em 0.8em;
+  background: rgba(60, 120, 80, 0.5);
+  border: 1px solid rgba(100, 180, 120, 0.4);
+  border-radius: 4px;
+  color: #afa;
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-new-effect:hover {
+  background: rgba(70, 140, 90, 0.6);
+}
+
+/* New Effect Form */
+.new-effect-form {
+  background: rgba(45, 55, 50, 0.8);
+  border: 1px solid rgba(100, 180, 140, 0.3);
+  border-radius: 6px;
+  padding: 1em;
+  margin-bottom: 0.75em;
+}
+
+.new-effect-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75em;
+}
+
+.new-effect-header h3 {
+  margin: 0;
+  color: #afd;
+  font-size: 1em;
+}
+
+.file-select {
+  flex: 1;
+  padding: 0.4em 0.6em;
+  background: rgba(40, 40, 45, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #eee;
+  font-size: 0.9em;
+}
+
+/* Ensure form inputs are dark in effect editor */
+.effect-editor-panel input[type="text"],
+.effect-editor-panel input[type="number"],
+.new-effect-form input[type="text"],
+.new-effect-form input[type="number"] {
+  background: #2a2a2f !important;
+  color: #eee !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}

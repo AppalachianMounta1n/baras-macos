@@ -100,6 +100,56 @@ impl Difficulty {
             Difficulty::Master16 => "NiM 16",
         }
     }
+
+    /// Parse from game difficulty string (e.g., "4 Player Veteran", "8 Player Story Mode")
+    pub fn from_game_string(s: &str) -> Option<Self> {
+        let s_lower = s.to_ascii_lowercase();
+
+        // Determine group size from string
+        let size = if s_lower.contains("16") {
+            16
+        } else if s_lower.contains("8") {
+            8
+        } else if s_lower.contains("4") {
+            4
+        } else {
+            return None;
+        };
+
+        // Determine tier from string
+        let is_master = s_lower.contains("master") || s_lower.contains("nightmare");
+        let is_veteran = s_lower.contains("veteran") || s_lower.contains("hard");
+        let is_story = s_lower.contains("story");
+
+        match (size, is_master, is_veteran, is_story) {
+            (4, true, _, _) => Some(Difficulty::Master4),
+            (4, _, true, _) => Some(Difficulty::Veteran4),
+            (4, _, _, _) => Some(Difficulty::Veteran4), // Default 4-man to Veteran
+            (8, true, _, _) => Some(Difficulty::Master8),
+            (8, _, true, _) => Some(Difficulty::Veteran8),
+            (8, _, _, _) => Some(Difficulty::Story8), // Default 8-man to Story
+            (16, true, _, _) => Some(Difficulty::Master16),
+            (16, _, true, _) => Some(Difficulty::Veteran16),
+            (16, _, _, _) => Some(Difficulty::Story16), // Default 16-man to Story
+            _ => None,
+        }
+    }
+
+    /// Config key for TOML serialization (e.g., "veteran", "master", "story")
+    pub fn config_key(&self) -> &'static str {
+        match self {
+            Difficulty::Story8 | Difficulty::Story16 => "story",
+            Difficulty::Veteran4 | Difficulty::Veteran8 | Difficulty::Veteran16 => "veteran",
+            Difficulty::Master4 | Difficulty::Master8 | Difficulty::Master16 => "master",
+        }
+    }
+
+    /// Check if this difficulty matches a config key (case-insensitive)
+    /// Handles both exact matches ("veteran") and tier-only matches
+    pub fn matches_config_key(&self, key: &str) -> bool {
+        let key_lower = key.to_ascii_lowercase();
+        self.config_key() == key_lower
+    }
 }
 
 /// Information about a boss entity

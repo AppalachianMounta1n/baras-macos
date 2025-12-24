@@ -1,0 +1,182 @@
+# Firebrand & Stormcaller - Explosive Conflict
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "firebrand_stormcaller"
+name = "Firebrand & Stormcaller"
+area_name = "Explosive Conflict"
+difficulties = ["master", "veteran"]
+npc_names = ["Firebrand & Stormcaller"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "firebrand_stormcaller_targeted_missile_m"
+name = "Targeted Missile M"
+trigger = { type = "timer_expires", timer_id = "firebrand_stormcaller_mortar_volley" }
+duration_secs = 15.0
+color = [224, 24, 164, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "firebrand_stormcaller_targeted_missile_cs"
+name = "Targeted Missile CS"
+trigger = { type = "combat_start" }
+duration_secs = 15.0
+color = [224, 24, 164, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "firebrand_stormcaller_incinerate_armor_cs"
+name = "Incinerate Armor CS"
+trigger = { type = "combat_start" }
+duration_secs = 22.0
+color = [219, 94, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "firebrand_stormcaller_incinerate_armor_m"
+name = "Incinerate Armor M"
+trigger = { type = "timer_expires", timer_id = "firebrand_stormcaller_mortar_volley" }
+duration_secs = 22.0
+color = [219, 94, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "firebrand_stormcaller_mortar_volley"
+name = "Mortar Volley"
+trigger = { type = "ability_cast", ability_ids = [2815793444159488] }
+duration_secs = 25.0
+color = [219, 28, 29, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "firebrand_stormcaller_firebrand_cleave_cs"
+name = "Firebrand Cleave CS"
+trigger = { type = "combat_start" }
+duration_secs = 10.0
+color = [224, 34, 29, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "firebrand_stormcaller_firebrand_cleave_m"
+name = "Firebrand Cleave M"
+trigger = { type = "timer_expires", timer_id = "firebrand_stormcaller_mortar_volley" }
+duration_secs = 10.0
+color = [224, 31, 29, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "firebrand_stormcaller_firebrand_cleave"
+name = "Firebrand Cleave"
+trigger = { type = "ability_cast", ability_ids = [2876653130743808] }
+duration_secs = 10.0
+color = [224, 25, 24, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "firebrand_stormcaller_incinerate_armor"
+name = "Incinerate Armor"
+trigger = { type = "ability_cast", ability_ids = [2876661720678400] }
+duration_secs = 46.0
+color = [219, 94, 32, 255]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "firebrand_stormcaller_incinerate_armor_vm"
+name = "Incinerate Armor VM"
+trigger = { type = "ability_cast", ability_ids = [2876661720678400] }
+duration_secs = 49.0
+color = [219, 94, 32, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "firebrand_stormcaller_targeted_missile"
+name = "Targeted Missile"
+trigger = { type = "ability_cast", ability_ids = [2876648835776512] }
+duration_secs = 16.0
+color = [224, 24, 164, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "firebrand_stormcaller_double_destruction_vm"
+name = "Double Destruction VM"
+trigger = { type = "ability_cast", ability_ids = [2876691785449472] }
+duration_secs = 30.0
+color = [23, 197, 209, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "firebrand_stormcaller_storm_cleave"
+name = "Storm Cleave"
+trigger = { type = "ability_cast", ability_ids = [2876687490482176] }
+duration_secs = 10.0
+color = [117, 33, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "firebrand_stormcaller_storm_cleave_cs"
+name = "Storm Cleave CS"
+trigger = { type = "combat_start" }
+duration_secs = 5.0
+color = [117, 33, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "firebrand_stormcaller_storm_cleave_m"
+name = "Storm Cleave M"
+trigger = { type = "timer_expires", timer_id = "firebrand_stormcaller_mortar_volley" }
+duration_secs = 5.0
+color = [117, 33, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "firebrand_stormcaller_double_destruction_cs"
+name = "Double Destruction CS"
+trigger = { type = "combat_start" }
+duration_secs = 15.0
+color = [23, 197, 209, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "firebrand_stormcaller_double_destruction"
+name = "Double Destruction"
+trigger = { type = "ability_cast", ability_ids = [2876691785449472] }
+duration_secs = 20.0
+color = [23, 197, 209, 255]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "firebrand_stormcaller_double_destruction_m"
+name = "Double Destruction M"
+trigger = { type = "timer_expires", timer_id = "firebrand_stormcaller_mortar_volley" }
+duration_secs = 15.0
+color = [23, 197, 209, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "firebrand_stormcaller_void_zone_m"
+name = "Void Zone M"
+trigger = { type = "timer_expires", timer_id = "firebrand_stormcaller_mortar_volley" }
+duration_secs = 10.0
+color = [24, 92, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "firebrand_stormcaller_void_zone_cs"
+name = "Void Zone CS"
+trigger = { type = "combat_start" }
+duration_secs = 10.0
+color = [24, 92, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "firebrand_stormcaller_void_zone"
+name = "Void Zone"
+trigger = { type = "ability_cast", ability_ids = [2876713260285952] }
+duration_secs = 15.0
+color = [24, 92, 224, 255]
+difficulties = ["veteran", "master"]

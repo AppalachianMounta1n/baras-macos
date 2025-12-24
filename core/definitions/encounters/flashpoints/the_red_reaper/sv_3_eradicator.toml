@@ -1,0 +1,54 @@
+# SV-3 Eradicator - The Red Reaper
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "sv_3_eradicator"
+name = "SV-3 Eradicator"
+area_name = "The Red Reaper"
+difficulties = ["master", "veteran"]
+npc_names = ["SV-3 Eradicator"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "sv_3_eradicator_knockback"
+name = "Knockback"
+trigger = { type = "ability_cast", ability_ids = [2491059556843520] }
+duration_secs = 16.5
+color = [220, 115, 26, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "sv_3_eradicator_red_beam"
+name = "Red Beam"
+trigger = { type = "ability_cast", ability_ids = [2496046013874176] }
+duration_secs = 18.0
+color = [228, 27, 20, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "sv_3_eradicator_blue_beam_setup"
+name = "Blue Beam Setup"
+trigger = { type = "ability_cast", ability_ids = [2496273647140864] }
+duration_secs = 8.0
+color = [32, 220, 215, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "sv_3_eradicator_blue_beam"
+name = "Blue Beam"
+trigger = { type = "timer_expires", timer_id = "sv_3_eradicator_blue_beam_setup" }
+duration_secs = 10.0
+color = [26, 217, 220, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "sv_3_eradicator_blue_beam_2"
+name = "Blue Beam_"
+trigger = { type = "ability_cast", ability_ids = [2496046013874176] }
+duration_secs = 10.0
+color = [31, 201, 213, 255]
+difficulties = ["veteran", "master"]

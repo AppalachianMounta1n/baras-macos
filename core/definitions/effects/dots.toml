@@ -1,0 +1,311 @@
+# Damage Over Time effects - tracked but NOT shown on raid frames
+# Effect IDs sourced from ORBS
+# These are debuffs applied to enemies, shown in a separate DOT overlay
+
+[[effect]]
+id = "affliction"
+name = "Affliction"
+category = "debuff"
+effect_ids = [808192586022912]
+refresh_abilities = [808192586022912]
+source = "local_player"
+target = "any_npc"
+duration_secs = 18.0
+can_be_refreshed = true
+max_stacks = 1
+color = [62, 173, 28, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "weaken_mind"
+name = "Weaken Mind"
+category = "debuff"
+effect_ids = [812861215473664]
+refresh_abilities = [812861215473664]
+source = "local_player"
+target = "any_npc"
+duration_secs = 18.0
+can_be_refreshed = true
+max_stacks = 1
+color = [153, 143, 121, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "creeping_terror"
+name = "Creeping Terror"
+category = "debuff"
+effect_ids = [808424514256896]
+refresh_abilities = [808424514256896]
+source = "local_player"
+target = "any_npc"
+duration_secs = 18.0
+can_be_refreshed = true
+max_stacks = 1
+color = [145, 66, 9, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "sever_force"
+name = "Sever Force"
+category = "debuff"
+effect_ids = [813226287693824]
+refresh_abilities = [813226287693824]
+source = "local_player"
+target = "any_npc"
+duration_secs = 18.0
+can_be_refreshed = true
+max_stacks = 1
+color = [64, 145, 76, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "force_breach"
+name = "Force Breach"
+category = "debuff"
+effect_ids = [964675424485376]
+refresh_abilities = [964675424485376]
+source = "local_player"
+target = "any_npc"
+duration_secs = 18.0
+can_be_refreshed = true
+max_stacks = 1
+color = [184, 79, 15, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "corrosive_dart"
+name = "Corrosive Dart"
+category = "debuff"
+effect_ids = [3465720780292096]
+refresh_abilities = [3465720780292096]
+source = "local_player"
+target = "any_npc"
+duration_secs = 24.0
+can_be_refreshed = true
+max_stacks = 1
+color = [145, 64, 98, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "vital_shot"
+name = "Vital Shot"
+category = "debuff"
+effect_ids = [2115340112756736]
+refresh_abilities = [2115340112756736]
+source = "local_player"
+target = "any_npc"
+duration_secs = 24.0
+can_be_refreshed = true
+max_stacks = 1
+color = [64, 64, 145, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "corrosive_grenade_op"
+name = "Corrosive Grenade (Op)"
+category = "debuff"
+effect_ids = [1703989619982930]
+refresh_abilities = [1703989619982930]
+source = "local_player"
+target = "any_npc"
+duration_secs = 24.0
+can_be_refreshed = true
+max_stacks = 1
+color = [32, 173, 7, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "corrosive_grenade_snipe"
+name = "Corrosive Grenade (Sniper)"
+category = "debuff"
+effect_ids = [1703989619982932]
+refresh_abilities = [1703989619982932]
+source = "local_player"
+target = "any_npc"
+duration_secs = 24.0
+can_be_refreshed = true
+max_stacks = 1
+color = [32, 173, 7, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "shrap_bomb"
+name = "Shrap Bomb"
+category = "debuff"
+effect_ids = [807698664783872]
+refresh_abilities = [807698664783872]
+source = "local_player"
+target = "any_npc"
+duration_secs = 18.0
+can_be_refreshed = true
+max_stacks = 1
+color = [148, 114, 34, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "scorch"
+name = "Scorch"
+category = "debuff"
+effect_ids = [3384812186370048]
+refresh_abilities = [3384812186370048]
+source = "local_player"
+target = "any_npc"
+duration_secs = 30.0
+can_be_refreshed = true
+max_stacks = 1
+color = [173, 46, 3, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "plasmatize"
+name = "Plasmatize"
+category = "debuff"
+effect_ids = [3391666954174464]
+refresh_abilities = [3391666954174464]
+source = "local_player"
+target = "any_npc"
+duration_secs = 30.0
+can_be_refreshed = true
+max_stacks = 1
+color = [173, 3, 171, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "incendiary_missile"
+name = "Incendiary Missile"
+category = "debuff"
+effect_ids = [2027022700249344]
+refresh_abilities = [2027022700249088]
+source = "local_player"
+target = "any_npc"
+duration_secs = 15.0
+can_be_refreshed = true
+max_stacks = 1
+color = [204, 145, 37, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "serrated_shot"
+name = "Serrated Shot"
+category = "debuff"
+effect_ids = [3394707791020290]
+refresh_abilities = [3394707791020032]
+source = "local_player"
+target = "any_npc"
+duration_secs = 15.0
+can_be_refreshed = true
+max_stacks = 1
+color = [144, 80, 204, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "incendiary_round"
+name = "Incendiary Round"
+category = "debuff"
+effect_ids = [3391477975613734]
+refresh_abilities = [3391477975613440]
+source = "local_player"
+target = "any_npc"
+duration_secs = 15.0
+can_be_refreshed = true
+max_stacks = 1
+color = [173, 72, 14, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "shatter"
+name = "Shatter"
+category = "debuff"
+effect_ids = [1169953386397696]
+refresh_abilities = [1169953386397696]
+source = "local_player"
+target = "any_npc"
+duration_secs = 12.0
+can_be_refreshed = true
+max_stacks = 1
+color = [194, 116, 8, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "plasma_brand"
+name = "Plasma Brand"
+category = "debuff"
+effect_ids = [3429368177098752]
+refresh_abilities = [3429368177098752]
+source = "local_player"
+target = "any_npc"
+duration_secs = 12.0
+can_be_refreshed = true
+max_stacks = 1
+color = [8, 157, 194, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "eviscerate"
+name = "Eviscerate"
+category = "debuff"
+effect_ids = [3426078232150278]
+refresh_abilities = [2210507998101504]
+source = "local_player"
+target = "any_npc"
+duration_secs = 6.0
+can_be_refreshed = true
+max_stacks = 1
+color = [194, 8, 29, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "burning_purpose"
+name = "Burning Purpose"
+category = "debuff"
+effect_ids = [3429814853697796]
+refresh_abilities = [2210512293068800]
+source = "local_player"
+target = "any_npc"
+duration_secs = 6.0
+can_be_refreshed = true
+max_stacks = 1
+color = [194, 70, 8, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "draining_scream"
+name = "Draining Scream"
+category = "debuff"
+effect_ids = [807857578574081]
+refresh_abilities = [998270658674688]
+source = "local_player"
+target = "any_npc"
+duration_secs = 6.0
+can_be_refreshed = true
+max_stacks = 1
+color = [153, 27, 2, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "burning_blade"
+name = "Burning Blade"
+category = "debuff"
+effect_ids = [1280638988583168]
+refresh_abilities = [1191698805817344]
+source = "local_player"
+target = "any_npc"
+duration_secs = 6.0
+can_be_refreshed = true
+max_stacks = 1
+color = [196, 148, 14, 255]
+show_on_raid_frames = false
+
+[[effect]]
+id = "discharge"
+name = "Discharge"
+category = "debuff"
+effect_ids = [808235535695872]
+refresh_abilities = [808235535695872]
+source = "local_player"
+target = "any_npc"
+duration_secs = 18.0
+can_be_refreshed = true
+max_stacks = 1
+color = [126, 14, 196, 255]
+show_on_raid_frames = false

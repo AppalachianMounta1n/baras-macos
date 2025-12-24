@@ -1,0 +1,78 @@
+# Dash'Roode - Scum and Villainy
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "dash_roode"
+name = "Dash'Roode"
+area_name = "Scum and Villainy"
+difficulties = ["master", "veteran"]
+npc_names = ["Dash'Roode"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "dash_roode_xuvvas_1st"
+name = "Xuvvas 1st"
+trigger = { type = "combat_start" }
+duration_secs = 15.0
+color = [17, 153, 21, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dash_roode_updraft_1st"
+name = "Updraft 1st"
+trigger = { type = "combat_start" }
+duration_secs = 30.0
+color = [219, 110, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dash_roode_updraft_g"
+name = "Updraft G"
+trigger = { type = "ability_cast", ability_ids = [3064046848835584] }
+duration_secs = 75.0
+color = [219, 110, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dash_roode_kick_g"
+name = "Kick G"
+trigger = { type = "ability_cast", ability_ids = [3064046848835584] }
+duration_secs = 60.0
+color = [39, 32, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dash_roode_kick"
+name = "Kick"
+trigger = { type = "ability_cast", ability_ids = [3063806330667008] }
+duration_secs = 8.0
+color = [39, 32, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dash_roode_groundshatter"
+name = "Groundshatter"
+trigger = { type = "ability_cast", ability_ids = [3063810625634304] }
+duration_secs = 20.0
+color = [219, 32, 35, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dash_roode_xuvvas"
+name = "Xuvvas"
+trigger = { type = "ability_cast", ability_ids = [3121285877989376] }
+duration_secs = 20.0
+color = [17, 153, 21, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dash_roode_updraft"
+name = "Updraft"
+trigger = { type = "ability_cast", ability_ids = [3134548736999424] }
+duration_secs = 30.0
+color = [219, 110, 32, 255]
+difficulties = ["veteran", "master"]

@@ -1,4 +1,4 @@
-# Operative / Scoundrel Healer HoTs
+# Healer HoTs and Shields - displayed on raid frames
 # Effect IDs sourced from ORBS/StarParse
 
 [[effect]]
@@ -16,7 +16,8 @@ target = "group_members"
 duration_secs = 21.0
 can_be_refreshed = true
 max_stacks = 2
-color = [38, 181, 81, 255]  # Green
+color = [38, 181, 81, 255]
+show_on_raid_frames = true
 
 [[effect]]
 id = "slow_release_medpac"
@@ -34,6 +35,7 @@ duration_secs = 21.0
 can_be_refreshed = true
 max_stacks = 2
 color = [38, 181, 81, 255]
+show_on_raid_frames = true
 
 [[effect]]
 id = "kolto_shell"
@@ -46,7 +48,8 @@ target = "group_members"
 duration_secs = 180.0
 can_be_refreshed = true
 max_stacks = 1
-color = [255, 126, 66, 255]  # Orange
+color = [255, 126, 66, 255]
+show_on_raid_frames = true
 
 [[effect]]
 id = "kolto_shell_others"
@@ -59,7 +62,8 @@ target = "group_members"
 duration_secs = 180.0
 can_be_refreshed = true
 max_stacks = 1
-color = [0, 13, 174, 255]  # Blue (other healer's)
+color = [0, 13, 174, 255]
+show_on_raid_frames = true
 
 [[effect]]
 id = "trauma_probe"
@@ -73,6 +77,7 @@ duration_secs = 180.0
 can_be_refreshed = true
 max_stacks = 1
 color = [255, 126, 66, 255]
+show_on_raid_frames = true
 
 [[effect]]
 id = "trauma_probe_others"
@@ -86,6 +91,7 @@ duration_secs = 180.0
 can_be_refreshed = true
 max_stacks = 1
 color = [0, 13, 174, 255]
+show_on_raid_frames = true
 
 [[effect]]
 id = "resurgence"
@@ -98,7 +104,8 @@ target = "group_members"
 duration_secs = 15.0
 can_be_refreshed = true
 max_stacks = 1
-color = [193, 120, 165, 255]  # Pink
+color = [193, 120, 165, 255]
+show_on_raid_frames = true
 
 [[effect]]
 id = "rejuvenate"
@@ -111,7 +118,8 @@ target = "group_members"
 duration_secs = 15.0
 can_be_refreshed = true
 max_stacks = 1
-color = [34, 156, 12, 255]  # Green
+color = [34, 156, 12, 255]
+show_on_raid_frames = true
 
 [[effect]]
 id = "static_barrier"
@@ -124,7 +132,8 @@ target = "group_members"
 duration_secs = 30.0
 can_be_refreshed = true
 max_stacks = 1
-color = [168, 96, 171, 255]  # Purple
+color = [168, 96, 171, 255]
+show_on_raid_frames = true
 
 [[effect]]
 id = "force_armor"
@@ -139,29 +148,32 @@ can_be_refreshed = true
 max_stacks = 1
 enabled = false
 color = [168, 96, 171, 255]
+show_on_raid_frames = true
 
 [[effect]]
 id = "fueled_corruption"
 name = "Fueled Corruption"
 category = "hot"
 effect_ids = [4483988806696960]
-refresh_abilities = [3411032961712128]  # Innervate
+refresh_abilities = [3411032961712128]
 source = "local_player"
 target = "group_members"
 duration_secs = 12.0
 can_be_refreshed = true
 max_stacks = 1
-color = [111, 96, 171, 255]  # Purple-ish
+color = [111, 96, 171, 255]
+show_on_raid_frames = true
 
 [[effect]]
 id = "sustained_aura"
 name = "Sustained Aura"
 category = "hot"
 effect_ids = [812951409787143]
-refresh_abilities = [812951409786880]  # Healing Trance
+refresh_abilities = [812951409786880]
 source = "local_player"
 target = "group_members"
 duration_secs = 12.0
 can_be_refreshed = true
 max_stacks = 1
-color = [204, 222, 144, 255]  # Light green
+color = [204, 222, 144, 255]
+show_on_raid_frames = true

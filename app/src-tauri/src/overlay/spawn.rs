@@ -14,10 +14,10 @@
 use std::thread::{self, JoinHandle};
 use tokio::sync::mpsc::{self, Sender};
 
-use baras_core::context::{BossHealthConfig, OverlayAppearanceConfig, OverlayPositionConfig, PersonalOverlayConfig};
+use baras_core::context::{BossHealthConfig, OverlayAppearanceConfig, OverlayPositionConfig, PersonalOverlayConfig, TimerOverlayConfig};
 use baras_overlay::{
     BossHealthOverlay, MetricOverlay, Overlay, OverlayConfig, PersonalOverlay,
-    RaidGridLayout, RaidOverlay, RaidOverlayConfig, RaidRegistryAction,
+    RaidGridLayout, RaidOverlay, RaidOverlayConfig, RaidRegistryAction, TimerOverlay,
 };
 
 use super::state::{OverlayCommand, OverlayHandle, PositionEvent};
@@ -332,6 +332,34 @@ pub fn create_boss_health_overlay(
     let factory = move || {
         BossHealthOverlay::new(config, boss_config, background_alpha)
             .map_err(|e| format!("Failed to create boss health overlay: {}", e))
+    };
+
+    let (tx, handle) = spawn_overlay_with_factory(factory, kind, None)?;
+
+    Ok(OverlayHandle { tx, handle, kind, registry_action_rx: None })
+}
+
+/// Create and spawn the timer countdown overlay
+pub fn create_timer_overlay(
+    position: OverlayPositionConfig,
+    timer_config: TimerOverlayConfig,
+    background_alpha: u8,
+) -> Result<OverlayHandle, String> {
+    let config = OverlayConfig {
+        x: position.x,
+        y: position.y,
+        width: position.width,
+        height: position.height,
+        namespace: "baras-timers".to_string(),
+        click_through: true,
+        target_monitor_id: position.monitor_id.clone(),
+    };
+
+    let kind = OverlayType::Timers;
+
+    let factory = move || {
+        TimerOverlay::new(config, timer_config, background_alpha)
+            .map_err(|e| format!("Failed to create timer overlay: {}", e))
     };
 
     let (tx, handle) = spawn_overlay_with_factory(factory, kind, None)?;

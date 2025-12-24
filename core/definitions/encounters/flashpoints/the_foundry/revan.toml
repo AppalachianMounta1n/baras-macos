@@ -1,0 +1,87 @@
+# Revan - The Foundry
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "revan"
+name = "Revan"
+area_name = "The Foundry"
+difficulties = ["master", "veteran"]
+npc_names = ["Revan"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "revan_asteroids_end"
+name = "Asteroids END"
+trigger = { type = "ability_cast", ability_ids = [2518465743159296] }
+duration_secs = 20.0
+color = [21, 144, 30, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_lightning"
+name = "Lightning"
+trigger = { type = "ability_cast", ability_ids = [2518268174663680] }
+duration_secs = 20.0
+color = [220, 218, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_force_storm"
+name = "Force Storm"
+trigger = { type = "ability_cast", ability_ids = [2518281059565568] }
+duration_secs = 40.0
+color = [47, 39, 220, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_force_power"
+name = "Force Power"
+trigger = { type = "ability_cast", ability_ids = [2518259584729088] }
+duration_secs = 25.0
+color = [20, 136, 20, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_push_combo"
+name = "Push combo"
+trigger = { type = "ability_cast", ability_ids = [2518448563290112] }
+duration_secs = 20.0
+color = [213, 38, 181, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_smash_combo"
+name = "Smash combo"
+trigger = { type = "ability_cast", ability_ids = [2518444268322816] }
+duration_secs = 20.0
+color = [32, 220, 215, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_phase_2"
+name = "Phase 2"
+trigger = { type = "ability_cast", ability_ids = [2138683260010496] }
+duration_secs = 5.0
+color = [220, 126, 26, 255]
+phases = ["p2"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_smash_combo_1st"
+name = "Smash Combo 1st"
+trigger = { type = "combat_start" }
+duration_secs = 15.0
+color = [32, 220, 220, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "revan_enrage"
+name = "Enrage"
+trigger = { type = "combat_start" }
+duration_secs = 240.0
+color = [213, 32, 31, 255]
+difficulties = ["veteran", "master"]

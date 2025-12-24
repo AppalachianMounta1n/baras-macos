@@ -1,0 +1,145 @@
+# Lady Dominique - R4
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "lady_dominique"
+name = "Lady Dominique"
+area_name = "R4"
+difficulties = ["master", "veteran"]
+npc_names = ["Lady Dominique"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "lady_dominique_detonator_1st"
+name = "Detonator 1st"
+trigger = { type = "ability_cast", ability_ids = [4598093202849792] }
+duration_secs = 18.0
+color = [43, 214, 36, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "lady_dominique_aria_spawn_1st"
+name = "ARIA Spawn 1st"
+trigger = { type = "combat_start" }
+duration_secs = 20.0
+color = [43, 214, 36, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "lady_dominique_intermission"
+name = "Intermission"
+trigger = { type = "ability_cast", ability_ids = [4593978624180224] }
+duration_secs = 32.0
+color = [43, 214, 36, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "lady_dominique_aria_spawn"
+name = "ARIA Spawn"
+trigger = { type = "effect_applied", effect_ids = [4590800348381449] }
+duration_secs = 20.0
+color = [43, 214, 36, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "lady_dominique_concussive_blast"
+name = "Concussive Blast"
+trigger = { type = "effect_applied", effect_ids = [4574698515988786] }
+duration_secs = 6.0
+color = [214, 207, 36, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "lady_dominique_detonator"
+name = "Detonator"
+trigger = { type = "ability_cast", ability_ids = [4595108200579072] }
+duration_secs = 30.0
+color = [43, 214, 36, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "lady_dominique_attractors_1st"
+name = "Attractors 1st"
+trigger = { type = "ability_cast", ability_ids = [4598754627813376] }
+duration_secs = 15.0
+color = [224, 105, 29, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "lady_dominique_watchdog_p3"
+name = "Watchdog P3"
+trigger = { type = "ability_cast", ability_ids = [4598806167420928] }
+duration_secs = 6.0
+color = [43, 214, 36, 255]
+phases = ["p3"]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "lady_dominique_recursive_blast_1st"
+name = "Recursive Blast 1st"
+trigger = { type = "ability_cast", ability_ids = [4598754627813376] }
+duration_secs = 6.0
+color = [214, 207, 36, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "lady_dominique_wipe_timer_p1_2"
+name = "Wipe Timer P1-2"
+trigger = { type = "combat_start" }
+duration_secs = 330.0
+color = [224, 29, 29, 255]
+phases = ["p1"]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "lady_dominique_disturbance"
+name = "Disturbance"
+trigger = { type = "effect_applied", effect_ids = [4574715695857998] }
+duration_secs = 6.0
+color = [224, 105, 29, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "lady_dominique_attractors_p4"
+name = "Attractors P4"
+trigger = { type = "effect_applied", effect_ids = [4599643686043648] }
+duration_secs = 100.0
+color = [224, 105, 29, 255]
+phases = ["p4"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "lady_dominique_recursive_setup"
+name = "Recursive Setup"
+trigger = { type = "ability_cast", ability_ids = [4603328767983616] }
+duration_secs = 15.0
+color = [214, 207, 36, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "lady_dominique_recursive_blast"
+name = "Recursive Blast"
+trigger = { type = "timer_expires", timer_id = "lady_dominique_recursive_setup" }
+duration_secs = 15.0
+color = [214, 207, 36, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "lady_dominique_recursive_blast_b"
+name = "Recursive Blast (B)"
+trigger = { type = "effect_applied", effect_ids = [4599643686043648] }
+duration_secs = 30.0
+color = [214, 207, 36, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "lady_dominique_recursive_blast_2"
+name = "Recursive Blast_"
+trigger = { type = "timer_expires", timer_id = "0f552217-2bd8-4c21-bd7c-7831312060e7" }
+duration_secs = 15.0
+color = [214, 207, 36, 255]
+difficulties = ["veteran", "master"]

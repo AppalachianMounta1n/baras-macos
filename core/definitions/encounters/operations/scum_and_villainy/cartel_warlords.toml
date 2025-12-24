@@ -1,0 +1,87 @@
+# Cartel Warlords - Scum and Villainy
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "cartel_warlords"
+name = "Cartel Warlords"
+area_name = "Scum and Villainy"
+difficulties = ["master", "veteran"]
+npc_names = ["Cartel Warlords"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "cartel_warlords_horic_spray"
+name = "Horic Spray"
+trigger = { type = "ability_cast", ability_ids = [3126156370903040] }
+duration_secs = 15.0
+color = [219, 33, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "cartel_warlords_horic_grenade"
+name = "Horic Grenade"
+trigger = { type = "ability_cast", ability_ids = [3126843565670400] }
+duration_secs = 15.0
+color = [12, 138, 31, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "cartel_warlords_garr_tp"
+name = "Garr TP"
+trigger = { type = "ability_cast", ability_ids = [3128772005986304] }
+duration_secs = 10.0
+color = [32, 29, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "cartel_warlords_garr_shivve"
+name = "Garr Shivve"
+trigger = { type = "ability_cast", ability_ids = [3129673949118464] }
+duration_secs = 11.0
+color = [224, 33, 180, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "cartel_warlords_sunder_fixate"
+name = "Sunder Fixate"
+trigger = { type = "ability_cast", ability_ids = [3239758255882240] }
+duration_secs = 12.0
+color = [189, 169, 50, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "cartel_warlords_sunder_root"
+name = "Sunder Root"
+trigger = { type = "ability_cast", ability_ids = [3125911557767168] }
+duration_secs = 15.0
+color = [36, 214, 204, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "cartel_warlords_sunder_the_end_vm"
+name = "Sunder The End VM"
+trigger = { type = "ability_cast", ability_ids = [3145926105366528] }
+duration_secs = 20.0
+color = [224, 35, 33, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "cartel_warlords_sunder_the_end_8m"
+name = "Sunder The End 8m"
+trigger = { type = "ability_cast", ability_ids = [3145926105366528] }
+duration_secs = 16.0
+color = [224, 29, 32, 255]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "cartel_warlords_sunder_the_end_16m"
+name = "Sunder The End 16m"
+trigger = { type = "ability_cast", ability_ids = [3145926105366528] }
+duration_secs = 11.0
+color = [219, 31, 28, 255]
+difficulties = ["master"]
+enabled = false

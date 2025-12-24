@@ -1,0 +1,30 @@
+# Chief Zokar - Czerka Corporate Labs
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "chief_zokar"
+name = "Chief Zokar"
+area_name = "Czerka Corporate Labs"
+difficulties = ["master", "veteran"]
+npc_names = ["Chief Zokar"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "chief_zokar_enrage"
+name = "Enrage"
+trigger = { type = "combat_start" }
+duration_secs = 360.0
+color = [220, 38, 26, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "chief_zokar_jump"
+name = "Jump"
+trigger = { type = "ability_cast", ability_ids = [3258385529044992] }
+duration_secs = 30.0
+color = [31, 213, 210, 255]
+difficulties = ["veteran", "master"]

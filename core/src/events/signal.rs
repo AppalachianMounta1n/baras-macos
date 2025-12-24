@@ -74,6 +74,8 @@ pub enum GameSignal {
         source_id: i64,
         target_id: i64,
         target_name: IStr,
+        /// NPC class/template ID (for boss detection)
+        target_npc_id: i64,
         target_entity_type: EntityType,
         timestamp: NaiveDateTime,
     },
@@ -103,6 +105,33 @@ pub enum GameSignal {
     DisciplineChanged {
         entity_id: i64,
         discipline_id: i64,
+        timestamp: NaiveDateTime,
+    },
+
+    // ─── Boss Encounter Signals ────────────────────────────────────────────────
+    /// Boss HP has changed (for phase transition detection)
+    BossHpChanged {
+        entity_id: i64,
+        /// NPC class/template ID (for matching against boss definitions)
+        npc_id: i64,
+        entity_name: String,
+        current_hp: i64,
+        max_hp: i64,
+        timestamp: NaiveDateTime,
+    },
+
+    /// Boss phase has changed
+    PhaseChanged {
+        boss_id: String,
+        old_phase: Option<String>,
+        new_phase: String,
+        timestamp: NaiveDateTime,
+    },
+
+    /// Counter value has changed
+    CounterChanged {
+        counter_id: String,
+        new_value: u32,
         timestamp: NaiveDateTime,
     },
 }

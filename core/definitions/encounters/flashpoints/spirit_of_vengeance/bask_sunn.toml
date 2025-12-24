@@ -1,0 +1,30 @@
+# Bask Sunn - Spirit of Vengeance
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "bask_sunn"
+name = "Bask Sunn"
+area_name = "Spirit of Vengeance"
+difficulties = ["master", "veteran"]
+npc_names = ["Bask Sunn"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "bask_sunn_restrain"
+name = "Restrain"
+trigger = { type = "ability_cast", ability_ids = [4429206498836480] }
+duration_secs = 30.0
+color = [228, 30, 27, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "bask_sunn_stay_away"
+name = "Stay away_"
+trigger = { type = "effect_applied", effect_ids = [4433862243385604] }
+duration_secs = 6.0
+color = [213, 123, 31, 255]
+difficulties = ["veteran", "master"]

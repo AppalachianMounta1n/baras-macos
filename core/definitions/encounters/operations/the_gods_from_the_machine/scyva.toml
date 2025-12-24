@@ -1,0 +1,131 @@
+# SCYVA - The Gods from the Machine
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "scyva"
+name = "SCYVA"
+area_name = "The Gods from the Machine"
+difficulties = ["master", "veteran"]
+npc_names = ["SCYVA"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "scyva_p1_beams_1st"
+name = "P1 Beams 1st"
+trigger = { type = "combat_start" }
+duration_secs = 4.0
+color = [22, 173, 45, 255]
+phases = ["p1"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "scyva_p1_beams"
+name = "P1 Beams_"
+trigger = { type = "timer_expires", timer_id = "scyva_p1_beams_2" }
+duration_secs = 15.0
+color = [36, 168, 25, 255]
+phases = ["p1"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "scyva_p1_beams_2"
+name = "P1 Beams"
+trigger = { type = "timer_expires", timer_id = "scyva_p1_beams_1st" }
+duration_secs = 15.0
+color = [36, 168, 25, 255]
+phases = ["p1"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "scyva_upheaval"
+name = "Upheaval"
+trigger = { type = "ability_cast", ability_ids = [4127296067731456] }
+duration_secs = 15.0
+color = [189, 182, 28, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "scyva_red_catalyst_1st"
+name = "Red Catalyst 1st"
+trigger = { type = "timer_expires", timer_id = "e3ee3b94-2c94-4880-be59-dd6e70550437" }
+duration_secs = 12.0
+color = [224, 31, 29, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "scyva_double_catalyst_1st"
+name = "Double Catalyst 1st"
+trigger = { type = "timer_expires", timer_id = "scyva_red_catalyst_1st" }
+duration_secs = 12.0
+color = [224, 31, 29, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "scyva_red_catalyst_2nd"
+name = "Red Catalyst 2nd"
+trigger = { type = "timer_expires", timer_id = "scyva_double_catalyst_1st" }
+duration_secs = 12.0
+color = [224, 31, 29, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "scyva_5th_beam"
+name = "5th Beam"
+trigger = { type = "timer_expires", timer_id = "scyva_red_catalyst_2nd" }
+duration_secs = 12.0
+color = [224, 31, 29, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "scyva_double_catalyst_2nd"
+name = "Double Catalyst 2nd"
+trigger = { type = "timer_expires", timer_id = "scyva_5th_beam" }
+duration_secs = 12.0
+color = [224, 31, 29, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "scyva_7th_beam"
+name = "7th Beam"
+trigger = { type = "timer_expires", timer_id = "scyva_double_catalyst_2nd" }
+duration_secs = 12.0
+color = [224, 31, 29, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "scyva_scyva_vulnarable"
+name = "SCYVA Vulnarable"
+trigger = { type = "timer_expires", timer_id = "scyva_7th_beam" }
+duration_secs = 68.0
+color = [224, 31, 29, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "scyva_expansion_p5"
+name = "Expansion P5"
+trigger = { type = "effect_applied", effect_ids = [4132067776397621] }
+duration_secs = 13.0
+color = [224, 32, 29, 255]
+phases = ["p5"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "scyva_atomic_p5_1st"
+name = "Atomic P5 1st"
+trigger = { type = "ability_cast", ability_ids = [4146653485334528] }
+duration_secs = 13.0
+color = [220, 43, 32, 255]
+phases = ["p5"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "scyva_iginte_core"
+name = "Iginte Core"
+trigger = { type = "effect_applied", effect_ids = [4131775718621461] }
+duration_secs = 50.0
+color = [222, 74, 30, 255]
+difficulties = ["veteran", "master"]

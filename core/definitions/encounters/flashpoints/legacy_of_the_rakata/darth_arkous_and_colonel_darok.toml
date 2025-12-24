@@ -1,0 +1,54 @@
+# Darth Arkous and Colonel Darok - Legacy of the Rakata
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "darth_arkous_and_colonel_darok"
+name = "Darth Arkous and Colonel Darok"
+area_name = "Legacy of the Rakata"
+difficulties = ["master", "veteran"]
+npc_names = ["Darth Arkous and Colonel Darok"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "darth_arkous_and_colonel_darok_seeking_conductors"
+name = "Seeking Conductors"
+trigger = { type = "ability_cast", ability_ids = [3399427960078336] }
+duration_secs = 31.5
+color = [166, 32, 220, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "darth_arkous_and_colonel_darok_seeking_conductors_1st"
+name = "Seeking Conductors 1st"
+trigger = { type = "combat_start" }
+duration_secs = 30.0
+color = [166, 32, 220, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "darth_arkous_and_colonel_darok_impale_1st"
+name = "Impale 1st"
+trigger = { type = "combat_start" }
+duration_secs = 10.0
+color = [213, 42, 31, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "darth_arkous_and_colonel_darok_target_swap"
+name = "Target Swap"
+trigger = { type = "ability_cast", ability_ids = [3398766535114752] }
+duration_secs = 16.0
+color = [228, 147, 27, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "darth_arkous_and_colonel_darok_impale"
+name = "Impale"
+trigger = { type = "ability_cast", ability_ids = [3398775125049344] }
+duration_secs = 15.0
+color = [220, 40, 32, 255]
+difficulties = ["veteran", "master"]

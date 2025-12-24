@@ -1,0 +1,30 @@
+# Stivastin - Depths of Manaan
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "stivastin"
+name = "Stivastin"
+area_name = "Depths of Manaan"
+difficulties = ["master", "veteran"]
+npc_names = ["Stivastin"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "stivastin_kick"
+name = "Kick"
+trigger = { type = "ability_cast", ability_ids = [3364831998509056] }
+duration_secs = 15.0
+color = [220, 104, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "stivastin_cryo_grenade"
+name = "Cryo Grenade"
+trigger = { type = "ability_cast", ability_ids = [3364694559555584] }
+duration_secs = 15.0
+color = [31, 206, 213, 255]
+difficulties = ["veteran", "master"]

@@ -1,0 +1,30 @@
+# Foundry Guardian - The Foundry
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "foundry_guardian"
+name = "Foundry Guardian"
+area_name = "The Foundry"
+difficulties = ["master", "veteran"]
+npc_names = ["Foundry Guardian"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "foundry_guardian_enrage"
+name = "Enrage"
+trigger = { type = "combat_start" }
+duration_secs = 90.0
+color = [220, 37, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "foundry_guardian_molten_burst"
+name = "Molten Burst"
+trigger = { type = "ability_cast", ability_ids = [2521790047846400] }
+duration_secs = 30.0
+color = [220, 122, 32, 255]
+difficulties = ["veteran", "master"]

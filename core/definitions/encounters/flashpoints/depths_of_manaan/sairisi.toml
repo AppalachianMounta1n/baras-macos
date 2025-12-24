@@ -1,0 +1,30 @@
+# Sairisi - Depths of Manaan
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "sairisi"
+name = "Sairisi"
+area_name = "Depths of Manaan"
+difficulties = ["master", "veteran"]
+npc_names = ["Sairisi"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "sairisi_grapple"
+name = "Grapple"
+trigger = { type = "ability_cast", ability_ids = [3356607136137216] }
+duration_secs = 10.0
+color = [31, 210, 213, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "sairisi_flechette_cannon"
+name = "Flechette Cannon"
+trigger = { type = "ability_cast", ability_ids = [3369766915932160] }
+duration_secs = 17.0
+color = [220, 39, 32, 255]
+difficulties = ["veteran", "master"]

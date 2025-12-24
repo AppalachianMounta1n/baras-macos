@@ -1,0 +1,39 @@
+# Umbaran Spider Tank - Crisis on Umbara
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "umbaran_spider_tank"
+name = "Umbaran Spider Tank"
+area_name = "Crisis on Umbara"
+difficulties = ["master", "veteran"]
+npc_names = ["Umbaran Spider Tank"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "umbaran_spider_tank_phase_1"
+name = "Phase 1"
+trigger = { type = "timer_expires", timer_id = "29b68187-ddc8-4b44-a95f-1842e8085fe2" }
+duration_secs = 25.0
+color = [20, 136, 21, 255]
+phases = ["p1"]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "umbaran_spider_tank_concussive_blast"
+name = "Concussive Blast"
+trigger = { type = "ability_cast", ability_ids = [4126385534664704] }
+duration_secs = 14.0
+color = [220, 37, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "umbaran_spider_tank_proximity_burner"
+name = "Proximity Burner"
+trigger = { type = "ability_cast", ability_ids = [4117963103797248] }
+duration_secs = 12.0
+color = [220, 104, 19, 255]
+difficulties = ["veteran", "master"]

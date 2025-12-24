@@ -1,0 +1,46 @@
+# Professor Ley'arsha - Athiss
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "professor_ley_arsha"
+name = "Professor Ley'arsha"
+area_name = "Athiss"
+difficulties = ["master", "veteran"]
+npc_names = ["Professor Ley'arsha"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "professor_ley_arsha_affliction_field"
+name = "Affliction Field"
+trigger = { type = "ability_cast", ability_ids = [3228668650323968] }
+duration_secs = 12.0
+color = [220, 34, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "professor_ley_arsha_adds"
+name = "Adds"
+trigger = { type = "ability_cast", ability_ids = [2315051797053440] }
+duration_secs = 31.5
+color = [21, 144, 30, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "professor_ley_arsha_adds_2"
+name = "Adds_"
+trigger = { type = "ability_cast", ability_ids = [2211899567505408] }
+duration_secs = 31.5
+color = [16, 136, 27, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "professor_ley_arsha_blaster_volley"
+name = "Blaster Volley"
+trigger = { type = "ability_cast", ability_ids = [2263529369370624] }
+duration_secs = 7.5
+color = [228, 117, 20, 255]
+difficulties = ["veteran", "master"]

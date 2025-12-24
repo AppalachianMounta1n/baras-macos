@@ -9,7 +9,8 @@ use dioxus::prelude::*;
 use crate::api;
 use crate::types::{
     BossHealthConfig, MetricType, OverlayAppearanceConfig, OverlaySettings,
-    PersonalOverlayConfig, PersonalStat, RaidOverlaySettings, MAX_PROFILES,
+    PersonalOverlayConfig, PersonalStat, RaidOverlaySettings, TimerOverlayConfig,
+    MAX_PROFILES,
 };
 use crate::utils::{color_to_hex, parse_hex_color};
 
@@ -71,6 +72,8 @@ pub fn SettingsPanel(
                 config.overlay_settings.raid_opacity = new_settings.raid_opacity;
                 config.overlay_settings.boss_health = new_settings.boss_health.clone();
                 config.overlay_settings.boss_health_opacity = new_settings.boss_health_opacity;
+                config.overlay_settings.timer_overlay = new_settings.timer_overlay.clone();
+                config.overlay_settings.timer_opacity = new_settings.timer_opacity;
                 config.overlay_settings.positions = existing_positions;
                 config.overlay_settings.enabled = existing_enabled;
 
@@ -286,6 +289,7 @@ pub fn SettingsPanel(
                         TabButton { label: "Personal Stats", tab_key: "personal", selected_tab: selected_tab }
                         TabButton { label: "Raid Frames", tab_key: "raid", selected_tab: selected_tab }
                         TabButton { label: "Boss Health", tab_key: "boss_health", selected_tab: selected_tab }
+                        TabButton { label: "Timers", tab_key: "timers", selected_tab: selected_tab }
                     }
                 }
                 div { class: "tab-group",
@@ -344,6 +348,51 @@ pub fn SettingsPanel(
                                 let mut new_settings = draft_settings();
                                 new_settings.boss_health = BossHealthConfig::default();
                                 new_settings.boss_health_opacity = 180;
+                                update_draft(new_settings);
+                            },
+                            i { class: "fa-solid fa-rotate-left" }
+                            span { " Reset Style" }
+                        }
+                    }
+                }
+            } else if tab == "timers" {
+                // Timer Settings
+                div { class: "settings-section",
+                    h4 { "Appearance" }
+
+                    OpacitySlider {
+                        label: "Background Opacity",
+                        value: current_settings.timer_opacity,
+                        on_change: move |val| {
+                            let mut new_settings = draft_settings();
+                            new_settings.timer_opacity = val;
+                            update_draft(new_settings);
+                        },
+                    }
+
+                    div { class: "setting-row",
+                        label { "Font Color" }
+                        input {
+                            r#type: "color",
+                            value: "{color_to_hex(&current_settings.timer_overlay.font_color)}",
+                            class: "color-picker",
+                            oninput: move |e: Event<FormData>| {
+                                if let Some(color) = parse_hex_color(&e.value()) {
+                                    let mut new_settings = draft_settings();
+                                    new_settings.timer_overlay.font_color = color;
+                                    update_draft(new_settings);
+                                }
+                            }
+                        }
+                    }
+
+                    div { class: "setting-row reset-row",
+                        button {
+                            class: "btn btn-reset",
+                            onclick: move |_| {
+                                let mut new_settings = draft_settings();
+                                new_settings.timer_overlay = TimerOverlayConfig::default();
+                                new_settings.timer_opacity = 180;
                                 update_draft(new_settings);
                             },
                             i { class: "fa-solid fa-rotate-left" }

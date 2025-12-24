@@ -1,0 +1,110 @@
+# Torque - The Ravagers
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "torque"
+name = "Torque"
+area_name = "The Ravagers"
+difficulties = ["master", "veteran"]
+npc_names = ["Torque"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "torque_magnetic_1st"
+name = "Magnetic 1st"
+trigger = { type = "timer_expires", timer_id = "16f30336-e475-4b54-ae80-f63868d8d46e" }
+duration_secs = 5.0
+color = [28, 219, 215, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "torque_magnetic_clamp"
+name = "Magnetic Clamp"
+trigger = { type = "ability_cast", ability_ids = [3430678142124032] }
+duration_secs = 30.0
+color = [33, 224, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "torque_laser_turret_1st"
+name = "Laser Turret 1st"
+trigger = { type = "combat_start" }
+duration_secs = 15.0
+color = [138, 98, 48, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "torque_flame_turret"
+name = "Flame Turret"
+trigger = { type = "ability_cast", ability_ids = [3406531835985920] }
+duration_secs = 15.0
+color = [219, 189, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "torque_laser_turret"
+name = "Laser Turret"
+trigger = { type = "ability_cast", ability_ids = [3406527541018624] }
+duration_secs = 15.0
+color = [138, 98, 48, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "torque_vents_knockback"
+name = "Vents + Knockback"
+trigger = { type = "combat_start" }
+duration_secs = 25.0
+color = [219, 32, 28, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "torque_knockback"
+name = "Knockback"
+trigger = { type = "ability_cast", ability_ids = [3409211895578624] }
+duration_secs = 40.0
+color = [219, 105, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "torque_vents"
+name = "Vents"
+trigger = { type = "ability_cast", ability_ids = [3406488886312960] }
+duration_secs = 30.0
+color = [219, 29, 28, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "torque_jump_to_console"
+name = "Jump to Console"
+trigger = { type = "ability_cast", ability_ids = [3412583444905984] }
+duration_secs = 45.0
+color = [31, 153, 14, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "torque_jump_to_console_1st"
+name = "Jump to Console 1st"
+trigger = { type = "combat_start" }
+duration_secs = 40.0
+color = [31, 153, 14, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "torque_side_turrets_1st"
+name = "Side Turrets 1st"
+trigger = { type = "combat_start" }
+duration_secs = 50.0
+color = [25, 23, 214, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "torque_side_turrets"
+name = "Side Turrets"
+trigger = { type = "ability_cast", ability_ids = [3513382032375808] }
+duration_secs = 60.0
+color = [40, 28, 219, 255]
+difficulties = ["veteran", "master"]

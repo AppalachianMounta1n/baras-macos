@@ -1,0 +1,62 @@
+# Thrasher - Scum and Villainy
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "thrasher"
+name = "Thrasher"
+area_name = "Scum and Villainy"
+difficulties = ["master", "veteran"]
+npc_names = ["Thrasher"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "thrasher_adds_1st"
+name = "Adds 1st"
+trigger = { type = "combat_start" }
+duration_secs = 15.0
+color = [10, 118, 21, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "thrasher_firebug"
+name = "Firebug"
+trigger = { type = "ability_cast", ability_ids = [3067100570583040] }
+duration_secs = 25.0
+color = [219, 91, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "thrasher_firebug_2"
+name = "Firebug_"
+trigger = { type = "ability_cast", ability_ids = [3060692479377408] }
+duration_secs = 25.0
+color = [219, 91, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "thrasher_adds"
+name = "Adds"
+trigger = { type = "ability_cast", ability_ids = [3060692479377408] }
+duration_secs = 45.0
+color = [10, 118, 21, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "thrasher_knockback_180"
+name = "Knockback 180"
+trigger = { type = "ability_cast", ability_ids = [3045857662337024] }
+duration_secs = 10.5
+color = [33, 224, 220, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "thrasher_knockback_360"
+name = "Knockback 360"
+trigger = { type = "ability_cast", ability_ids = [3262208049938432] }
+duration_secs = 8.5
+color = [33, 224, 220, 255]
+difficulties = ["veteran", "master"]

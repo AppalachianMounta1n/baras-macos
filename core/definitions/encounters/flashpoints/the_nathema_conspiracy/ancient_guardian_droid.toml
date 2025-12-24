@@ -1,0 +1,22 @@
+# Ancient Guardian Droid - The Nathema Conspiracy
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "ancient_guardian_droid"
+name = "Ancient Guardian Droid"
+area_name = "The Nathema Conspiracy"
+difficulties = ["master", "veteran"]
+npc_names = ["Ancient Guardian Droid"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "ancient_guardian_droid_rocket_stomp"
+name = "Rocket Stomp"
+trigger = { type = "ability_cast", ability_ids = [4164232786477056] }
+duration_secs = 20.0
+color = [220, 45, 39, 255]
+difficulties = ["veteran", "master"]

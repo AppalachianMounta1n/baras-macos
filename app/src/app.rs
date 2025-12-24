@@ -5,7 +5,7 @@ use dioxus::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use crate::api;
-use crate::components::{HistoryPanel, SettingsPanel};
+use crate::components::{EffectEditorPanel, HistoryPanel, SettingsPanel, TimerEditorPanel};
 use crate::types::{MetricType, OverlaySettings, OverlayStatus, OverlayType, SessionInfo};
 
 static CSS: Asset = asset!("/assets/styles.css");
@@ -22,6 +22,7 @@ pub fn App() -> Element {
     let mut personal_enabled = use_signal(|| false);
     let mut raid_enabled = use_signal(|| false);
     let mut boss_health_enabled = use_signal(|| false);
+    let mut timers_enabled = use_signal(|| false);
     let mut overlays_visible = use_signal(|| true);
     let mut move_mode = use_signal(|| false);
     let mut rearrange_mode = use_signal(|| false);
@@ -90,8 +91,8 @@ pub fn App() -> Element {
 
         if let Some(status) = api::get_overlay_status().await {
             apply_status(&status, &mut metric_overlays_enabled, &mut personal_enabled,
-                &mut raid_enabled, &mut boss_health_enabled, &mut overlays_visible,
-                &mut move_mode, &mut rearrange_mode);
+                &mut raid_enabled, &mut boss_health_enabled, &mut timers_enabled,
+                &mut overlays_visible, &mut move_mode, &mut rearrange_mode);
         }
 
         session_info.set(api::get_session_info().await);
@@ -127,7 +128,8 @@ pub fn App() -> Element {
     let personal_on = personal_enabled();
     let raid_on = raid_enabled();
     let boss_health_on = boss_health_enabled();
-    let any_enabled = enabled_map.values().any(|&v| v) || personal_on || raid_on || boss_health_on;
+    let timers_on = timers_enabled();
+    let any_enabled = enabled_map.values().any(|&v| v) || personal_on || raid_on || boss_health_on || timers_on;
     let is_visible = overlays_visible();
     let is_move_mode = move_mode();
     let is_rearrange = rearrange_mode();
@@ -172,6 +174,18 @@ pub fn App() -> Element {
                     onclick: move |_| active_tab.set("overlays".to_string()),
                     i { class: "fa-solid fa-layer-group" }
                     " Overlays"
+                }
+                button {
+                    class: if active_tab() == "timers" { "tab-btn active" } else { "tab-btn" },
+                    onclick: move |_| active_tab.set("timers".to_string()),
+                    i { class: "fa-solid fa-stopwatch" }
+                    " Timers"
+                }
+                button {
+                    class: if active_tab() == "effects" { "tab-btn active" } else { "tab-btn" },
+                    onclick: move |_| active_tab.set("effects".to_string()),
+                    i { class: "fa-solid fa-heart-pulse" }
+                    " Effects"
                 }
             }
 
@@ -270,8 +284,8 @@ pub fn App() -> Element {
                                                     api::refresh_overlay_settings().await;
                                                     if let Some(status) = api::get_overlay_status().await {
                                                         apply_status(&status, &mut metric_overlays_enabled, &mut personal_enabled,
-                                                            &mut raid_enabled, &mut boss_health_enabled, &mut overlays_visible,
-                                                            &mut move_mode, &mut rearrange_mode);
+                                                            &mut raid_enabled, &mut boss_health_enabled, &mut timers_enabled,
+                                                            &mut overlays_visible, &mut move_mode, &mut rearrange_mode);
                                                     }
                                                 }
                                             });
@@ -375,6 +389,15 @@ pub fn App() -> Element {
                                 }); },
                                 "Boss Health"
                             }
+                            button {
+                                class: if timers_on { "btn btn-overlay btn-active" } else { "btn btn-overlay" },
+                                onclick: move |_| { spawn(async move {
+                                    if api::toggle_overlay(OverlayType::Timers, timers_on).await {
+                                        timers_enabled.set(!timers_on);
+                                    }
+                                }); },
+                                "Timers"
+                            }
                         }
 
                         // Metric overlays
@@ -445,6 +468,20 @@ pub fn App() -> Element {
                             }
                         }
                     }
+                }
+
+                // ─────────────────────────────────────────────────────────────
+                // Timers Tab
+                // ─────────────────────────────────────────────────────────────
+                if active_tab() == "timers" {
+                    TimerEditorPanel {}
+                }
+
+                // ─────────────────────────────────────────────────────────────
+                // Effects Tab
+                // ─────────────────────────────────────────────────────────────
+                if active_tab() == "effects" {
+                    EffectEditorPanel {}
                 }
             }
 
@@ -658,6 +695,7 @@ fn apply_status(
     personal_enabled: &mut Signal<bool>,
     raid_enabled: &mut Signal<bool>,
     boss_health_enabled: &mut Signal<bool>,
+    timers_enabled: &mut Signal<bool>,
     overlays_visible: &mut Signal<bool>,
     move_mode: &mut Signal<bool>,
     rearrange_mode: &mut Signal<bool>,
@@ -670,6 +708,7 @@ fn apply_status(
     personal_enabled.set(status.personal_enabled);
     raid_enabled.set(status.raid_enabled);
     boss_health_enabled.set(status.boss_health_enabled);
+    timers_enabled.set(status.timers_enabled);
     overlays_visible.set(status.overlays_visible);
     move_mode.set(status.move_mode);
     rearrange_mode.set(status.rearrange_mode);

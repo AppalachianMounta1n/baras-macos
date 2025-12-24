@@ -1,0 +1,22 @@
+# GXR-5 Sabotage Droid - The Black Talon
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "gxr_5_sabotage_droid"
+name = "GXR-5 Sabotage Droid"
+area_name = "The Black Talon"
+difficulties = ["master", "veteran"]
+npc_names = ["GXR-5 Sabotage Droid"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "gxr_5_sabotage_droid_full_auto"
+name = "Full Auto"
+trigger = { type = "ability_cast", ability_ids = [2529645543030784] }
+duration_secs = 18.0
+color = [220, 44, 39, 255]
+difficulties = ["veteran", "master"]

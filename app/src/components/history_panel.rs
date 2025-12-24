@@ -221,7 +221,6 @@ pub fn HistoryPanel() -> Element {
                                                             td { class: "col-name",
                                                                 span { class: "encounter-name", "{enc.display_name}" }
                                                             }
-                                                            }
                                                             td { class: "col-duration",
                                                                 "{format_duration(enc.duration_seconds)}"
                                                             }

@@ -43,7 +43,7 @@ pub use overlays::{
     BossHealthData, BossHealthOverlay, InteractionMode, MetricEntry, MetricOverlay, Overlay,
     OverlayConfigUpdate, OverlayData, OverlayPosition, PersonalOverlay, PersonalStats, PlayerRole,
     RaidEffect, RaidFrame, RaidFrameData, RaidGridLayout, RaidOverlay, RaidOverlayConfig,
-    RaidRegistryAction, SwapState,
+    RaidRegistryAction, SwapState, TimerData, TimerEntry, TimerOverlay,
     // Effect config bounds
     EFFECT_OFFSET_DEFAULT, EFFECT_OFFSET_MAX, EFFECT_OFFSET_MIN,
     EFFECT_SIZE_DEFAULT, EFFECT_SIZE_MAX, EFFECT_SIZE_MIN,

@@ -1,0 +1,70 @@
+# Tau Idair - Objective Meridian
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "tau_idair"
+name = "Tau Idair"
+area_name = "Objective Meridian"
+difficulties = ["master", "veteran"]
+npc_names = ["Tau Idair"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "tau_idair_adds"
+name = "Adds"
+trigger = { type = "ability_cast", ability_ids = [4295542821617664] }
+duration_secs = 40.0
+color = [19, 136, 16, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "tau_idair_blade_storm"
+name = "Blade Storm"
+trigger = { type = "ability_cast", ability_ids = [4307856492855296] }
+duration_secs = 31.0
+color = [220, 33, 26, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "tau_idair_master_strike"
+name = "Master Strike"
+trigger = { type = "ability_cast", ability_ids = [4292858467057664] }
+duration_secs = 30.0
+color = [220, 43, 39, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "tau_idair_forcequake"
+name = "Forcequake"
+trigger = { type = "timer_expires", timer_id = "5a9c909e-81c0-49c3-85aa-ead7beae3fc8" }
+duration_secs = 12.0
+color = [220, 176, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "tau_idair_adds_2"
+name = "Adds_"
+trigger = { type = "ability_cast", ability_ids = [4337350033276928] }
+duration_secs = 40.0
+color = [17, 144, 24, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "tau_idair_adds_1st"
+name = "Adds 1st"
+trigger = { type = "combat_start" }
+duration_secs = 45.0
+color = [15, 128, 28, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "tau_idair_breath_of_ossus"
+name = "Breath of Ossus"
+trigger = { type = "timer_expires", timer_id = "0db4bddd-50e4-48fa-bbed-a9174e8a7d7c" }
+duration_secs = 10.0
+color = [100, 232, 237, 255]
+difficulties = ["veteran", "master"]

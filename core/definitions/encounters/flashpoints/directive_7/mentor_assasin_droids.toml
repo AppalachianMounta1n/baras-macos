@@ -1,0 +1,13 @@
+# Mentor Assasin Droids - Directive 7
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "mentor_assasin_droids"
+name = "Mentor Assasin Droids"
+area_name = "Directive 7"
+npc_names = ["Mentor Assasin Droids"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }

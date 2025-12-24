@@ -1,0 +1,30 @@
+# Darth Malgus - Ruins of Nul
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "darth_malgus"
+name = "Darth Malgus"
+area_name = "Ruins of Nul"
+difficulties = ["master", "veteran"]
+npc_names = ["Darth Malgus"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "darth_malgus_relentless_assault_end"
+name = "Relentless Assault End"
+trigger = { type = "ability_cast", ability_ids = [4484302339309568] }
+duration_secs = 21.0
+color = [213, 38, 31, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "darth_malgus_relentless_assault"
+name = "Relentless Assault"
+trigger = { type = "timer_expires", timer_id = "darth_malgus_relentless_assault_end" }
+duration_secs = 26.0
+color = [228, 25, 20, 255]
+difficulties = ["veteran", "master"]

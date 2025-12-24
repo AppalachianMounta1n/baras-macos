@@ -1,0 +1,94 @@
+# Shae Vizla - Blood Hunt
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "shae_vizla"
+name = "Shae Vizla"
+area_name = "Blood Hunt"
+difficulties = ["master", "veteran"]
+npc_names = ["Shae Vizla"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "shae_vizla_death_from_above"
+name = "Death from Above"
+trigger = { type = "ability_cast", ability_ids = [3411672911839232] }
+duration_secs = 15.0
+color = [220, 32, 147, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "shae_vizla_grapple_droid"
+name = "Grapple Droid"
+trigger = { type = "timer_expires", timer_id = "67da8876-8e7e-43fe-b0e6-6f29266f2c65" }
+duration_secs = 45.0
+color = [228, 141, 27, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "shae_vizla_maelstrom"
+name = "Maelstrom"
+trigger = { type = "timer_expires", timer_id = "shae_vizla_grapple_droid" }
+duration_secs = 15.0
+color = [213, 125, 31, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "shae_vizla_electro_dart_setup"
+name = "Electro Dart Setup"
+trigger = { type = "ability_cast", ability_ids = [3408391556825088] }
+duration_secs = 20.0
+color = [206, 213, 25, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "shae_vizla_electro_dart"
+name = "Electro Dart"
+trigger = { type = "timer_expires", timer_id = "shae_vizla_electro_dart_setup" }
+duration_secs = 10.0
+color = [209, 213, 19, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "shae_vizla_electro_dart_2"
+name = "Electro Dart_"
+trigger = { type = "ability_cast", ability_ids = [3408374376955904] }
+duration_secs = 10.0
+color = [205, 195, 24, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "shae_vizla_carbonize_setup"
+name = "Carbonize Setup"
+trigger = { type = "ability_cast", ability_ids = [3408374376955904] }
+duration_secs = 20.0
+color = [32, 212, 220, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "shae_vizla_carbonize"
+name = "Carbonize"
+trigger = { type = "timer_expires", timer_id = "shae_vizla_carbonize_setup" }
+duration_secs = 10.0
+color = [38, 209, 213, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "shae_vizla_carbonize_2"
+name = "Carbonize_"
+trigger = { type = "ability_cast", ability_ids = [3408391556825088] }
+duration_secs = 10.0
+color = [46, 216, 220, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "shae_vizla_can_t_stun"
+name = "Can't stun"
+trigger = { type = "ability_cast", ability_ids = [3408387261857792] }
+duration_secs = 10.0
+color = [13, 151, 14, 255]
+difficulties = ["veteran", "master"]

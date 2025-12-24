@@ -1,0 +1,150 @@
+# Dread Master Styrak - Scum and Villainy
+# Auto-converted from Orbs timers
+
+[[boss]]
+id = "dread_master_styrak"
+name = "Dread Master Styrak"
+area_name = "Scum and Villainy"
+difficulties = ["master", "veteran"]
+npc_names = ["Dread Master Styrak"]
+
+[[boss.phase]]
+id = "p1"
+name = "Phase 1"
+trigger = { type = "combat_start" }
+
+[[boss.timer]]
+id = "dread_master_styrak_spines"
+name = "Spines"
+trigger = { type = "ability_cast", ability_ids = [3148979827113984] }
+duration_secs = 60.0
+color = [219, 32, 36, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_styrak_choke_clone_d"
+name = "Choke Clone D"
+trigger = { type = "ability_cast", ability_ids = [3140965418139648] }
+duration_secs = 60.0
+color = [224, 29, 167, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_styrak_knockback_vm"
+name = "Knockback VM"
+trigger = { type = "ability_cast", ability_ids = [3133187232366592] }
+duration_secs = 60.0
+color = [140, 32, 219, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "dread_master_styrak_knockback"
+name = "Knockback"
+trigger = { type = "ability_cast", ability_ids = [3294763902042112] }
+duration_secs = 60.0
+color = [140, 32, 219, 255]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "dread_master_styrak_vomit_pool_16m"
+name = "Vomit Pool 16m"
+trigger = { type = "ability_cast", ability_ids = [3142150829113344] }
+duration_secs = 15.0
+color = [20, 184, 33, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_styrak_vomit_pool_8m_vm"
+name = "Vomit Pool 8m VM"
+trigger = { type = "ability_cast", ability_ids = [3142150829113344] }
+duration_secs = 12.0
+color = [20, 184, 33, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "dread_master_styrak_vomit_pool_8m"
+name = "Vomit Pool 8m"
+trigger = { type = "ability_cast", ability_ids = [3142150829113344] }
+duration_secs = 10.0
+color = [20, 184, 33, 255]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "dread_master_styrak_leap_slam"
+name = "Leap Slam"
+trigger = { type = "ability_cast", ability_ids = [3141601073299456] }
+duration_secs = 15.0
+color = [219, 140, 37, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_styrak_charge_clone"
+name = "Charge Clone"
+trigger = { type = "ability_cast", ability_ids = [3141656907874304] }
+duration_secs = 40.0
+color = [44, 29, 229, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_styrak_thundering_blast"
+name = "Thundering Blast"
+trigger = { type = "ability_cast", ability_ids = [3142262498263040] }
+duration_secs = 7.0
+color = [28, 152, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_styrak_chained_stealth"
+name = "Chained Stealth"
+trigger = { type = "ability_cast", ability_ids = [3144508766158848] }
+duration_secs = 31.5
+color = [33, 224, 223, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_styrak_pull_nightmare_c"
+name = "Pull + Nightmare C"
+trigger = { type = "timer_expires", timer_id = "2f78d5bf-e0e4-4f39-b106-3b41c682a9de" }
+duration_secs = 5.0
+color = [219, 104, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_styrak_force_ligthning_c"
+name = "Force Ligthning C"
+trigger = { type = "timer_expires", timer_id = "dread_master_styrak_pull_nightmare_c" }
+duration_secs = 5.0
+color = [37, 29, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_styrak_lightning_stealth"
+name = "Lightning Stealth"
+trigger = { type = "ability_cast", ability_ids = [3144513061126144] }
+duration_secs = 26.5
+color = [35, 209, 209, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_styrak_force_lightning_l"
+name = "Force Lightning L"
+trigger = { type = "timer_expires", timer_id = "bb67d60d-f486-4ee3-8352-88d87d4812e0" }
+duration_secs = 5.0
+color = [37, 29, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_styrak_chained_manifestation_l"
+name = "Chained Manifestation L"
+trigger = { type = "timer_expires", timer_id = "dread_master_styrak_force_lightning_l" }
+duration_secs = 15.0
+color = [33, 224, 221, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_styrak_lightning_manifestation_l"
+name = "Lightning Manifestation L"
+trigger = { type = "timer_expires", timer_id = "dread_master_styrak_chained_manifestation_l" }
+duration_secs = 25.0
+color = [209, 189, 35, 255]
+difficulties = ["veteran", "master"]
