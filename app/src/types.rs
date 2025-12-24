@@ -28,6 +28,7 @@ pub struct SessionInfo {
     pub area_name: Option<String>,
     pub in_combat: bool,
     pub encounter_count: usize,
+    pub session_start: Option<String>,
 }
 
 /// Overlay status response from backend
@@ -43,6 +44,8 @@ pub struct OverlayStatus {
     pub boss_health_enabled: bool,
     pub timers_running: bool,
     pub timers_enabled: bool,
+    pub effects_running: bool,
+    pub effects_enabled: bool,
     pub overlays_visible: bool,
     pub move_mode: bool,
     pub rearrange_mode: bool,
@@ -123,6 +126,7 @@ pub enum OverlayType {
     Raid,
     BossHealth,
     Timers,
+    Effects,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -380,6 +384,7 @@ pub struct EffectListItem {
     // Display
     pub color: Option<[u8; 4]>,
     pub show_on_raid_frames: bool,
+    pub show_on_effects_overlay: bool,
 
     // Behavior (advanced)
     pub persist_past_death: bool,

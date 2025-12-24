@@ -25,6 +25,8 @@ pub fn EffectEditorPanel() -> Element {
     let mut expanded_files = use_signal(HashSet::<String>::new);
     let mut loading = use_signal(|| true);
     let mut show_new_effect = use_signal(|| false);
+    let mut save_status = use_signal(String::new);
+    let mut status_is_error = use_signal(|| false);
 
     // Load effects on mount
     use_future(move || async move {
@@ -82,7 +84,13 @@ pub fn EffectEditorPanel() -> Element {
         }
 
         spawn(async move {
-            let _ = api::update_effect_definition(&updated_effect).await;
+            if api::update_effect_definition(&updated_effect).await {
+                save_status.set("Saved".to_string());
+                status_is_error.set(false);
+            } else {
+                save_status.set("Failed to save".to_string());
+                status_is_error.set(true);
+            }
         });
     };
 
@@ -98,7 +106,13 @@ pub fn EffectEditorPanel() -> Element {
         expanded_effect.set(None);
 
         spawn(async move {
-            let _ = api::delete_effect_definition(&effect.id, &effect.file_path).await;
+            if api::delete_effect_definition(&effect.id, &effect.file_path).await {
+                save_status.set("Deleted".to_string());
+                status_is_error.set(false);
+            } else {
+                save_status.set("Failed to delete".to_string());
+                status_is_error.set(true);
+            }
         });
     };
 
@@ -110,6 +124,11 @@ pub fn EffectEditorPanel() -> Element {
                 let mut current = effects();
                 current.push(new_effect);
                 effects.set(current);
+                save_status.set("Duplicated".to_string());
+                status_is_error.set(false);
+            } else {
+                save_status.set("Failed to duplicate".to_string());
+                status_is_error.set(true);
             }
         });
     };
@@ -120,6 +139,11 @@ pub fn EffectEditorPanel() -> Element {
                 let mut current = effects();
                 current.push(created);
                 effects.set(current);
+                save_status.set("Created".to_string());
+                status_is_error.set(false);
+            } else {
+                save_status.set("Failed to create".to_string());
+                status_is_error.set(true);
             }
         });
         show_new_effect.set(false);
@@ -131,6 +155,12 @@ pub fn EffectEditorPanel() -> Element {
             div { class: "effect-editor-header",
                 h2 { "Effect Definitions" }
                 div { class: "header-right",
+                    if !save_status().is_empty() {
+                        span {
+                            class: if status_is_error() { "save-status error" } else { "save-status" },
+                            "{save_status()}"
+                        }
+                    }
                     span { class: "effect-count", "{filtered_effects().len()} effects" }
                     button {
                         class: "btn-new-effect",
@@ -407,6 +437,19 @@ fn EffectEditForm(
                         }
                     }
                 }
+
+                div { class: "form-field",
+                    label { "Effects Overlay" }
+                    input {
+                        r#type: "checkbox",
+                        checked: draft().show_on_effects_overlay,
+                        onchange: move |e| {
+                            let mut d = draft();
+                            d.show_on_effects_overlay = e.checked();
+                            draft.set(d);
+                        }
+                    }
+                }
             }
 
             // Source and Target filters
@@ -662,6 +705,7 @@ fn NewEffectForm(
     let mut max_stacks = use_signal(|| 1u8);
     let mut effect_ids = use_signal(Vec::<u64>::new);
     let mut show_on_raid_frames = use_signal(|| true);
+    let mut show_on_effects_overlay = use_signal(|| false);
 
     let color_hex = format!("#{:02x}{:02x}{:02x}", color()[0], color()[1], color()[2]);
 
@@ -760,6 +804,15 @@ fn NewEffectForm(
                             onchange: move |e| show_on_raid_frames.set(e.checked())
                         }
                     }
+
+                    div { class: "form-field",
+                        label { "Effects Overlay" }
+                        input {
+                            r#type: "checkbox",
+                            checked: show_on_effects_overlay(),
+                            onchange: move |e| show_on_effects_overlay.set(e.checked())
+                        }
+                    }
                 }
 
                 div { class: "form-row-inline",
@@ -842,6 +895,7 @@ fn NewEffectForm(
                                 max_stacks: max_stacks(),
                                 color: Some(color()),
                                 show_on_raid_frames: show_on_raid_frames(),
+                                show_on_effects_overlay: show_on_effects_overlay(),
                                 persist_past_death: false,
                                 track_outside_combat: true,
                                 on_apply_trigger_timer: None,

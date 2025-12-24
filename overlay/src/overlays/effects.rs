@@ -1,6 +1,7 @@
-//! Timer Bar Overlay
+//! Effects Overlay
 //!
-//! Displays countdown timers for boss mechanics, ability cooldowns, etc.
+//! Displays countdown bars for tracked effects (buffs, debuffs, HoTs, etc.)
+//! Similar to the timer overlay but sourced from effect tracking.
 
 use baras_core::context::TimerOverlayConfig;
 
@@ -10,10 +11,10 @@ use crate::platform::{OverlayConfig, PlatformError};
 use crate::utils::color_from_rgba;
 use crate::widgets::{colors, ProgressBar};
 
-/// A single timer entry for display
+/// A single effect entry for display
 #[derive(Debug, Clone)]
-pub struct TimerEntry {
-    /// Timer display name
+pub struct EffectEntry {
+    /// Effect display name
     pub name: String,
     /// Remaining time in seconds
     pub remaining_secs: f32,
@@ -21,9 +22,11 @@ pub struct TimerEntry {
     pub total_secs: f32,
     /// Bar color (RGBA)
     pub color: [u8; 4],
+    /// Stack count (0 = don't show stacks)
+    pub stacks: u8,
 }
 
-impl TimerEntry {
+impl EffectEntry {
     /// Progress as 0.0 (expired) to 1.0 (full)
     pub fn progress(&self) -> f32 {
         if self.total_secs <= 0.0 {
@@ -49,13 +52,22 @@ impl TimerEntry {
             format!("{:.1}", secs)
         }
     }
+
+    /// Format display text (name + optional stacks)
+    pub fn display_name(&self) -> String {
+        if self.stacks > 1 {
+            format!("{} ({})", self.name, self.stacks)
+        } else {
+            self.name.clone()
+        }
+    }
 }
 
-/// Data sent from service to timer overlay
+/// Data sent from service to effects overlay
 #[derive(Debug, Clone, Default)]
-pub struct TimerData {
-    /// Current active timers
-    pub entries: Vec<TimerEntry>,
+pub struct EffectsData {
+    /// Current active effects to display
+    pub entries: Vec<EffectEntry>,
 }
 
 /// Base dimensions for scaling calculations
@@ -68,15 +80,15 @@ const BASE_ENTRY_SPACING: f32 = 4.0;
 const BASE_PADDING: f32 = 6.0;
 const BASE_FONT_SIZE: f32 = 11.0;
 
-/// Timer bar overlay
-pub struct TimerOverlay {
+/// Effects countdown overlay
+pub struct EffectsOverlay {
     frame: OverlayFrame,
-    config: TimerOverlayConfig,
-    data: TimerData,
+    config: TimerOverlayConfig, // Reuse timer config for now
+    data: EffectsData,
 }
 
-impl TimerOverlay {
-    /// Create a new timer overlay
+impl EffectsOverlay {
+    /// Create a new effects overlay
     pub fn new(
         window_config: OverlayConfig,
         config: TimerOverlayConfig,
@@ -84,12 +96,12 @@ impl TimerOverlay {
     ) -> Result<Self, PlatformError> {
         let mut frame = OverlayFrame::new(window_config, BASE_WIDTH, BASE_HEIGHT)?;
         frame.set_background_alpha(background_alpha);
-        frame.set_label("Timers");
+        frame.set_label("Effects Countdown");
 
         Ok(Self {
             frame,
             config,
-            data: TimerData::default(),
+            data: EffectsData::default(),
         })
     }
 
@@ -104,7 +116,7 @@ impl TimerOverlay {
     }
 
     /// Update the data
-    pub fn set_data(&mut self, data: TimerData) {
+    pub fn set_data(&mut self, data: EffectsData) {
         self.data = data;
     }
 
@@ -132,7 +144,7 @@ impl TimerOverlay {
         // Limit to max display
         entries.truncate(self.config.max_display as usize);
 
-        // Nothing to render if no timers
+        // Nothing to render if no effects
         if entries.is_empty() {
             self.frame.end_frame();
             return;
@@ -147,8 +159,8 @@ impl TimerOverlay {
             let bar_color = color_from_rgba(entry.color);
             let time_text = entry.format_time();
 
-            // Draw timer bar with name on left, time on right
-            ProgressBar::new(&entry.name, entry.progress())
+            // Draw effect bar with name on left, time on right
+            ProgressBar::new(&entry.display_name(), entry.progress())
                 .with_fill_color(bar_color)
                 .with_bg_color(colors::dps_bar_bg())
                 .with_text_color(font_color)
@@ -175,22 +187,22 @@ impl TimerOverlay {
 // Overlay Trait Implementation
 // ─────────────────────────────────────────────────────────────────────────────
 
-impl Overlay for TimerOverlay {
+impl Overlay for EffectsOverlay {
     fn update_data(&mut self, data: OverlayData) {
-        if let OverlayData::Timers(timer_data) = data {
-            self.set_data(timer_data);
+        if let OverlayData::Effects(effects_data) = data {
+            self.set_data(effects_data);
         }
     }
 
     fn update_config(&mut self, config: OverlayConfigUpdate) {
-        if let OverlayConfigUpdate::Timers(timer_config, alpha) = config {
-            self.set_config(timer_config);
+        if let OverlayConfigUpdate::Effects(effects_config, alpha) = config {
+            self.set_config(effects_config);
             self.set_background_alpha(alpha);
         }
     }
 
     fn render(&mut self) {
-        TimerOverlay::render(self);
+        EffectsOverlay::render(self);
     }
 
     fn poll_events(&mut self) -> bool {

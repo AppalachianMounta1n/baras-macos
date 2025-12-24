@@ -105,6 +105,7 @@ pub fn HistoryPanel() -> Element {
     let mut expanded_id = use_signal(|| None::<u64>);
     let mut collapsed_sections = use_signal(HashSet::<String>::new);
     let mut loading = use_signal(|| true);
+    let mut show_only_bosses = use_signal(|| false);
 
     // Fetch encounter history
     use_future(move || async move {
@@ -130,9 +131,17 @@ pub fn HistoryPanel() -> Element {
     let is_loading = loading();
     let selected = expanded_id();
     let collapsed = collapsed_sections();
+    let bosses_only = show_only_bosses();
+
+    // Filter encounters if boss-only mode is enabled
+    let filtered_history: Vec<_> = if bosses_only {
+        history.iter().filter(|e| e.boss_name.is_some()).cloned().collect()
+    } else {
+        history.clone()
+    };
 
     // Group encounters by area (ascending order - oldest first)
-    let sections = group_by_area(&history);
+    let sections = group_by_area(&filtered_history);
 
     rsx! {
         section { class: "history-panel",
@@ -141,7 +150,20 @@ pub fn HistoryPanel() -> Element {
                     i { class: "fa-solid fa-clock-rotate-left" }
                     " Encounter History"
                 }
-                span { class: "encounter-count", "{history.len()} encounters" }
+                div { class: "history-controls",
+                    label { class: "boss-filter-toggle",
+                        input {
+                            r#type: "checkbox",
+                            checked: bosses_only,
+                            onchange: move |e| show_only_bosses.set(e.checked())
+                        }
+                        span { "Bosses only" }
+                    }
+                    span { class: "encounter-count",
+                        "{filtered_history.len()}"
+                        if bosses_only { " / {history.len()}" }
+                    }
+                }
             }
 
             if is_loading {
@@ -257,16 +279,90 @@ pub fn HistoryPanel() -> Element {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Sortable Metrics Table
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SortColumn {
+    Player,
+    Dps,
+    TotalDamage,
+    Tps,
+    DamageTaken,
+    Dtps,
+    Hps,
+    Ehps,
+    EffectiveHealPct,
+    Abs,
+    Apm,
+}
+
+impl SortColumn {
+    fn label(&self) -> &'static str {
+        match self {
+            Self::Player => "Player",
+            Self::Dps => "DPS",
+            Self::TotalDamage => "Total Dmg",
+            Self::Tps => "TPS",
+            Self::DamageTaken => "Dmg Taken",
+            Self::Dtps => "DTPS",
+            Self::Hps => "HPS",
+            Self::Ehps => "eHPS",
+            Self::EffectiveHealPct => "Eff Heal%",
+            Self::Abs => "ABS",
+            Self::Apm => "APM",
+        }
+    }
+}
+
+fn sort_metrics(metrics: &mut [PlayerMetrics], column: SortColumn, ascending: bool) {
+    metrics.sort_by(|a, b| {
+        let cmp = match column {
+            SortColumn::Player => a.name.cmp(&b.name),
+            SortColumn::Dps => a.dps.cmp(&b.dps),
+            SortColumn::TotalDamage => a.total_damage.cmp(&b.total_damage),
+            SortColumn::Tps => a.tps.cmp(&b.tps),
+            SortColumn::DamageTaken => a.total_damage_taken.cmp(&b.total_damage_taken),
+            SortColumn::Dtps => a.dtps.cmp(&b.dtps),
+            SortColumn::Hps => a.hps.cmp(&b.hps),
+            SortColumn::Ehps => a.ehps.cmp(&b.ehps),
+            SortColumn::EffectiveHealPct => a.effective_heal_pct.partial_cmp(&b.effective_heal_pct).unwrap_or(std::cmp::Ordering::Equal),
+            SortColumn::Abs => a.abs.cmp(&b.abs),
+            SortColumn::Apm => a.apm.partial_cmp(&b.apm).unwrap_or(std::cmp::Ordering::Equal),
+        };
+        if ascending { cmp } else { cmp.reverse() }
+    });
+}
+
 #[component]
 fn EncounterDetail(encounter: EncounterSummary) -> Element {
+    let mut sort_column = use_signal(|| SortColumn::Dps);
+    let mut sort_ascending = use_signal(|| false); // Default descending for metrics
+
     let metrics = &encounter.player_metrics;
 
-    // Sort by DPS descending
+    // Sort metrics based on current sort state
     let mut sorted_metrics = metrics.clone();
-    sorted_metrics.sort_by(|a, b| b.dps.cmp(&a.dps));
+    sort_metrics(&mut sorted_metrics, sort_column(), sort_ascending());
 
     // Format NPC list
     let npc_list = encounter.npc_names.join(", ");
+
+    // Column definitions for the table
+    let columns = [
+        SortColumn::Player,
+        SortColumn::Dps,
+        SortColumn::TotalDamage,
+        SortColumn::Tps,
+        SortColumn::DamageTaken,
+        SortColumn::Dtps,
+        SortColumn::Hps,
+        SortColumn::Ehps,
+        SortColumn::EffectiveHealPct,
+        SortColumn::Abs,
+        SortColumn::Apm,
+    ];
 
     rsx! {
         div { class: "encounter-detail",
@@ -293,19 +389,39 @@ fn EncounterDetail(encounter: EncounterSummary) -> Element {
                 p { class: "no-metrics", "No player metrics available" }
             } else {
                 div { class: "metrics-table-scroll",
-                    table { class: "metrics-table",
+                    table { class: "metrics-table sortable",
                         thead {
                             tr {
-                                th { class: "col-player", "Player" }
-                                th { class: "col-metric", "DPS" }
-                                th { class: "col-metric", "eDPS" }
-                                th { class: "col-metric", "Boss" }
-                                th { class: "col-metric", "HPS" }
-                                th { class: "col-metric", "eHPS" }
-                                th { class: "col-metric", "ABS" }
-                                th { class: "col-metric", "DTPS" }
-                                th { class: "col-metric", "TPS" }
-                                th { class: "col-metric", "APM" }
+                                for col in columns {
+                                    {
+                                        let is_active = sort_column() == col;
+                                        let is_asc = sort_ascending();
+                                        let header_class = if col == SortColumn::Player { "col-player sortable-header" } else { "col-metric sortable-header" };
+                                        let sort_icon = if is_active {
+                                            if is_asc { "fa-sort-up" } else { "fa-sort-down" }
+                                        } else {
+                                            "fa-sort"
+                                        };
+                                        let active_class = if is_active { "active" } else { "" };
+
+                                        rsx! {
+                                            th {
+                                                class: "{header_class} {active_class}",
+                                                onclick: move |_| {
+                                                    if sort_column() == col {
+                                                        sort_ascending.set(!sort_ascending());
+                                                    } else {
+                                                        sort_column.set(col);
+                                                        // Default to descending for numeric columns, ascending for player name
+                                                        sort_ascending.set(col == SortColumn::Player);
+                                                    }
+                                                },
+                                                span { "{col.label()}" }
+                                                i { class: "fa-solid {sort_icon} sort-icon" }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                         tbody {
@@ -313,13 +429,14 @@ fn EncounterDetail(encounter: EncounterSummary) -> Element {
                                 tr {
                                     td { class: "player-name", "{player.name}" }
                                     td { class: "metric-value dps", "{format_number(player.dps)}" }
-                                    td { class: "metric-value dps", "{format_number(player.edps)}" }
-                                    td { class: "metric-value dps", "{format_number(player.bossdps)}" }
+                                    td { class: "metric-value dps", "{format_number(player.total_damage)}" }
+                                    td { class: "metric-value tps", "{format_number(player.tps)}" }
+                                    td { class: "metric-value dtps", "{format_number(player.total_damage_taken)}" }
+                                    td { class: "metric-value dtps", "{format_number(player.dtps)}" }
                                     td { class: "metric-value hps", "{format_number(player.hps)}" }
                                     td { class: "metric-value hps", "{format_number(player.ehps)}" }
+                                    td { class: "metric-value hps", "{player.effective_heal_pct:.1}%" }
                                     td { class: "metric-value hps", "{format_number(player.abs)}" }
-                                    td { class: "metric-value dtps", "{format_number(player.edtps)}" }
-                                    td { class: "metric-value tps", "{format_number(player.tps)}" }
                                     td { class: "metric-value apm", "{player.apm:.1}" }
                                 }
                             }

@@ -69,13 +69,10 @@ impl RaidSlotRegistry {
         // Check for pending discipline info (DisciplineChanged often fires before registration)
         if let Some(discipline_id) = self.pending_disciplines.remove(&entity_id) {
             player.discipline_id = Some(discipline_id);
-            eprintln!("[RAID-REGISTRY] Applied pending discipline {} to entity {}", discipline_id, entity_id);
         }
 
         self.slots.insert(slot, player);
         self.entity_to_slot.insert(entity_id, slot);
-
-        eprintln!("[RAID-REGISTRY] Registered player {} ({}) in slot {}", entity_id, self.slots.get(&slot).unwrap().name, slot);
         Some(slot)
     }
 
@@ -87,12 +84,10 @@ impl RaidSlotRegistry {
             if let Some(player) = self.slots.get_mut(&slot) {
                 player.class_id = Some(class_id);
                 player.discipline_id = Some(discipline_id);
-                eprintln!("[RAID-REGISTRY] Updated discipline for entity {} in slot {}: discipline_id={}", entity_id, slot, discipline_id);
             }
         } else {
             // Player not registered yet - store for later
             self.pending_disciplines.insert(entity_id, discipline_id);
-            eprintln!("[RAID-REGISTRY] Stored pending discipline for entity {}: discipline_id={}", entity_id, discipline_id);
         }
     }
 
@@ -127,15 +122,12 @@ impl RaidSlotRegistry {
             self.entity_to_slot.insert(p.entity_id, slot_a);
             self.slots.insert(slot_a, p);
         }
-
-        eprintln!("[RAID-REGISTRY] Swapped slots {} <-> {}", slot_a, slot_b);
     }
 
     /// Remove player from a specific slot (user-initiated delete)
     pub fn remove_slot(&mut self, slot: u8) {
         if let Some(player) = self.slots.remove(&slot) {
             self.entity_to_slot.remove(&player.entity_id);
-            eprintln!("[RAID-REGISTRY] Removed player {} from slot {}", player.entity_id, slot);
         }
     }
 
@@ -159,7 +151,6 @@ impl RaidSlotRegistry {
         self.slots.clear();
         self.entity_to_slot.clear();
         self.pending_disciplines.clear();
-        eprintln!("[RAID-REGISTRY] Cleared all slots");
     }
 
     /// Iterate over all registered players with their slots
@@ -217,16 +208,10 @@ impl RaidSlotRegistry {
                 let entity_id = player.entity_id;
                 self.slots.insert(new_slot, player);
                 self.entity_to_slot.insert(entity_id, new_slot);
-                eprintln!("[RAID-REGISTRY] Compacted player {} to slot {}", entity_id, new_slot);
             } else {
                 // No room - player is lost
-                eprintln!("[RAID-REGISTRY] No room for player {} after grid resize", player.entity_id);
                 removed_count += 1;
             }
-        }
-
-        if removed_count > 0 {
-            eprintln!("[RAID-REGISTRY] Grid resize: {} players removed (no available slots)", removed_count);
         }
 
         removed_count

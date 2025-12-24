@@ -172,9 +172,19 @@ impl OverlayState {
             .keys()
             .filter_map(|k| match k {
                 OverlayType::Metric(ot) => Some(*ot),
-                OverlayType::Personal | OverlayType::Raid | OverlayType::BossHealth | OverlayType::Timers => None,
+                _ => None,
             })
             .collect()
+    }
+
+    /// Get the channel for effects overlay (convenience)
+    pub fn get_effects_tx(&self) -> Option<&Sender<OverlayCommand>> {
+        self.get_tx(OverlayType::Effects)
+    }
+
+    /// Check if effects overlay is running
+    pub fn is_effects_running(&self) -> bool {
+        self.overlays.contains_key(&OverlayType::Effects)
     }
 
     /// Insert an overlay handle

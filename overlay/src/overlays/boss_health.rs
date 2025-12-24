@@ -48,6 +48,7 @@ impl BossHealthOverlay {
     ) -> Result<Self, PlatformError> {
         let mut frame = OverlayFrame::new(window_config, BASE_WIDTH, BASE_HEIGHT)?;
         frame.set_background_alpha(background_alpha);
+        frame.set_label("Boss Health");
 
         Ok(Self {
             frame,

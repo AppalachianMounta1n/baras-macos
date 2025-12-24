@@ -81,6 +81,7 @@ impl MetricOverlay {
     ) -> Result<Self, PlatformError> {
         let mut frame = OverlayFrame::new(config, BASE_WIDTH, BASE_HEIGHT)?;
         frame.set_background_alpha(background_alpha);
+        frame.set_label(title);
 
         Ok(Self {
             frame,

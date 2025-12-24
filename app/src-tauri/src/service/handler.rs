@@ -167,6 +167,13 @@ impl ServiceHandle {
         let session = session.read().await;
         let cache = session.session_cache.as_ref()?;
 
+        // Extract session start time from active file name
+        let session_start = session.active_file.as_ref().and_then(|path| {
+            let filename = path.file_name()?.to_str()?;
+            let (_, datetime) = baras_core::context::parse_log_filename(filename)?;
+            Some(datetime.format("%b %d, %l:%M %p").to_string())
+        });
+
         Some(SessionInfo {
             player_name: if cache.player_initialized {
                 Some(resolve(cache.player.name).to_string())
@@ -195,6 +202,7 @@ impl ServiceHandle {
                 .map(|e| e.id + 1)
                 .max()
                 .unwrap_or(0) as usize,
+            session_start,
         })
     }
 

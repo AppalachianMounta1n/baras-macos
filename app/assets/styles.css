@@ -37,6 +37,45 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
+/* Global select styling for dark theme */
+select {
+  padding: 0.4em 2em 0.4em 0.6em;
+  background-color: #2a2a2f;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: #eee;
+  font-size: 0.9em;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M2 4l4 4 4-4z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5em center;
+}
+
+select:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  background-color: #333338;
+}
+
+select:focus {
+  outline: none;
+  border-color: #6a8aba;
+}
+
+select option {
+  background: #2a2a2f;
+  color: #eee;
+  padding: 0.3em;
+}
+
+select optgroup {
+  background: #333;
+  color: #9bf;
+  font-weight: 600;
+}
+
 .container {
   margin: 0 auto;
   padding: 1.5vh 2vw;
@@ -186,9 +225,17 @@ a:hover {
   padding: 0.8vh 1.5vw;
   font-size: clamp(0.7rem, 1.5vh, 1rem);
   border-radius: 6px;
-  border: 2px solid #444;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(60, 60, 65, 0.6);
+  color: #aaa;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+.btn:hover:not(:disabled) {
+  background: rgba(70, 70, 75, 0.7);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ccc;
 }
 
 .btn:disabled {
@@ -197,9 +244,9 @@ a:hover {
 }
 
 .btn-active {
-  background-color: #2a6e2a;
-  border-color: #3a8e3a;
-  color: white;
+  background-color: rgba(70, 120, 70, 0.5);
+  border-color: rgba(90, 140, 90, 0.6);
+  color: #ddd;
 }
 
 .btn-warning {
@@ -325,7 +372,7 @@ a:hover {
 .overlay-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.4vh 0.4vw;
+  gap: 0.8vh 0.6vw;
   margin: 0.2vh 0 0.3vh 0;
   width: 100%;
   flex-shrink: 0;
@@ -340,19 +387,23 @@ a:hover {
 .btn-overlay {
   width: 100%;
   min-width: unset;
-  padding: 0.6vh 0.3vw;
+  padding: 0.8em 0.5em;
   margin: 0;
   font-size: clamp(0.6rem, 1.4vh, 0.9rem);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  border-width: 1px;
+  border-radius: 6px;
 }
 
 .btn-control {
   width: 100%;
-  padding: 0.8vh 0.5vw;
+  padding: 1em 0.75em;
   margin: 0;
   font-size: clamp(0.7rem, 1.5vh, 0.95rem);
+  border-width: 1px;
+  border-radius: 8px;
 }
 
 /* Lock button - locked state (neutral/grey) */
@@ -442,15 +493,19 @@ a:hover {
 .session-item {
   display: flex;
   flex-direction: column;
-  padding: 0.25vh 0.5vw;
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
+  align-items: center;
+  text-align: center;
+  padding: 0.5em 0.75em;
+  background: rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
 }
 
 .session-item .label {
   font-size: clamp(0.5rem, 1.2vh, 0.75rem);
   color: #888;
   text-transform: uppercase;
+  margin-bottom: 0.2em;
 }
 
 .session-item .value {
@@ -595,7 +650,7 @@ a:hover {
 .settings-panel {
   position: relative;
   width: 90%;
-  max-width: 600px;
+  max-width: 750px;
   max-height: 85vh;
   background: #2a2a2a;
   border-radius: 8px;
@@ -608,7 +663,7 @@ a:hover {
 /* Floating version of settings panel */
 .settings-panel.floating {
   position: fixed;
-  width: 500px;
+  width: 650px;
   pointer-events: auto; /* Re-enable clicks on the panel itself */
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -672,6 +727,12 @@ a:hover {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25em;
+}
+
+.metrics-opacity-row {
+  margin-top: 0.5em;
+  padding-top: 0.5em;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .tab-btn {
@@ -1001,6 +1062,13 @@ details[open] .collapsible-summary::before {
 .save-status {
   font-size: 0.85em;
   color: #4a4;
+  padding: 0.2em 0.5em;
+  border-radius: 4px;
+}
+
+.save-status.error {
+  color: #c44;
+  background: rgba(200, 60, 60, 0.1);
 }
 
 /* Active file panel (above overlays) */
@@ -1099,7 +1167,7 @@ details[open] .collapsible-summary::before {
 
 /* General settings modal */
 .general-settings {
-  max-width: 500px;
+  max-width: 650px;
 }
 
 .general-settings h4 {
@@ -1461,6 +1529,31 @@ details[open] .collapsible-summary::before {
   color: #888;
 }
 
+.history-controls {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+}
+
+.boss-filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  font-size: 0.75em;
+  color: #888;
+  cursor: pointer;
+  user-select: none;
+}
+
+.boss-filter-toggle:hover {
+  color: #aaa;
+}
+
+.boss-filter-toggle input[type="checkbox"] {
+  accent-color: #4a9eff;
+  cursor: pointer;
+}
+
 .encounter-count {
   font-size: 0.8em;
   color: #888;
@@ -1624,7 +1717,7 @@ details[open] .collapsible-summary::before {
 
 .metrics-table th,
 .metrics-table td {
-  padding: 0.4em 0.6em;
+  padding: 0.35em 0.4em;
   text-align: left;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
@@ -1671,7 +1764,7 @@ details[open] .collapsible-summary::before {
 }
 
 .metrics-table .col-metric {
-  min-width: 55px;
+  min-width: 38px;
   text-align: right;
 }
 
@@ -1684,6 +1777,38 @@ details[open] .collapsible-summary::before {
   color: #666;
   font-style: italic;
   padding: 1em;
+}
+
+/* Sortable table headers */
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.sortable-header:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.sortable-header.active {
+  background-color: rgba(100, 150, 200, 0.15);
+  color: #ccc;
+}
+
+.sortable-header .sort-icon {
+  margin-left: 0.4em;
+  font-size: 0.75em;
+  opacity: 0.4;
+}
+
+.sortable-header.active .sort-icon {
+  opacity: 1;
+  color: #7eb8da;
+}
+
+.sortable-header:hover .sort-icon {
+  opacity: 0.7;
 }
 
 /* Phase header rows (area/phase dividers - collapsible) */
@@ -1752,7 +1877,7 @@ details[open] .collapsible-summary::before {
   }
 
   .metrics-table .col-metric {
-    min-width: 65px;
+    min-width: 42px;
   }
 
   .session-grid {
@@ -1779,7 +1904,7 @@ details[open] .collapsible-summary::before {
   }
 
   .metrics-table .col-metric {
-    min-width: 70px;
+    min-width: 46px;
   }
 
   .encounter-detail {
@@ -1810,7 +1935,7 @@ details[open] .collapsible-summary::before {
   }
 
   .metrics-table .col-metric {
-    min-width: 85px;
+    min-width: 50px;
   }
 
   .session-grid {

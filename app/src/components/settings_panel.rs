@@ -253,33 +253,6 @@ pub fn SettingsPanel(
             }
 
             // ─────────────────────────────────────────────────────────────────
-            // Category opacity settings
-            // ─────────────────────────────────────────────────────────────────
-            details { class: "settings-section collapsible",
-                summary { class: "collapsible-summary", "Background Opacity" }
-                div { class: "collapsible-content",
-                    OpacitySlider {
-                        label: "Metrics Opacity",
-                        value: current_settings.metric_opacity,
-                        on_change: move |val| {
-                            let mut new_settings = draft_settings();
-                            new_settings.metric_opacity = val;
-                            update_draft(new_settings);
-                        },
-                    }
-                    OpacitySlider {
-                        label: "Personal Opacity",
-                        value: current_settings.personal_opacity,
-                        on_change: move |val| {
-                            let mut new_settings = draft_settings();
-                            new_settings.personal_opacity = val;
-                            update_draft(new_settings);
-                        },
-                    }
-                }
-            }
-
-            // ─────────────────────────────────────────────────────────────────
             // Tabs for overlay types
             // ─────────────────────────────────────────────────────────────────
             div { class: "settings-tabs",
@@ -303,6 +276,18 @@ pub fn SettingsPanel(
                                 selected_tab: selected_tab,
                             }
                         }
+                    }
+                }
+                // Global metrics opacity setting
+                div { class: "tab-group metrics-opacity-row",
+                    OpacitySlider {
+                        label: "Metrics Opacity",
+                        value: current_settings.metric_opacity,
+                        on_change: move |val| {
+                            let mut new_settings = draft_settings();
+                            new_settings.metric_opacity = val;
+                            update_draft(new_settings);
+                        },
                     }
                 }
             }
@@ -633,6 +618,18 @@ pub fn SettingsPanel(
                                 }
                             }
 
+                            h4 { "Appearance" }
+
+                            OpacitySlider {
+                                label: "Background Opacity",
+                                value: current_settings.personal_opacity,
+                                on_change: move |val| {
+                                    let mut new_settings = draft_settings();
+                                    new_settings.personal_opacity = val;
+                                    update_draft(new_settings);
+                                },
+                            }
+
                             div { class: "setting-row",
                                 label { "Value Font Color" }
                                 input {
@@ -671,6 +668,7 @@ pub fn SettingsPanel(
                                     onclick: move |_| {
                                         let mut new_settings = draft_settings();
                                         new_settings.personal_overlay = PersonalOverlayConfig::default();
+                                        new_settings.personal_opacity = 180;
                                         update_draft(new_settings);
                                     },
                                     i { class: "fa-solid fa-rotate-left" }

@@ -23,6 +23,7 @@ pub fn App() -> Element {
     let mut raid_enabled = use_signal(|| false);
     let mut boss_health_enabled = use_signal(|| false);
     let mut timers_enabled = use_signal(|| false);
+    let mut effects_enabled = use_signal(|| false);
     let mut overlays_visible = use_signal(|| true);
     let mut move_mode = use_signal(|| false);
     let mut rearrange_mode = use_signal(|| false);
@@ -129,7 +130,8 @@ pub fn App() -> Element {
     let raid_on = raid_enabled();
     let boss_health_on = boss_health_enabled();
     let timers_on = timers_enabled();
-    let any_enabled = enabled_map.values().any(|&v| v) || personal_on || raid_on || boss_health_on || timers_on;
+    let effects_on = effects_enabled();
+    let any_enabled = enabled_map.values().any(|&v| v) || personal_on || raid_on || boss_health_on || timers_on || effects_on;
     let is_visible = overlays_visible();
     let is_move_mode = move_mode();
     let is_rearrange = rearrange_mode();
@@ -199,6 +201,7 @@ pub fn App() -> Element {
                         section { class: "session-panel",
                             h3 { "Session" }
                             div { class: "session-grid",
+                                // Row 1: Player - Area - Session Start
                                 if let Some(ref name) = info.player_name {
                                     div { class: "session-item",
                                         span { class: "label", "Player" }
@@ -211,10 +214,23 @@ pub fn App() -> Element {
                                         span { class: "value", "{area}" }
                                     }
                                 }
+                                if let Some(ref start) = info.session_start {
+                                    div { class: "session-item",
+                                        span { class: "label", "Started" }
+                                        span { class: "value", "{start}" }
+                                    }
+                                }
+                                // Row 2: Class - Discipline - Combat
                                 if let Some(ref class_name) = info.player_class {
                                     div { class: "session-item",
                                         span { class: "label", "Class" }
                                         span { class: "value", "{class_name}" }
+                                    }
+                                }
+                                if let Some(ref disc) = info.player_discipline {
+                                    div { class: "session-item",
+                                        span { class: "label", "Discipline" }
+                                        span { class: "value", "{disc}" }
                                     }
                                 }
                                 div { class: "session-item",
@@ -222,12 +238,6 @@ pub fn App() -> Element {
                                     span {
                                         class: if info.in_combat { "value status-warning" } else { "value" },
                                         if info.in_combat { "In Combat" } else { "Out of Combat" }
-                                    }
-                                }
-                                if let Some(ref disc) = info.player_discipline {
-                                    div { class: "session-item",
-                                        span { class: "label", "Discipline" }
-                                        span { class: "value", "{disc}" }
                                     }
                                 }
                             }
@@ -266,7 +276,6 @@ pub fn App() -> Element {
                 if active_tab() == "overlays" {
                     section { class: "overlay-controls",
                         div { class: "overlays-header",
-                            h3 { "Overlays" }
                             if !profile_names().is_empty() {
                                 div { class: "profile-selector",
                                     i { class: "fa-solid fa-user-gear" }
@@ -312,7 +321,7 @@ pub fn App() -> Element {
                         }
 
                         // Controls
-                        h4 { class: "subsection-title", "Overlay Controls" }
+                        h4 { class: "subsection-title", "Controls" }
                         div { class: "settings-controls",
                             button {
                                 class: if is_visible && any_enabled { "btn btn-control btn-visible" } else { "btn btn-control btn-hidden" },
@@ -340,18 +349,18 @@ pub fn App() -> Element {
                             }
                             button {
                                 class: if is_rearrange { "btn btn-control btn-rearrange btn-active" } else { "btn btn-control btn-rearrange" },
-                                disabled: !raid_on || is_move_mode,
+                                disabled: !is_visible || !raid_on || is_move_mode,
                                 onclick: move |_| { spawn(async move {
                                     if let Ok(new_mode) = api::toggle_raid_rearrange().await {
                                         rearrange_mode.set(new_mode);
                                     }
                                 }); },
                                 i { class: "fa-solid fa-grip" }
-                                span { " Rearrange" }
+                                span { " Rearrange Frames" }
                             }
                             button {
                                 class: "btn btn-control btn-clear-frames",
-                                disabled: !raid_on,
+                                disabled: !is_visible || !raid_on,
                                 onclick: move |_| { spawn(async move { api::clear_raid_registry().await; }); },
                                 i { class: "fa-solid fa-trash" }
                                 span { " Clear Frames" }
@@ -397,6 +406,15 @@ pub fn App() -> Element {
                                     }
                                 }); },
                                 "Timers"
+                            }
+                            button {
+                                class: if effects_on { "btn btn-overlay btn-active" } else { "btn btn-overlay" },
+                                onclick: move |_| { spawn(async move {
+                                    if api::toggle_overlay(OverlayType::Effects, effects_on).await {
+                                        effects_enabled.set(!effects_on);
+                                    }
+                                }); },
+                                "Effects Countdown"
                             }
                         }
 

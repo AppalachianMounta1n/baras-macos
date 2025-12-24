@@ -37,6 +37,7 @@ pub struct EffectListItem {
     pub max_stacks: u8,
     pub color: Option<[u8; 4]>,
     pub show_on_raid_frames: bool,
+    pub show_on_effects_overlay: bool,
 
     // Behavior
     pub persist_past_death: bool,
@@ -71,6 +72,7 @@ impl EffectListItem {
             max_stacks: def.max_stacks,
             color: def.color,
             show_on_raid_frames: def.show_on_raid_frames,
+            show_on_effects_overlay: def.show_on_effects_overlay,
             persist_past_death: def.persist_past_death,
             track_outside_combat: def.track_outside_combat,
             on_apply_trigger_timer: def.on_apply_trigger_timer.clone(),
@@ -96,6 +98,7 @@ impl EffectListItem {
             max_stacks: self.max_stacks,
             color: self.color,
             show_on_raid_frames: self.show_on_raid_frames,
+            show_on_effects_overlay: self.show_on_effects_overlay,
             persist_past_death: self.persist_past_death,
             track_outside_combat: self.track_outside_combat,
             on_apply_trigger_timer: self.on_apply_trigger_timer.clone(),

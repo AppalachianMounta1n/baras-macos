@@ -443,6 +443,10 @@ pub struct OverlaySettings {
     pub timer_overlay: TimerOverlayConfig,
     #[serde(default = "default_opacity")]
     pub timer_opacity: u8,
+    #[serde(default)]
+    pub effects_overlay: TimerOverlayConfig,
+    #[serde(default = "default_opacity")]
+    pub effects_opacity: u8,
 }
 
 impl Default for OverlaySettings {
@@ -464,6 +468,8 @@ impl Default for OverlaySettings {
             boss_health_opacity: 180,
             timer_overlay: TimerOverlayConfig::default(),
             timer_opacity: 180,
+            effects_overlay: TimerOverlayConfig::default(),
+            effects_opacity: 180,
         }
     }
 }

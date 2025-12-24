@@ -7,7 +7,7 @@ edition = "2024"
 [dependencies]
 baras-types = { path = "../types" }
 confy = { version = "2.0.0", default-features = false, features = [
-  "yaml_conf",
+  "toml_conf",
 ] }
 hashbrown = "0.16.1"
 memchr = "2.7.6"

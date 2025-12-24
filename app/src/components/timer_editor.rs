@@ -26,6 +26,8 @@ pub fn TimerEditorPanel() -> Element {
     let mut expanded_bosses = use_signal(HashSet::<String>::new);
     let mut loading = use_signal(|| true);
     let mut show_new_timer = use_signal(|| false);
+    let mut save_status = use_signal(String::new);
+    let mut status_is_error = use_signal(|| false);
 
     // Load timers and bosses on mount
     use_future(move || async move {
@@ -86,8 +88,13 @@ pub fn TimerEditorPanel() -> Element {
 
         // Then persist to backend
         spawn(async move {
-            let _ = api::update_encounter_timer(&updated_timer).await;
-            // If save fails, changes will be lost on reload, but UI stays responsive
+            if api::update_encounter_timer(&updated_timer).await {
+                save_status.set("Saved".to_string());
+                status_is_error.set(false);
+            } else {
+                save_status.set("Failed to save".to_string());
+                status_is_error.set(true);
+            }
         });
     };
 
@@ -104,11 +111,15 @@ pub fn TimerEditorPanel() -> Element {
         timers.set(filtered);
         expanded_timer.set(None);
 
-        // Then attempt backend delete (fire and forget - UI already updated)
+        // Then attempt backend delete
         spawn(async move {
-            let _ = api::delete_encounter_timer(&timer.timer_id, &timer.boss_id, &timer.file_path).await;
-            // Note: If this fails, we could restore the timer, but for now we just log
-            // The file-based storage means the timer will reappear on next app load if delete failed
+            if api::delete_encounter_timer(&timer.timer_id, &timer.boss_id, &timer.file_path).await {
+                save_status.set("Deleted".to_string());
+                status_is_error.set(false);
+            } else {
+                save_status.set("Failed to delete".to_string());
+                status_is_error.set(true);
+            }
         });
     };
 
@@ -120,6 +131,11 @@ pub fn TimerEditorPanel() -> Element {
                 let mut current = timers();
                 current.push(new_timer);
                 timers.set(current);
+                save_status.set("Duplicated".to_string());
+                status_is_error.set(false);
+            } else {
+                save_status.set("Failed to duplicate".to_string());
+                status_is_error.set(true);
             }
         });
     };
@@ -130,6 +146,11 @@ pub fn TimerEditorPanel() -> Element {
                 let mut current = timers();
                 current.push(created);
                 timers.set(current);
+                save_status.set("Created".to_string());
+                status_is_error.set(false);
+            } else {
+                save_status.set("Failed to create".to_string());
+                status_is_error.set(true);
             }
         });
         show_new_timer.set(false);
@@ -141,6 +162,12 @@ pub fn TimerEditorPanel() -> Element {
             div { class: "timer-editor-header",
                 h2 { "Encounter Timers" }
                 div { class: "header-right",
+                    if !save_status().is_empty() {
+                        span {
+                            class: if status_is_error() { "save-status error" } else { "save-status" },
+                            "{save_status()}"
+                        }
+                    }
                     span { class: "timer-count", "{filtered_timers().len()} timers" }
                     button {
                         class: "btn-new-timer",

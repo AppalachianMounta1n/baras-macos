@@ -145,6 +145,10 @@ pub struct EffectDefinition {
     #[serde(default)]
     pub show_on_raid_frames: bool,
 
+    /// Show this effect on the effects overlay (countdown display)
+    #[serde(default)]
+    pub show_on_effects_overlay: bool,
+
     // ─── Behavior ───────────────────────────────────────────────────────────
     /// Should this effect persist after target dies?
     #[serde(default)]

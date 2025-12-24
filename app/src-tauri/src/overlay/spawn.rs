@@ -16,7 +16,7 @@ use tokio::sync::mpsc::{self, Sender};
 
 use baras_core::context::{BossHealthConfig, OverlayAppearanceConfig, OverlayPositionConfig, PersonalOverlayConfig, TimerOverlayConfig};
 use baras_overlay::{
-    BossHealthOverlay, MetricOverlay, Overlay, OverlayConfig, PersonalOverlay,
+    BossHealthOverlay, EffectsOverlay, MetricOverlay, Overlay, OverlayConfig, PersonalOverlay,
     RaidGridLayout, RaidOverlay, RaidOverlayConfig, RaidRegistryAction, TimerOverlay,
 };
 
@@ -57,19 +57,14 @@ where
     let (confirm_tx, confirm_rx) = std::sync::mpsc::channel::<Result<(), String>>();
 
     let handle = thread::spawn(move || {
-        eprintln!("[OVERLAY-LOOP] {:?}: Thread started, creating overlay...", kind_name);
-
         // Create the overlay INSIDE this thread - critical for Windows HWND threading
         let mut overlay = match create_overlay() {
             Ok(o) => {
-                eprintln!("[OVERLAY-LOOP] {:?}: Overlay created successfully", kind_name);
-                // Signal success to the spawning thread
                 let _ = confirm_tx.send(Ok(()));
                 o
             }
             Err(e) => {
-                eprintln!("[OVERLAY-LOOP] {:?}: Failed to create overlay: {}", kind_name, e);
-                // Signal failure to the spawning thread
+                eprintln!("[OVERLAY] {}: Failed to create: {}", kind_name, e);
                 let _ = confirm_tx.send(Err(e));
                 return;
             }
@@ -78,42 +73,32 @@ where
         let mut needs_render = true;
         let mut was_in_resize_corner = false;
         let mut was_resizing = false;
-        let mut loop_count: u64 = 0;
 
         loop {
-            loop_count += 1;
-
             // Process all pending commands
             while let Ok(cmd) = rx.try_recv() {
                 match cmd {
                     OverlayCommand::SetMoveMode(enabled) => {
-                        eprintln!("[OVERLAY-LOOP] {:?}: Received SetMoveMode({})", kind_name, enabled);
                         overlay.set_move_mode(enabled);
                         needs_render = true;
                     }
                     OverlayCommand::SetRearrangeMode(enabled) => {
-                        eprintln!("[OVERLAY-LOOP] {:?}: Received SetRearrangeMode({})", kind_name, enabled);
                         overlay.set_rearrange_mode(enabled);
                         needs_render = true;
                     }
                     OverlayCommand::UpdateData(data) => {
-                        // Don't log data updates (too frequent)
                         overlay.update_data(data);
                         needs_render = true;
                     }
                     OverlayCommand::UpdateConfig(config) => {
-                        eprintln!("[OVERLAY-LOOP] {:?}: Received UpdateConfig - calling update_config()", kind_name);
                         overlay.update_config(config);
-                        eprintln!("[OVERLAY-LOOP] {:?}: UpdateConfig applied, setting needs_render=true", kind_name);
                         needs_render = true;
                     }
                     OverlayCommand::SetPosition(x, y) => {
-                        eprintln!("[OVERLAY-LOOP] {:?}: Received SetPosition({}, {})", kind_name, x, y);
                         overlay.frame_mut().window_mut().set_position(x, y);
                         needs_render = true;
                     }
                     OverlayCommand::GetPosition(response_tx) => {
-                        eprintln!("[OVERLAY-LOOP] {:?}: Received GetPosition", kind_name);
                         let pos = overlay.position();
                         let current_monitor = overlay.frame().window().current_monitor();
                         let (monitor_id, monitor_x, monitor_y) = current_monitor
@@ -130,25 +115,19 @@ where
                             monitor_y,
                         });
                     }
-                    OverlayCommand::Shutdown => {
-                        eprintln!("[OVERLAY-LOOP] {:?}: Received Shutdown command", kind_name);
-                        return;
-                    }
+                    OverlayCommand::Shutdown => return,
                 }
             }
 
             // Poll window events (returns false if window should close)
             if !overlay.poll_events() {
-                eprintln!("[OVERLAY-LOOP] {:?}: poll_events() returned false after {} iterations - EXITING", kind_name, loop_count);
                 break;
             }
 
             // Forward any pending registry actions to the service
             if let Some(ref tx) = registry_action_tx {
                 for action in overlay.take_pending_registry_actions() {
-                    if tx.send(action).is_err() {
-                        eprintln!("[OVERLAY-LOOP] {:?}: Failed to send registry action", kind_name);
-                    }
+                    let _ = tx.send(action);
                 }
             }
 
@@ -180,7 +159,6 @@ where
             let sleep_ms = if is_interactive { 16 } else { 50 };
             thread::sleep(std::time::Duration::from_millis(sleep_ms));
         }
-        eprintln!("[OVERLAY-LOOP] {:?}: Thread exiting after {} iterations", kind_name, loop_count);
     });
 
     // Wait for confirmation from the spawned thread
@@ -227,9 +205,6 @@ pub fn create_metric_overlay(
 
     // Create a factory closure that will be called inside the spawned thread
     let factory = move || {
-        eprintln!("[SPAWN] Creating {} overlay with appearance: bar_color={:?}, font_color={:?}, max_entries={}, show_header={}, show_footer={}, bg_alpha={}",
-            title, appearance.bar_color, appearance.font_color, appearance.max_entries,
-            appearance.show_header, appearance.show_footer, background_alpha);
         MetricOverlay::new(config, &title, appearance, background_alpha)
             .map_err(|e| format!("Failed to create {} overlay: {}", title, e))
     };
@@ -360,6 +335,34 @@ pub fn create_timer_overlay(
     let factory = move || {
         TimerOverlay::new(config, timer_config, background_alpha)
             .map_err(|e| format!("Failed to create timer overlay: {}", e))
+    };
+
+    let (tx, handle) = spawn_overlay_with_factory(factory, kind, None)?;
+
+    Ok(OverlayHandle { tx, handle, kind, registry_action_rx: None })
+}
+
+/// Create and spawn the effects countdown overlay
+pub fn create_effects_overlay(
+    position: OverlayPositionConfig,
+    effects_config: TimerOverlayConfig,
+    background_alpha: u8,
+) -> Result<OverlayHandle, String> {
+    let config = OverlayConfig {
+        x: position.x,
+        y: position.y,
+        width: position.width,
+        height: position.height,
+        namespace: "baras-effects".to_string(),
+        click_through: true,
+        target_monitor_id: position.monitor_id.clone(),
+    };
+
+    let kind = OverlayType::Effects;
+
+    let factory = move || {
+        EffectsOverlay::new(config, effects_config, background_alpha)
+            .map_err(|e| format!("Failed to create effects overlay: {}", e))
     };
 
     let (tx, handle) = spawn_overlay_with_factory(factory, kind, None)?;

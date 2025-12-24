@@ -195,9 +195,12 @@ pub fn create_summary(
     };
 
     // Collect NPC names with counts (show count only if > 1)
+    // Filter out companions - they're friendly NPCs, not enemies
     let mut npc_counts: HashMap<String, u32> = HashMap::new();
     for npc in encounter.npcs.values() {
-        *npc_counts.entry(resolve(npc.name).to_string()).or_insert(0) += 1;
+        if npc.entity_type != EntityType::Companion {
+            *npc_counts.entry(resolve(npc.name).to_string()).or_insert(0) += 1;
+        }
     }
     let mut npc_names: Vec<String> = npc_counts
         .into_iter()

@@ -8,7 +8,7 @@ use baras_core::context::{OverlayPositionConfig, OverlaySettings};
 use baras_overlay::{OverlayConfigUpdate, OverlayData, RaidGridLayout, RaidOverlayConfig};
 
 use super::metrics::create_entries_for_type;
-use super::spawn::{create_boss_health_overlay, create_metric_overlay, create_personal_overlay, create_raid_overlay, create_timer_overlay};
+use super::spawn::{create_boss_health_overlay, create_effects_overlay, create_metric_overlay, create_personal_overlay, create_raid_overlay, create_timer_overlay};
 use super::state::{OverlayCommand, OverlayHandle, PositionEvent};
 use super::types::{MetricType, OverlayType};
 use super::{get_appearance_for_type, SharedOverlayState};
@@ -60,6 +60,10 @@ impl OverlayManager {
                 let timer_config = settings.timer_overlay.clone();
                 create_timer_overlay(position, timer_config, settings.timer_opacity)?
             }
+            OverlayType::Effects => {
+                let effects_config = settings.effects_overlay.clone();
+                create_effects_overlay(position, effects_config, settings.effects_opacity)?
+            }
         };
 
         Ok(SpawnResult { handle, needs_monitor_save })
@@ -108,7 +112,7 @@ impl OverlayManager {
                     let _ = tx.send(OverlayCommand::UpdateData(OverlayData::Personal(stats))).await;
                 }
             }
-            OverlayType::Raid | OverlayType::BossHealth | OverlayType::Timers => {
+            OverlayType::Raid | OverlayType::BossHealth | OverlayType::Timers | OverlayType::Effects => {
                 // These get data via separate update channels (bridge)
             }
         }
@@ -193,6 +197,10 @@ impl OverlayManager {
             OverlayType::Timers => {
                 let timer_config = settings.timer_overlay.clone();
                 OverlayConfigUpdate::Timers(timer_config, settings.timer_opacity)
+            }
+            OverlayType::Effects => {
+                let effects_config = settings.effects_overlay.clone();
+                OverlayConfigUpdate::Effects(effects_config, settings.effects_opacity)
             }
         }
     }
@@ -319,6 +327,7 @@ impl OverlayManager {
                 "raid" => OverlayType::Raid,
                 "boss_health" => OverlayType::BossHealth,
                 "timers" => OverlayType::Timers,
+                "effects" => OverlayType::Effects,
                 _ => {
                     if let Some(mt) = MetricType::from_config_key(key) {
                         OverlayType::Metric(mt)
@@ -548,8 +557,10 @@ impl OverlayManager {
     fn all_overlay_types() -> Vec<OverlayType> {
         let mut types = vec![
             OverlayType::Personal,
+            OverlayType::Raid,
             OverlayType::BossHealth,
             OverlayType::Timers,
+            OverlayType::Effects,
         ];
         for mt in MetricType::all() {
             types.push(OverlayType::Metric(*mt));

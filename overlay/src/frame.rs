@@ -21,6 +21,8 @@ pub struct OverlayFrame {
     background_alpha: u8,
     base_width: f32,
     base_height: f32,
+    /// Optional label shown in move mode to identify the overlay
+    label: Option<String>,
 }
 
 impl OverlayFrame {
@@ -42,6 +44,7 @@ impl OverlayFrame {
             background_alpha: 180,
             base_width,
             base_height,
+            label: None,
         })
     }
 
@@ -53,6 +56,11 @@ impl OverlayFrame {
     /// Get the background alpha
     pub fn background_alpha(&self) -> u8 {
         self.background_alpha
+    }
+
+    /// Set the overlay label (shown in move mode)
+    pub fn set_label(&mut self, label: impl Into<String>) {
+        self.label = Some(label.into());
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -88,20 +96,27 @@ impl OverlayFrame {
         let width = self.window.width() as f32;
         let height = self.window.height() as f32;
         let corner_radius = self.scaled(6.0);
+        let in_move_mode = self.window.is_interactive() && self.window.is_drag_enabled();
 
         // Clear with transparent
         self.window.clear(colors::transparent());
 
         // Draw background only if alpha > 0 (fully transparent overlays skip this)
         if self.background_alpha > 0 {
-            let bg_color = Color::from_rgba8(30, 30, 30, self.background_alpha);
+            // In move mode, use reduced alpha (20%) to make overlay semi-transparent
+            let alpha = if in_move_mode {
+                (self.background_alpha as f32 * 0.20).round() as u8
+            } else {
+                self.background_alpha
+            };
+            let bg_color = Color::from_rgba8(30, 30, 30, alpha);
             self.window
                 .fill_rounded_rect(0.0, 0.0, width, height, corner_radius, bg_color);
         }
 
         // Draw border only in move mode (interactive AND drag enabled)
         // Rearrange mode is interactive but drag disabled - no border
-        if self.window.is_interactive() && self.window.is_drag_enabled() {
+        if in_move_mode {
             self.window.stroke_rounded_rect(
                 1.0,
                 1.0,
@@ -111,6 +126,16 @@ impl OverlayFrame {
                 2.0,
                 colors::frame_border(),
             );
+
+            // Draw overlay label centered in move mode
+            if let Some(ref label) = self.label {
+                let font_size = self.scaled(12.0).max(10.0);
+                let label_color = Color::from_rgba8(180, 180, 180, 200);
+                let (text_width, text_height) = self.window.measure_text(label, font_size);
+                let x = (width - text_width) / 2.0;
+                let y = (height + text_height) / 2.0; // baseline-centered
+                self.window.draw_text(label, x, y, font_size, label_color);
+            }
         }
     }
 

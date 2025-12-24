@@ -177,9 +177,6 @@ impl CombatService {
         // Custom definitions: user's config directory
         let custom_dir = dirs::config_dir().map(|p| p.join("baras").join("effects"));
 
-        eprintln!("[DEFINITIONS] Looking for bundled effect definitions at: {:?}", bundled_dir);
-        eprintln!("[DEFINITIONS] Looking for custom effect definitions at: {:?}", custom_dir);
-
         // Load definitions from TOML files
         let mut set = DefinitionSet::new();
 
@@ -193,7 +190,6 @@ impl CombatService {
             Self::load_definitions_from_dir(&mut set, path, "custom");
         }
 
-        eprintln!("[DEFINITIONS] Loaded {} effect definitions", set.effects.len());
         set
     }
 
@@ -242,38 +238,24 @@ impl CombatService {
         // Custom definitions: user's config directory
         let custom_dir = dirs::config_dir().map(|p| p.join("baras").join("timers"));
 
-        eprintln!("[TIMERS] Looking for builtin timer definitions at: {:?}", builtin_dir);
-        eprintln!("[TIMERS] Looking for custom timer definitions at: {:?}", custom_dir);
-
         let mut all_timers = Vec::new();
 
         // Load from builtin directory
-        if let Some(ref path) = builtin_dir {
-            if path.exists() {
-                match load_timers_from_dir(path) {
-                    Ok(timers) => {
-                        eprintln!("[TIMERS] Loaded {} builtin timer definitions", timers.len());
-                        all_timers.extend(timers);
-                    }
-                    Err(e) => eprintln!("[TIMERS] Failed to load builtin timers: {}", e),
-                }
+        if let Some(ref path) = builtin_dir && path.exists() {
+            match load_timers_from_dir(path) {
+                Ok(timers) => all_timers.extend(timers),
+                Err(e) => eprintln!("[TIMERS] Failed to load builtin: {}", e),
             }
         }
 
         // Load from custom directory (can override builtins)
-        if let Some(ref path) = custom_dir {
-            if path.exists() {
-                match load_timers_from_dir(path) {
-                    Ok(timers) => {
-                        eprintln!("[TIMERS] Loaded {} custom timer definitions", timers.len());
-                        all_timers.extend(timers);
-                    }
-                    Err(e) => eprintln!("[TIMERS] Failed to load custom timers: {}", e),
-                }
+        if let Some(ref path) = custom_dir && path.exists() {
+            match load_timers_from_dir(path) {
+                Ok(timers) => all_timers.extend(timers),
+                Err(e) => eprintln!("[TIMERS] Failed to load custom: {}", e),
             }
         }
 
-        eprintln!("[TIMERS] Total: {} timer definitions loaded", all_timers.len());
         all_timers
     }
 
@@ -290,50 +272,29 @@ impl CombatService {
         // Custom definitions: user's config directory
         let custom_dir = dirs::config_dir().map(|p| p.join("baras").join("encounters"));
 
-        eprintln!("[BOSSES] Looking for builtin boss definitions at: {:?}", builtin_dir);
-        eprintln!("[BOSSES] Looking for custom boss definitions at: {:?}", custom_dir);
-
         let mut all_bosses = Vec::new();
 
         // Load from builtin directory
-        if let Some(ref path) = builtin_dir {
-            if path.exists() {
-                match load_bosses_from_dir(path) {
-                    Ok(bosses) => {
-                        eprintln!("[BOSSES] Loaded {} builtin boss definitions", bosses.len());
-                        all_bosses.extend(bosses);
-                    }
-                    Err(e) => eprintln!("[BOSSES] Failed to load builtin bosses: {}", e),
-                }
+        if let Some(ref path) = builtin_dir && path.exists() {
+            match load_bosses_from_dir(path) {
+                Ok(bosses) => all_bosses.extend(bosses),
+                Err(e) => eprintln!("[BOSSES] Failed to load builtin: {}", e),
             }
         }
 
         // Load from custom directory (can override builtins)
-        if let Some(ref path) = custom_dir {
-            if path.exists() {
-                match load_bosses_from_dir(path) {
-                    Ok(bosses) => {
-                        eprintln!("[BOSSES] Loaded {} custom boss definitions", bosses.len());
-                        all_bosses.extend(bosses);
-                    }
-                    Err(e) => eprintln!("[BOSSES] Failed to load custom bosses: {}", e),
-                }
+        if let Some(ref path) = custom_dir && path.exists() {
+            match load_bosses_from_dir(path) {
+                Ok(bosses) => all_bosses.extend(bosses),
+                Err(e) => eprintln!("[BOSSES] Failed to load custom: {}", e),
             }
         }
 
-        eprintln!("[BOSSES] Total: {} boss definitions loaded", all_bosses.len());
         all_bosses
     }
 
     /// Run the service event loop
     pub async fn run(mut self) {
-        // Start watcher on startup if we have a valid directory
-        {
-            let config = self.shared.config.read().await;
-            if !config.log_directory.is_empty() {
-                eprintln!("Service starting: found directory {}, starting watcher", config.log_directory);
-            }
-        }
         self.start_watcher().await;
 
         while let Some(cmd) = self.cmd_rx.recv().await {
@@ -368,8 +329,6 @@ impl CombatService {
     }
 
     async fn on_directory_changed(&mut self) {
-        eprintln!("on_directory_changed: stopping existing watcher and tailing");
-
         // Stop existing watcher
         if let Some(handle) = self.directory_handle.take() {
             self.shared.watching.store(false, Ordering::SeqCst);
@@ -381,7 +340,6 @@ impl CombatService {
         self.stop_tailing().await;
 
         // Start new watcher (reads directory from config)
-        eprintln!("on_directory_changed: starting new watcher");
         self.start_watcher().await;
     }
     async fn file_detected(&mut self, path: PathBuf) {
@@ -439,46 +397,33 @@ impl CombatService {
             PathBuf::from(&config.log_directory)
         };
 
-        eprintln!("start_watcher: checking directory {}", dir.display());
-
         // Guard against invalid input
         if !dir.exists() || !dir.is_dir() {
-            eprintln!("start_watcher: directory {} does not exist or is not a directory", dir.display());
             return;
         }
 
         // Build initial index
         match directory_watcher::build_index(&dir) {
             Ok((index, newest)) => {
-                let file_count = index.len();
-
                 {
                     let mut index_guard = self.shared.directory_index.write().await;
                     *index_guard = index;
                 }
 
-                eprintln!("start_watcher: indexed {} log files", file_count);
-
                 // Auto-load newest file if available
                 if let Some(ref newest_path) = newest {
-                    eprintln!("start_watcher: auto-loading newest file {}", newest_path.display());
                     self.start_tailing(newest_path.clone()).await;
-                } else {
-                    eprintln!("start_watcher: no log files found in directory");
                 }
             }
             Err(e) => {
-                eprintln!("start_watcher: failed to build index: {}", e);
+                eprintln!("[WATCHER] Failed to build index: {}", e);
             }
         }
 
         let mut watcher = match DirectoryWatcher::new(&dir) {
-            Ok(w) => {
-                eprintln!("start_watcher: directory watcher started successfully");
-                w
-            }
+            Ok(w) => w,
             Err(e) => {
-                eprintln!("start_watcher: failed to start directory watcher: {}", e);
+                eprintln!("[WATCHER] Failed to start: {}", e);
                 self.shared.watching.store(false, Ordering::SeqCst);
                 return;
             }
@@ -540,7 +485,6 @@ impl CombatService {
         // First, read and process the entire existing file
         match reader.read_log_file().await {
             Ok((events, end_pos)) => {
-                let event_count = events.len();
                 {
                     let mut session_guard = session.write().await;
                     for event in events {
@@ -548,28 +492,24 @@ impl CombatService {
                     }
                     session_guard.current_byte = Some(end_pos);
                 }
-                eprintln!("Processed {} events from file", event_count);
-
                 // Trigger initial metrics send after file processing
                 let _ = trigger_tx.send(MetricsTrigger::InitialLoad);
             }
             Err(e) => {
-                eprintln!("Error reading log file: {}", e);
+                eprintln!("[SERVICE] Error reading log file: {}", e);
             }
         }
 
         // Enable live mode for effect tracking (skip historical effects)
-        eprintln!("[SERVICE] Enabling effect live mode after initial file read...");
         {
             let session_guard = session.read().await;
             session_guard.set_effect_live_mode(true);
         }
-        eprintln!("[SERVICE] Effect live mode enabled, starting tail task...");
 
         // Spawn the tail task to watch for new lines
         let tail_handle = tokio::spawn(async move {
             if let Err(e) = reader.tail_log_file().await {
-                eprintln!("Tail error: {}", e);
+                eprintln!("[TAIL] Error: {}", e);
             }
         });
 
@@ -577,7 +517,6 @@ impl CombatService {
         let shared = self.shared.clone();
         let overlay_tx = self.overlay_tx.clone();
         let metrics_handle = tokio::spawn(async move {
-            // Wrap sync receiver for async usage
             loop {
                 // Check for triggers (non-blocking with timeout to allow task cancellation)
                 let trigger = tokio::task::spawn_blocking({
@@ -592,13 +531,10 @@ impl CombatService {
                     Err(_) => break, // JoinError
                 };
 
-                eprintln!("Metrics trigger: {:?}", trigger);
-
                 // Calculate and send unified combat data
                 if let Some(data) = calculate_combat_data(&shared).await
                     && !data.metrics.is_empty()
                 {
-                    eprintln!("Sending {} metrics to overlay", data.metrics.len());
                     let _ = overlay_tx.try_send(OverlayUpdate::DataUpdated(data));
                 }
 
@@ -833,14 +769,6 @@ async fn build_raid_frame_data(shared: &Arc<SharedState>) -> Option<RaidFrameDat
         }
     }
 
-    // Log periodically
-    static COUNTER: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
-    let count = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    if count.is_multiple_of(33) {
-        let total_effects: usize = frames.iter().map(|f| f.effects.len()).sum();
-        eprintln!("[RAID-DATA] Tick {}: {} players, {} effects", count, registry.len(), total_effects);
-    }
-
     Some(RaidFrameData { frames })
 }
 
@@ -1021,4 +949,6 @@ pub struct SessionInfo {
     pub area_name: Option<String>,
     pub in_combat: bool,
     pub encounter_count: usize,
+    /// Session start time extracted from log filename (formatted as HH:MM)
+    pub session_start: Option<String>,
 }
