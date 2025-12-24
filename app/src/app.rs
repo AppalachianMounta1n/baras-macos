@@ -3,6 +3,8 @@
 use std::collections::HashMap;
 use dioxus::prelude::*;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::spawn_local;
+use web_sys::console;
 
 use crate::api;
 use crate::components::{EffectEditorPanel, HistoryPanel, SettingsPanel, TimerEditorPanel};
@@ -144,7 +146,8 @@ pub fn App() -> Element {
     // Listen for log file changes (event-driven from watcher)
     use_future(move || async move {
         let closure = Closure::new(move |_event: JsValue| {
-            spawn(async move {
+            // Use spawn_local for JS callbacks (no Dioxus runtime context available)
+            spawn_local(async move {
                 let result = api::get_log_files().await;
                 if let Ok(files) = serde_wasm_bindgen::from_value::<Vec<LogFileInfo>>(result) {
                     log_files.set(files);
@@ -164,7 +167,8 @@ pub fn App() -> Element {
 
         // Listen for updates (no more polling!)
         let closure = Closure::new(move |_event: JsValue| {
-            spawn(async move {
+            // Use spawn_local for JS callbacks (no Dioxus runtime context available)
+            spawn_local(async move {
                 session_info.set(api::get_session_info().await);
                 is_watching.set(api::get_watching_status().await);
                 is_live_tailing.set(api::is_live_tailing().await);
@@ -1041,9 +1045,12 @@ pub fn App() -> Element {
                                                         disabled: is_empty,
                                                         onclick: move |_| {
                                                             let p = path.clone();
+                                                            console::log_1(&format!("[DEBUG] Opening file: {}", p).into());
                                                             file_browser_open.set(false);
                                                             spawn(async move {
-                                                                api::open_historical_file(&p).await;
+                                                                console::log_1(&"[DEBUG] spawn started".into());
+                                                                let result = api::open_historical_file(&p).await;
+                                                                console::log_1(&format!("[DEBUG] API returned: {}", result).into());
                                                                 is_live_tailing.set(false);
                                                             });
                                                         },
