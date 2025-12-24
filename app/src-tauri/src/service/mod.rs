@@ -332,7 +332,11 @@ impl CombatService {
     pub async fn run(mut self) {
         self.start_watcher().await;
 
-        while let Some(cmd) = self.cmd_rx.recv().await {
+        loop {
+            let Some(cmd) = self.cmd_rx.recv().await else {
+                break;
+            };
+
             match cmd {
                 ServiceCommand::StartTailing(path) => {
                     self.start_tailing(path).await;
@@ -617,18 +621,19 @@ impl CombatService {
         // First, read and process the entire existing file
         match reader.read_log_file().await {
             Ok((events, end_pos)) => {
-                {
-                    let mut session_guard = session.write().await;
-                    for event in events {
-                        session_guard.process_event(event);
-                    }
-                    session_guard.current_byte = Some(end_pos);
+                let mut session_guard = session.write().await;
+                for event in events {
+                    session_guard.process_event(event);
                 }
+                session_guard.current_byte = Some(end_pos);
+                // Finalize session to add the last encounter to history
+                session_guard.finalize_session();
+                drop(session_guard);
                 // Trigger initial metrics send after file processing
                 let _ = trigger_tx.send(MetricsTrigger::InitialLoad);
             }
             Err(e) => {
-                eprintln!("[SERVICE] Error reading log file: {}", e);
+                eprintln!("[TAIL] Failed to read log file: {}", e);
             }
         }
 
@@ -792,9 +797,9 @@ impl CombatService {
         self.shared.in_combat.store(false, Ordering::SeqCst);
 
         // Cancel area loader task
+        // Note: Don't await - the task uses sync recv() which can't be interrupted
         if let Some(handle) = self.area_loader_handle.take() {
             handle.abort();
-            let _ = handle.await;
         }
 
         // Cancel effects task

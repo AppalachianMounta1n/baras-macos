@@ -335,7 +335,9 @@ impl Encounter {
             }
 
             // Effect shield absorption (Static Barrier, etc.)
-            if event.details.dmg_absorbed > 0 && !is_natural_shield {
+            // Note: dmg_absorbed is independent of is_natural_shield.
+            // A hit can have BOTH shield chance proc (-shield) AND absorption effect (absorbed).
+            if event.details.dmg_absorbed > 0 {
                 self.attribute_shield_absorption(event);
             }
         }

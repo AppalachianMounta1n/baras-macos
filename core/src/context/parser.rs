@@ -174,6 +174,16 @@ impl ParsingSession {
         }
     }
 
+    /// Finalize the current session after parsing completes.
+    ///
+    /// Call this after processing all events from a historical file to ensure
+    /// the final encounter is added to the encounter history.
+    pub fn finalize_session(&mut self) {
+        if let Some(cache) = &mut self.session_cache {
+            cache.finalize_current_encounter();
+        }
+    }
+
     /// Sync timer context from session cache (call after initial file parse).
     ///
     /// This ensures the TimerManager knows the current area even if parsing

@@ -121,8 +121,10 @@ pub fn HistoryPanel() -> Element {
     // Listen for session updates (refresh on combat end, file change, etc.)
     use_future(move || async move {
         let closure = Closure::new(move |event: JsValue| {
-            // Check if this is a combat-end or file-change event
-            if let Some(event_type) = event.as_string() {
+            // Extract payload from event object (Tauri events have { payload: "..." } structure)
+            if let Ok(payload) = js_sys::Reflect::get(&event, &JsValue::from_str("payload"))
+                && let Some(event_type) = payload.as_string()
+            {
                 if event_type.contains("CombatEnded") || event_type.contains("TailingModeChanged") {
                     spawn(async move {
                         let result = api::get_encounter_history().await;
