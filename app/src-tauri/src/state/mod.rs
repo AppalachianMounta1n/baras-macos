@@ -8,7 +8,7 @@ mod raid_registry;
 
 pub use raid_registry::{RaidSlotRegistry, RegisteredPlayer};
 
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicI64};
 use std::sync::{Arc, Mutex};
 use tokio::sync::RwLock;
 
@@ -37,6 +37,11 @@ pub struct SharedState {
     pub is_live_tailing: AtomicBool,
     /// Raid frame slot assignments (persists player positions)
     pub raid_registry: Mutex<RaidSlotRegistry>,
+    /// Current area ID for lazy loading timers (0 = unknown)
+    pub current_area_id: AtomicI64,
+    /// Area ID that needs timer definitions loaded (0 = none pending)
+    /// Set by signal handler, cleared by loader task
+    pub pending_area_load: AtomicI64,
 }
 
 impl SharedState {
@@ -49,6 +54,8 @@ impl SharedState {
             watching: AtomicBool::new(false),
             is_live_tailing: AtomicBool::new(true), // Start in live tailing mode
             raid_registry: Mutex::new(RaidSlotRegistry::new(8)), // Default 8 slots (2x4 grid)
+            current_area_id: AtomicI64::new(0),
+            pending_area_load: AtomicI64::new(0),
         }
     }
 

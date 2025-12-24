@@ -505,3 +505,206 @@ pub struct BossListItem {
     pub category: String,
     pub file_path: String,
 }
+
+/// Area summary for the lazy-loading area index
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AreaListItem {
+    pub name: String,
+    pub area_id: i64,
+    pub file_path: String,
+    pub category: String,
+    pub boss_count: usize,
+    pub timer_count: usize,
+}
+
+/// Get the area index for lazy loading the timer editor
+/// Returns list of areas with summary info (boss count, timer count)
+#[tauri::command]
+pub async fn get_area_index(app_handle: AppHandle) -> Result<Vec<AreaListItem>, String> {
+    eprintln!("[TIMERS] get_area_index called");
+
+    let user_dir = ensure_user_encounters_dir(&app_handle)?;
+    eprintln!("[TIMERS] User encounters dir: {:?}", user_dir);
+
+    let mut areas = Vec::new();
+    collect_areas_recursive(&user_dir, &user_dir, &mut areas)?;
+
+    eprintln!("[TIMERS] Found {} areas", areas.len());
+
+    // Sort by category then name
+    areas.sort_by(|a, b| a.category.cmp(&b.category).then(a.name.cmp(&b.name)));
+
+    Ok(areas)
+}
+
+/// Recursively collect area files with summary stats
+fn collect_areas_recursive(
+    base_dir: &PathBuf,
+    current_dir: &PathBuf,
+    areas: &mut Vec<AreaListItem>,
+) -> Result<(), String> {
+    use baras_core::encounters::{load_area_config, load_bosses_from_file};
+
+    let entries = std::fs::read_dir(current_dir)
+        .map_err(|e| format!("Failed to read directory: {}", e))?;
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+
+        if path.is_dir() {
+            collect_areas_recursive(base_dir, &path, areas)?;
+        } else if path.extension().is_some_and(|ext| ext == "toml") {
+            // Try to load area config for metadata
+            match load_area_config(&path) {
+                Ok(Some(area_config)) => {
+                    // Load bosses to get counts
+                    let (boss_count, timer_count) = match load_bosses_from_file(&path) {
+                        Ok(bosses) => {
+                            let timers: usize = bosses.iter().map(|b| b.timers.len()).sum();
+                            (bosses.len(), timers)
+                        }
+                        Err(e) => {
+                            eprintln!("[TIMERS] Failed to load bosses from {:?}: {}", path, e);
+                            (0, 0)
+                        }
+                    };
+
+                    // Use category from TOML if provided, otherwise try to determine from path
+                    let category = if !area_config.category.is_empty() {
+                        area_config.category
+                    } else {
+                        determine_category(base_dir, &path)
+                    };
+
+                    areas.push(AreaListItem {
+                        name: area_config.name,
+                        area_id: area_config.area_id,
+                        file_path: path.to_string_lossy().to_string(),
+                        category,
+                        boss_count,
+                        timer_count,
+                    });
+                }
+                Ok(None) => {
+                    eprintln!("[TIMERS] No [area] section in {:?}", path);
+                }
+                Err(e) => {
+                    eprintln!("[TIMERS] Failed to parse {:?}: {}", path, e);
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Determine category from file path or area name
+fn determine_category(base_dir: &PathBuf, file_path: &PathBuf) -> String {
+    let path_str = file_path.to_string_lossy().to_lowercase();
+
+    if path_str.contains("/operations/") || path_str.contains("\\operations\\") {
+        return "operations".to_string();
+    }
+    if path_str.contains("/flashpoints/") || path_str.contains("\\flashpoints\\") {
+        return "flashpoints".to_string();
+    }
+    if path_str.contains("/lair_bosses/") || path_str.contains("\\lair_bosses\\") {
+        return "lair_bosses".to_string();
+    }
+
+    // Fallback: determine from filename (known operations/flashpoints)
+    let filename = file_path.file_stem()
+        .map(|s| s.to_string_lossy().to_lowercase())
+        .unwrap_or_default();
+
+    // Known operations
+    const OPERATIONS: &[&str] = &[
+        "dxun", "r4", "eternity_vault", "karagga_s_palace", "explosive_conflict",
+        "terror_from_beyond", "scum_and_villainy", "dread_fortress", "dread_palace",
+        "ravagers", "temple_of_sacrifice", "gods_from_the_machine", "toborro_s_palace",
+    ];
+
+    // Known flashpoints
+    const FLASHPOINTS: &[&str] = &[
+        "athiss", "hammer_station", "mandalorian_raiders", "cademimu", "boarding_party",
+        "the_foundry", "maelstrom_prison", "kaon_under_siege", "lost_island",
+        "czerka_corporate_labs", "czerka_core_meltdown", "korriban_incursion",
+        "assault_on_tython", "depths_of_manaan", "legacy_of_the_rakata", "blood_hunt",
+        "battle_of_rishi", "crisis_on_umbara", "a_traitor_among_the_chiss",
+        "the_nathema_conspiracy", "objective_meridian", "spirit_of_vengeance",
+        "secrets_of_the_enclave", "ruins_of_nul", "the_red_reaper", "directive_7",
+        "false_emperor", "the_esseles", "the_black_talon", "propagator_core",
+    ];
+
+    if OPERATIONS.iter().any(|op| filename.contains(op)) {
+        return "operations".to_string();
+    }
+    if FLASHPOINTS.iter().any(|fp| filename.contains(fp)) {
+        return "flashpoints".to_string();
+    }
+
+    "other".to_string()
+}
+
+/// Get timers for a specific area file (lazy loading)
+#[tauri::command]
+pub async fn get_timers_for_area(
+    app_handle: AppHandle,
+    file_path: String,
+) -> Result<Vec<TimerListItem>, String> {
+    let path = PathBuf::from(&file_path);
+
+    if !path.exists() {
+        return Err(format!("File not found: {}", file_path));
+    }
+
+    // Load bosses from this specific file
+    let bosses = load_bosses_with_paths(&path.parent().unwrap_or(&path))
+        .map_err(|e| format!("Failed to load bosses: {}", e))?;
+
+    // Filter to only bosses from this file and flatten timers
+    let mut items = Vec::new();
+    for boss_with_path in &bosses {
+        if boss_with_path.file_path == path {
+            for timer in &boss_with_path.boss.timers {
+                items.push(TimerListItem::from_boss_timer(boss_with_path, timer));
+            }
+        }
+    }
+
+    // Sort by boss name, then timer name
+    items.sort_by(|a, b| a.boss_name.cmp(&b.boss_name).then(a.name.cmp(&b.name)));
+
+    Ok(items)
+}
+
+/// Get bosses for a specific area file (for "New Timer" dropdown within an area)
+#[tauri::command]
+pub async fn get_bosses_for_area(
+    app_handle: AppHandle,
+    file_path: String,
+) -> Result<Vec<BossListItem>, String> {
+    let path = PathBuf::from(&file_path);
+
+    if !path.exists() {
+        return Err(format!("File not found: {}", file_path));
+    }
+
+    let bosses = load_bosses_with_paths(&path.parent().unwrap_or(&path))
+        .map_err(|e| format!("Failed to load bosses: {}", e))?;
+
+    let items: Vec<_> = bosses
+        .iter()
+        .filter(|b| b.file_path == path)
+        .map(|b| BossListItem {
+            id: b.boss.id.clone(),
+            name: b.boss.name.clone(),
+            area_name: b.boss.area_name.clone(),
+            category: b.category.clone(),
+            file_path: b.file_path.to_string_lossy().to_string(),
+        })
+        .collect();
+
+    Ok(items)
+}

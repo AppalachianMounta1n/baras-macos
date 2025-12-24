@@ -1,11 +1,16 @@
 //! Boss definition loading and saving
 //!
 //! Load and save boss encounter definitions from/to TOML files.
+//!
+//! Supports two formats:
+//! - Legacy: Individual boss files with area_name on each boss
+//! - Consolidated: Area files with `[area]` header and multiple `[[boss]]` entries
 
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use super::{BossConfig, BossDefinition};
+use super::{AreaConfig, BossConfig, BossDefinition};
 
 /// Boss definition with its source file path for saving back
 #[derive(Debug, Clone)]
@@ -15,7 +20,20 @@ pub struct BossWithPath {
     pub category: String, // "operations", "flashpoints", "lair_bosses"
 }
 
+/// Lightweight area index entry for lazy loading
+/// Only contains metadata needed to find the right file
+#[derive(Debug, Clone)]
+pub struct AreaIndexEntry {
+    pub name: String,
+    pub area_id: i64,
+    pub file_path: PathBuf,
+}
+
+/// Index mapping area_id -> file path for lazy loading
+pub type AreaIndex = HashMap<i64, AreaIndexEntry>;
+
 /// Load boss definitions from a single TOML file
+/// Handles both legacy format (area_name on each boss) and new consolidated format
 pub fn load_bosses_from_file(path: &Path) -> Result<Vec<BossDefinition>, String> {
     let content = fs::read_to_string(path)
         .map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
@@ -23,7 +41,66 @@ pub fn load_bosses_from_file(path: &Path) -> Result<Vec<BossDefinition>, String>
     let config: BossConfig = toml::from_str(&content)
         .map_err(|e| format!("Failed to parse {}: {}", path.display(), e))?;
 
-    Ok(config.bosses)
+    // If file has [area] header, populate area_name on bosses that don't have it
+    let mut bosses = config.bosses;
+    if let Some(ref area) = config.area {
+        for boss in &mut bosses {
+            if boss.area_name.is_empty() {
+                boss.area_name = area.name.clone();
+            }
+        }
+    }
+
+    Ok(bosses)
+}
+
+/// Load just the area config from a file (lightweight, for indexing)
+pub fn load_area_config(path: &Path) -> Result<Option<AreaConfig>, String> {
+    let content = fs::read_to_string(path)
+        .map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
+
+    let config: BossConfig = toml::from_str(&content)
+        .map_err(|e| format!("Failed to parse {}: {}", path.display(), e))?;
+
+    Ok(config.area)
+}
+
+/// Build an area index from a directory of encounter files
+/// This is lightweight - only reads [area] headers, not full boss definitions
+pub fn build_area_index(dir: &Path) -> Result<AreaIndex, String> {
+    let mut index = HashMap::new();
+
+    if !dir.exists() {
+        return Ok(index);
+    }
+
+    build_area_index_recursive(dir, &mut index)?;
+    Ok(index)
+}
+
+fn build_area_index_recursive(dir: &Path, index: &mut AreaIndex) -> Result<(), String> {
+    let entries = fs::read_dir(dir)
+        .map_err(|e| format!("Failed to read directory {}: {}", dir.display(), e))?;
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+
+        if path.is_dir() {
+            build_area_index_recursive(&path, index)?;
+        } else if path.extension().is_some_and(|ext| ext == "toml") {
+            if let Ok(Some(area)) = load_area_config(&path) {
+                if area.area_id != 0 {
+                    index.insert(area.area_id, AreaIndexEntry {
+                        name: area.name,
+                        area_id: area.area_id,
+                        file_path: path,
+                    });
+                }
+            }
+        }
+    }
+
+    Ok(())
 }
 
 /// Load all boss definitions from a directory (recursive)
@@ -161,6 +238,7 @@ pub fn save_boss_to_file(boss: &BossDefinition, path: &Path) -> Result<(), Strin
 /// Save multiple boss definitions to a single TOML file
 pub fn save_bosses_to_file(bosses: &[BossDefinition], path: &Path) -> Result<(), String> {
     let config = BossConfig {
+        area: None,
         bosses: bosses.to_vec(),
     };
 

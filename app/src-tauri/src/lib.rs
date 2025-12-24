@@ -167,6 +167,9 @@ pub fn run() {
             commands::delete_encounter_timer,
             commands::duplicate_encounter_timer,
             commands::get_encounter_bosses,
+            commands::get_area_index,
+            commands::get_timers_for_area,
+            commands::get_bosses_for_area,
             // Effect editor commands
             commands::get_effect_definitions,
             commands::update_effect_definition,

@@ -1,6 +1,7 @@
 //! Timer Editor Panel
 //!
 //! UI for viewing and editing encounter timers with:
+//! - Area index sidebar for lazy loading (grouped by category)
 //! - Grouped by boss with collapsible headers (collapsed by default)
 //! - Inline expansion for editing
 //! - Full CRUD operations with composable trigger editing
@@ -9,7 +10,7 @@ use std::collections::HashSet;
 use dioxus::prelude::*;
 
 use crate::api;
-use crate::types::{BossListItem, TimerListItem, TimerTrigger};
+use crate::types::{AreaListItem, BossListItem, TimerListItem, TimerTrigger};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Panel
@@ -17,28 +18,59 @@ use crate::types::{BossListItem, TimerListItem, TimerTrigger};
 
 #[component]
 pub fn TimerEditorPanel() -> Element {
-    // State
+    // Area index state
+    let mut areas = use_signal(Vec::<AreaListItem>::new);
+    let mut selected_area = use_signal(|| None::<AreaListItem>);
+    let mut loading_areas = use_signal(|| true);
+
+    // Timer state (loaded on area selection)
     let mut timers = use_signal(Vec::<TimerListItem>::new);
     let mut bosses = use_signal(Vec::<BossListItem>::new);
+    let mut loading_timers = use_signal(|| false);
+
+    // UI state
     let mut search_query = use_signal(String::new);
     let mut expanded_timer = use_signal(|| None::<String>);
-    // Start with all collapsed - we use an "expanded" set instead
     let mut expanded_bosses = use_signal(HashSet::<String>::new);
-    let mut loading = use_signal(|| true);
     let mut show_new_timer = use_signal(|| false);
     let mut save_status = use_signal(String::new);
     let mut status_is_error = use_signal(|| false);
 
-    // Load timers and bosses on mount
+    // Load area index on mount
     use_future(move || async move {
-        if let Some(t) = api::get_encounter_timers().await {
-            timers.set(t);
+        web_sys::console::log_1(&"[TIMER_EDITOR] Loading area index...".into());
+        match api::get_area_index().await {
+            Some(a) => {
+                web_sys::console::log_1(&format!("[TIMER_EDITOR] Got {} areas", a.len()).into());
+                areas.set(a);
+            }
+            None => {
+                web_sys::console::log_1(&"[TIMER_EDITOR] get_area_index returned None".into());
+            }
         }
-        if let Some(b) = api::get_encounter_bosses().await {
-            bosses.set(b);
-        }
-        loading.set(false);
+        loading_areas.set(false);
     });
+
+    // Load timers when area is selected
+    let mut load_area_timers = move |area: AreaListItem| {
+        let file_path = area.file_path.clone();
+        selected_area.set(Some(area));
+        loading_timers.set(true);
+        timers.set(Vec::new());
+        bosses.set(Vec::new());
+        expanded_bosses.set(HashSet::new());
+        search_query.set(String::new());
+
+        spawn(async move {
+            if let Some(t) = api::get_timers_for_area(&file_path).await {
+                timers.set(t);
+            }
+            if let Some(b) = api::get_bosses_for_area(&file_path).await {
+                bosses.set(b);
+            }
+            loading_timers.set(false);
+        });
+    };
 
     // Filter timers based on search query
     let filtered_timers = use_memo(move || {
@@ -53,7 +85,6 @@ pub fn TimerEditorPanel() -> Element {
             .filter(|t| {
                 t.name.to_lowercase().contains(&query)
                     || t.boss_name.to_lowercase().contains(&query)
-                    || t.area_name.to_lowercase().contains(&query)
             })
             .collect::<Vec<_>>()
     });
@@ -75,9 +106,34 @@ pub fn TimerEditorPanel() -> Element {
         groups
     });
 
+    // Group areas by category
+    let grouped_areas = use_memo(move || {
+        let mut groups: Vec<(String, Vec<AreaListItem>)> = Vec::new();
+
+        for area in areas() {
+            if let Some(group) = groups.iter_mut().find(|(cat, _)| cat == &area.category) {
+                group.1.push(area);
+            } else {
+                groups.push((area.category.clone(), vec![area]));
+            }
+        }
+
+        // Sort categories: operations first, then flashpoints, then others
+        groups.sort_by(|a, b| {
+            let order = |s: &str| match s {
+                "operations" => 0,
+                "flashpoints" => 1,
+                "lair_bosses" => 2,
+                _ => 3,
+            };
+            order(&a.0).cmp(&order(&b.0))
+        });
+
+        groups
+    });
+
     // Handlers
-    let mut on_save = move |updated_timer: TimerListItem| {
-        // Optimistically update UI immediately
+    let on_save = move |updated_timer: TimerListItem| {
         let mut current = timers();
         if let Some(idx) = current.iter().position(|t| {
             t.timer_id == updated_timer.timer_id && t.boss_id == updated_timer.boss_id
@@ -86,7 +142,6 @@ pub fn TimerEditorPanel() -> Element {
             timers.set(current);
         }
 
-        // Then persist to backend
         spawn(async move {
             if api::update_encounter_timer(&updated_timer).await {
                 save_status.set("Saved".to_string());
@@ -99,7 +154,6 @@ pub fn TimerEditorPanel() -> Element {
     };
 
     let mut on_delete = move |timer: TimerListItem| {
-        // Optimistically remove from UI immediately to prevent double-clicks
         let timer_id = timer.timer_id.clone();
         let boss_id = timer.boss_id.clone();
 
@@ -111,7 +165,6 @@ pub fn TimerEditorPanel() -> Element {
         timers.set(filtered);
         expanded_timer.set(None);
 
-        // Then attempt backend delete
         spawn(async move {
             if api::delete_encounter_timer(&timer.timer_id, &timer.boss_id, &timer.file_path).await {
                 save_status.set("Deleted".to_string());
@@ -123,7 +176,7 @@ pub fn TimerEditorPanel() -> Element {
         });
     };
 
-    let mut on_duplicate = move |timer: TimerListItem| {
+    let on_duplicate = move |timer: TimerListItem| {
         spawn(async move {
             if let Some(new_timer) =
                 api::duplicate_encounter_timer(&timer.timer_id, &timer.boss_id, &timer.file_path).await
@@ -140,7 +193,7 @@ pub fn TimerEditorPanel() -> Element {
         });
     };
 
-    let mut on_create = move |new_timer: TimerListItem| {
+    let on_create = move |new_timer: TimerListItem| {
         spawn(async move {
             if let Some(created) = api::create_encounter_timer(&new_timer).await {
                 let mut current = timers();
@@ -168,101 +221,149 @@ pub fn TimerEditorPanel() -> Element {
                             "{save_status()}"
                         }
                     }
-                    span { class: "timer-count", "{filtered_timers().len()} timers" }
-                    button {
-                        class: "btn-new-timer",
-                        onclick: move |_| show_new_timer.set(true),
-                        "+ New Timer"
+                    if selected_area().is_some() {
+                        span { class: "timer-count", "{filtered_timers().len()} timers" }
+                        button {
+                            class: "btn-new-timer",
+                            onclick: move |_| show_new_timer.set(true),
+                            "+ New Timer"
+                        }
                     }
                 }
             }
 
-            // Search bar
-            div { class: "timer-search-bar",
-                input {
-                    r#type: "text",
-                    placeholder: "Search by boss or timer name...",
-                    value: "{search_query}",
-                    class: "timer-search-input",
-                    oninput: move |e| search_query.set(e.value())
-                }
-            }
-
-            // New timer form
-            if show_new_timer() {
-                NewTimerForm {
-                    bosses: bosses(),
-                    on_create: on_create,
-                    on_cancel: move |_| show_new_timer.set(false),
-                }
-            }
-
-            // Timer list grouped by boss
-            if loading() {
-                div { class: "timer-loading", "Loading timers..." }
-            } else if grouped_timers().is_empty() {
-                div { class: "timer-empty",
-                    if timers().is_empty() {
-                        "No encounter timers found"
+            div { class: "timer-editor-content",
+                // Area sidebar
+                div { class: "area-sidebar",
+                    if loading_areas() {
+                        div { class: "area-loading", "Loading areas..." }
                     } else {
-                        "No timers match your search"
+                        for (category, category_areas) in grouped_areas() {
+                            div { class: "area-category",
+                                div { class: "area-category-header",
+                                    "{format_category(&category)}"
+                                }
+                                for area in category_areas {
+                                    {
+                                        let is_selected = selected_area()
+                                            .as_ref()
+                                            .map(|s| s.file_path == area.file_path)
+                                            .unwrap_or(false);
+                                        let area_clone = area.clone();
+
+                                        rsx! {
+                                            div {
+                                                class: if is_selected { "area-item selected" } else { "area-item" },
+                                                onclick: move |_| load_area_timers(area_clone.clone()),
+                                                span { class: "area-name", "{area.name}" }
+                                                span { class: "area-counts",
+                                                    "{area.boss_count}b / {area.timer_count}t"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
-            } else {
-                div { class: "timer-list",
-                    for (boss_key, boss_name, boss_timers) in grouped_timers() {
-                        {
-                            // Collapsed by default - only show if in expanded set
-                            let is_expanded = expanded_bosses().contains(&boss_key);
-                            let boss_key_toggle = boss_key.clone();
-                            let timer_count = boss_timers.len();
 
-                            rsx! {
-                                // Boss header (click to expand)
-                                div {
-                                    class: "boss-header",
-                                    onclick: move |_| {
-                                        let mut set = expanded_bosses();
-                                        if set.contains(&boss_key_toggle) {
-                                            set.remove(&boss_key_toggle);
-                                        } else {
-                                            set.insert(boss_key_toggle.clone());
-                                        }
-                                        expanded_bosses.set(set);
-                                    },
-                                    span { class: "boss-expand-icon",
-                                        if is_expanded { "▼" } else { "▶" }
-                                    }
-                                    span { class: "boss-name", "{boss_name}" }
-                                    span { class: "boss-timer-count", "({timer_count})" }
+                // Timer content area
+                div { class: "timer-content",
+                    if selected_area().is_none() {
+                        div { class: "timer-empty-state",
+                            div { class: "empty-icon", "📋" }
+                            div { class: "empty-text", "Select an area to view timers" }
+                        }
+                    } else if loading_timers() {
+                        div { class: "timer-loading", "Loading timers..." }
+                    } else {
+                        // Search bar
+                        div { class: "timer-search-bar",
+                            input {
+                                r#type: "text",
+                                placeholder: "Search timers...",
+                                value: "{search_query}",
+                                class: "timer-search-input",
+                                oninput: move |e| search_query.set(e.value())
+                            }
+                        }
+
+                        // New timer form
+                        if show_new_timer() {
+                            NewTimerForm {
+                                bosses: bosses(),
+                                on_create: on_create,
+                                on_cancel: move |_| show_new_timer.set(false),
+                            }
+                        }
+
+                        // Timer list grouped by boss
+                        if grouped_timers().is_empty() {
+                            div { class: "timer-empty",
+                                if timers().is_empty() {
+                                    "No timers in this area"
+                                } else {
+                                    "No timers match your search"
                                 }
+                            }
+                        } else {
+                            div { class: "timer-list",
+                                for (boss_key, boss_name, boss_timers) in grouped_timers() {
+                                    {
+                                        let is_expanded = expanded_bosses().contains(&boss_key);
+                                        let boss_key_toggle = boss_key.clone();
+                                        let timer_count = boss_timers.len();
 
-                                // Timers (only if expanded)
-                                if is_expanded {
-                                    div { class: "boss-timers",
-                                        for timer in boss_timers {
-                                            {
-                                                let timer_key = format!("{}_{}", timer.boss_id, timer.timer_id);
-                                                let is_timer_expanded = expanded_timer() == Some(timer_key.clone());
-                                                let timer_clone = timer.clone();
-                                                let timer_for_delete = timer.clone();
-                                                let timer_for_duplicate = timer.clone();
+                                        rsx! {
+                                            // Boss header
+                                            div {
+                                                class: "boss-header",
+                                                onclick: move |_| {
+                                                    let mut set = expanded_bosses();
+                                                    if set.contains(&boss_key_toggle) {
+                                                        set.remove(&boss_key_toggle);
+                                                    } else {
+                                                        set.insert(boss_key_toggle.clone());
+                                                    }
+                                                    expanded_bosses.set(set);
+                                                },
+                                                span { class: "boss-expand-icon",
+                                                    if is_expanded { "▼" } else { "▶" }
+                                                }
+                                                span { class: "boss-name", "{boss_name}" }
+                                                span { class: "boss-timer-count", "({timer_count})" }
+                                            }
 
-                                                rsx! {
-                                                    TimerRow {
-                                                        key: "{timer_key}",
-                                                        timer: timer_clone,
-                                                        expanded: is_timer_expanded,
-                                                        on_toggle: move |_| {
-                                                            if is_timer_expanded {
-                                                                expanded_timer.set(None);
-                                                            } else {
-                                                                expanded_timer.set(Some(timer_key.clone()));
+                                            // Timers (only if expanded)
+                                            if is_expanded {
+                                                div { class: "boss-timers",
+                                                    for timer in boss_timers {
+                                                        {
+                                                            let timer_key = format!("{}_{}", timer.boss_id, timer.timer_id);
+                                                            let is_timer_expanded = expanded_timer() == Some(timer_key.clone());
+                                                            let timer_clone = timer.clone();
+                                                            let timer_for_delete = timer.clone();
+                                                            let timer_for_duplicate = timer.clone();
+
+                                                            rsx! {
+                                                                TimerRow {
+                                                                    key: "{timer_key}",
+                                                                    timer: timer_clone,
+                                                                    expanded: is_timer_expanded,
+                                                                    on_toggle: move |_| {
+                                                                        if is_timer_expanded {
+                                                                            expanded_timer.set(None);
+                                                                        } else {
+                                                                            expanded_timer.set(Some(timer_key.clone()));
+                                                                        }
+                                                                    },
+                                                                    on_save: on_save,
+                                                                    on_delete: move |_| on_delete(timer_for_delete.clone()),
+                                                                    on_duplicate: move |_| on_duplicate(timer_for_duplicate.clone()),
+                                                                }
                                                             }
-                                                        },
-                                                        on_save: on_save,
-                                                        on_delete: move |_| on_delete(timer_for_delete.clone()),
-                                                        on_duplicate: move |_| on_duplicate(timer_for_duplicate.clone()),
+                                                        }
                                                     }
                                                 }
                                             }
@@ -275,6 +376,16 @@ pub fn TimerEditorPanel() -> Element {
                 }
             }
         }
+    }
+}
+
+/// Format category name for display
+fn format_category(cat: &str) -> &str {
+    match cat {
+        "operations" => "Operations",
+        "flashpoints" => "Flashpoints",
+        "lair_bosses" => "Lair Bosses",
+        _ => cat,
     }
 }
 
@@ -365,7 +476,7 @@ fn TimerEditForm(
 
     rsx! {
         div { class: "timer-edit-form",
-            // Timer ID (read-only, for reference when chaining timers)
+            // Timer ID (read-only)
             div { class: "form-row timer-id-row",
                 label { "Timer ID" }
                 code { class: "timer-id-display", "{timer.timer_id}" }
@@ -435,7 +546,7 @@ fn TimerEditForm(
                 }
             }
 
-            // Trigger editor (composable)
+            // Trigger editor
             div { class: "form-row trigger-section",
                 label { "Trigger" }
                 ComposableTriggerEditor {
@@ -541,7 +652,7 @@ fn ComposableTriggerEditor(
     }
 }
 
-/// Recursive trigger node - handles both simple and composite triggers
+/// Recursive trigger node
 #[component]
 fn TriggerNode(
     trigger: TimerTrigger,
@@ -550,7 +661,6 @@ fn TriggerNode(
 ) -> Element {
     let is_composite = matches!(trigger, TimerTrigger::AllOf { .. } | TimerTrigger::AnyOf { .. });
 
-    // Pre-clone for closures
     let trigger_for_and = trigger.clone();
     let trigger_for_or = trigger.clone();
 
@@ -569,7 +679,6 @@ fn TriggerNode(
                 }
             }
 
-            // Button to wrap in composite
             if depth == 0 && !is_composite {
                 div { class: "trigger-compose-actions",
                     button {
@@ -598,7 +707,7 @@ fn TriggerNode(
     }
 }
 
-/// Editor for composite triggers (AllOf / AnyOf)
+/// Editor for composite triggers
 #[component]
 fn CompositeEditor(
     trigger: TimerTrigger,
@@ -613,7 +722,6 @@ fn CompositeEditor(
 
     let label = if is_all_of { "ALL OF (AND)" } else { "ANY OF (OR)" };
 
-    // Pre-clone for closures
     let conditions_for_toggle = conditions.clone();
     let conditions_for_unwrap = conditions.clone();
     let conditions_for_add = conditions.clone();
@@ -711,7 +819,7 @@ fn CompositeEditor(
     }
 }
 
-/// Editor for simple (non-composite) triggers
+/// Editor for simple triggers
 #[component]
 fn SimpleTriggerEditor(
     trigger: TimerTrigger,
@@ -746,7 +854,6 @@ fn SimpleTriggerEditor(
                 option { value: "boss_hp_below", "Boss HP Below" }
             }
 
-            // Type-specific fields
             {
                 match trigger.clone() {
                     TimerTrigger::CombatStart => rsx! {
@@ -836,7 +943,6 @@ fn IdListEditor(
         _ => "",
     };
 
-    // Clone for each handler that needs it
     let ids_for_keydown = ids.clone();
     let ids_for_click = ids.clone();
 
@@ -939,13 +1045,17 @@ fn NewTimerForm(
                 }
             }
 
-            // Searchable boss selector
+            // Boss selector (simple dropdown since we're already in an area)
             div { class: "form-row",
                 label { "Boss" }
-                BossSearchSelect {
-                    bosses: bosses.clone(),
-                    selected_id: selected_boss_id(),
-                    on_select: move |id| selected_boss_id.set(id)
+                select {
+                    class: "boss-select",
+                    value: "{selected_boss_id}",
+                    onchange: move |e| selected_boss_id.set(e.value()),
+                    option { value: "", "Select a boss..." }
+                    for boss in &bosses {
+                        option { value: "{boss.id}", "{boss.name}" }
+                    }
                 }
             }
 
@@ -1080,174 +1190,5 @@ fn parse_hex_color(hex: &str) -> Option<[u8; 4]> {
         Some([r, g, b, 255])
     } else {
         None
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Boss Search Select Component
-// ─────────────────────────────────────────────────────────────────────────────
-
-#[component]
-fn BossSearchSelect(
-    bosses: Vec<BossListItem>,
-    selected_id: String,
-    on_select: EventHandler<String>,
-) -> Element {
-    let mut search_query = use_signal(String::new);
-    let mut is_open = use_signal(|| false);
-    let mut highlighted_index = use_signal(|| 0usize);
-
-    // Find selected boss for display (clone to avoid lifetime issues)
-    let selected_boss = bosses.iter().find(|b| b.id == selected_id).cloned();
-
-    // Filter and sort bosses based on search query (owned data)
-    let query = search_query().to_lowercase();
-    let mut filtered_bosses: Vec<BossListItem> = bosses
-        .iter()
-        .filter(|b| {
-            if query.is_empty() {
-                true
-            } else {
-                // Fuzzy match: check name, area, and category
-                b.name.to_lowercase().contains(&query)
-                    || b.area_name.to_lowercase().contains(&query)
-                    || b.category.to_lowercase().contains(&query)
-            }
-        })
-        .cloned()
-        .collect();
-
-    // Sort by relevance: exact name match first, then name contains, then area contains
-    filtered_bosses.sort_by(|a, b| {
-        let a_name = a.name.to_lowercase();
-        let b_name = b.name.to_lowercase();
-
-        // Exact match gets priority
-        let a_exact = a_name == query;
-        let b_exact = b_name == query;
-        if a_exact != b_exact {
-            return b_exact.cmp(&a_exact);
-        }
-
-        // Name starts with query gets next priority
-        let a_starts = a_name.starts_with(&query);
-        let b_starts = b_name.starts_with(&query);
-        if a_starts != b_starts {
-            return b_starts.cmp(&a_starts);
-        }
-
-        // Then sort alphabetically by area, then name
-        match a.area_name.cmp(&b.area_name) {
-            std::cmp::Ordering::Equal => a.name.cmp(&b.name),
-            other => other,
-        }
-    });
-
-    let results_len = filtered_bosses.len();
-    let has_results = !filtered_bosses.is_empty();
-    let query_empty = search_query().is_empty();
-
-    // Pre-compute display items with headers
-    let display_items: Vec<(bool, String, String, String)> = {
-        let mut prev_area = String::new();
-        filtered_bosses.iter().map(|boss| {
-            let show_header = boss.area_name != prev_area;
-            prev_area = boss.area_name.clone();
-            (show_header, boss.id.clone(), boss.name.clone(), boss.area_name.clone())
-        }).collect()
-    };
-
-    // For keyboard selection
-    let boss_ids: Vec<String> = filtered_bosses.iter().map(|b| b.id.clone()).collect();
-
-    rsx! {
-        div { class: "boss-search-select",
-            // Input field
-            div { class: "search-input-wrapper",
-                input {
-                    r#type: "text",
-                    class: "boss-search-input",
-                    placeholder: match &selected_boss {
-                        Some(b) => format!("{} - {}", b.name, b.area_name),
-                        None => "Search for a boss...".to_string(),
-                    },
-                    value: "{search_query}",
-                    onfocus: move |_| is_open.set(true),
-                    oninput: move |e| {
-                        search_query.set(e.value());
-                        is_open.set(true);
-                        highlighted_index.set(0);
-                    },
-                    onkeydown: move |e| {
-                        match e.key() {
-                            Key::ArrowDown => {
-                                e.prevent_default();
-                                let idx = highlighted_index();
-                                if idx < results_len.saturating_sub(1) {
-                                    highlighted_index.set(idx + 1);
-                                }
-                            }
-                            Key::ArrowUp => {
-                                e.prevent_default();
-                                let idx = highlighted_index();
-                                if idx > 0 {
-                                    highlighted_index.set(idx - 1);
-                                }
-                            }
-                            Key::Enter => {
-                                e.prevent_default();
-                                if let Some(id) = boss_ids.get(highlighted_index()) {
-                                    on_select.call(id.clone());
-                                    search_query.set(String::new());
-                                    is_open.set(false);
-                                }
-                            }
-                            Key::Escape => {
-                                search_query.set(String::new());
-                                is_open.set(false);
-                            }
-                            _ => {}
-                        }
-                    },
-                }
-                if let Some(ref boss) = selected_boss {
-                    if query_empty {
-                        span { class: "selected-boss-display",
-                            "{boss.name}"
-                            span { class: "area-hint", " ({boss.area_name})" }
-                        }
-                    }
-                }
-            }
-
-            // Dropdown results
-            if is_open() && has_results {
-                div { class: "boss-search-dropdown",
-                    for (idx, (show_header, boss_id, boss_name, area_name)) in display_items.into_iter().enumerate() {
-                        if show_header {
-                            div { class: "area-header", "{area_name}" }
-                        }
-                        div {
-                            class: if idx == highlighted_index() { "boss-option highlighted" } else { "boss-option" },
-                            onmouseenter: move |_| highlighted_index.set(idx),
-                            onmousedown: move |e| {
-                                e.prevent_default();
-                                on_select.call(boss_id.clone());
-                                search_query.set(String::new());
-                                is_open.set(false);
-                            },
-                            span { class: "boss-name", "{boss_name}" }
-                        }
-                    }
-                }
-            }
-
-            // No results message
-            if is_open() && !has_results && !query_empty {
-                div { class: "boss-search-dropdown",
-                    div { class: "no-results", "No bosses found" }
-                }
-            }
-        }
     }
 }

@@ -35,7 +35,7 @@ extern "C" {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Build a JsValue object with a single key-value pair
-fn build_args<T: Serialize>(key: &str, value: &T) -> JsValue {
+fn build_args<T: Serialize + ?Sized>(key: &str, value: &T) -> JsValue {
     let args = serde_wasm_bindgen::to_value(value).unwrap_or(JsValue::NULL);
     let obj = js_sys::Object::new();
     js_sys::Reflect::set(&obj, &JsValue::from_str(key), &args).unwrap();
@@ -308,7 +308,7 @@ pub async fn get_encounter_history() -> JsValue {
 // Timer Editor Commands
 // ─────────────────────────────────────────────────────────────────────────────
 
-use crate::types::{BossListItem, TimerListItem};
+use crate::types::{AreaListItem, BossListItem, TimerListItem};
 
 /// Get all encounter timers as a flat list
 pub async fn get_encounter_timers() -> Option<Vec<TimerListItem>> {
@@ -355,6 +355,26 @@ pub async fn create_encounter_timer(timer: &TimerListItem) -> Option<TimerListIt
 /// Get list of all bosses for the "New Timer" dropdown
 pub async fn get_encounter_bosses() -> Option<Vec<BossListItem>> {
     let result = invoke("get_encounter_bosses", JsValue::NULL).await;
+    from_js(result)
+}
+
+/// Get area index for lazy-loading timer editor
+pub async fn get_area_index() -> Option<Vec<AreaListItem>> {
+    let result = invoke("get_area_index", JsValue::NULL).await;
+    from_js(result)
+}
+
+/// Get timers for a specific area file
+pub async fn get_timers_for_area(file_path: &str) -> Option<Vec<TimerListItem>> {
+    let args = build_args("filePath", file_path);
+    let result = invoke("get_timers_for_area", args).await;
+    from_js(result)
+}
+
+/// Get bosses for a specific area file
+pub async fn get_bosses_for_area(file_path: &str) -> Option<Vec<BossListItem>> {
+    let args = build_args("filePath", file_path);
+    let result = invoke("get_bosses_for_area", args).await;
     from_js(result)
 }
 

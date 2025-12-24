@@ -197,6 +197,52 @@ pub fn App() -> Element {
                     }
                     p { class: "subtitle", "Battle Analysis and Raid Assessment System" }
                 }
+                // Quick overlay controls
+                div { class: "header-overlay-controls",
+                    button {
+                        class: if is_visible { "btn btn-header-overlay active" } else { "btn btn-header-overlay" },
+                        title: if is_visible { "Hide overlays" } else { "Show overlays" },
+                        disabled: !any_enabled,
+                        onclick: move |_| { spawn(async move {
+                            if api::toggle_visibility(is_visible).await {
+                                overlays_visible.set(!is_visible);
+                                if is_visible { move_mode.set(false); }
+                            }
+                        }); },
+                        i { class: if is_visible { "fa-solid fa-eye" } else { "fa-solid fa-eye-slash" } }
+                    }
+                    button {
+                        class: if is_move_mode { "btn btn-header-overlay active" } else { "btn btn-header-overlay" },
+                        title: if is_move_mode { "Lock overlays" } else { "Unlock overlays (move/resize)" },
+                        disabled: !is_visible || !any_enabled || is_rearrange,
+                        onclick: move |_| { spawn(async move {
+                            if let Ok(new_mode) = api::toggle_move_mode().await {
+                                move_mode.set(new_mode);
+                                if new_mode { rearrange_mode.set(false); }
+                            }
+                        }); },
+                        i { class: if is_move_mode { "fa-solid fa-lock-open" } else { "fa-solid fa-lock" } }
+                    }
+                    button {
+                        class: if is_rearrange { "btn btn-header-overlay active" } else { "btn btn-header-overlay" },
+                        title: "Rearrange raid frames",
+                        disabled: !is_visible || !raid_on || is_move_mode,
+                        onclick: move |_| { spawn(async move {
+                            if let Ok(new_mode) = api::toggle_raid_rearrange().await {
+                                rearrange_mode.set(new_mode);
+                            }
+                        }); },
+                        i { class: "fa-solid fa-grip" }
+                    }
+                    button {
+                        class: "btn btn-header-overlay",
+                        title: "Clear raid frame assignments",
+                        disabled: !raid_on,
+                        onclick: move |_| { spawn(async move { api::clear_raid_registry().await; }); },
+                        i { class: "fa-solid fa-eraser" }
+                    }
+                }
+
                 div { class: "header-buttons",
                     button {
                         class: "btn btn-header-files",

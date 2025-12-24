@@ -254,6 +254,18 @@ pub struct BossListItem {
     pub file_path: String,
 }
 
+/// Area summary for lazy-loading timer editor
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AreaListItem {
+    pub name: String,
+    pub area_id: i64,
+    pub file_path: String,
+    pub category: String,
+    pub boss_count: usize,
+    pub timer_count: usize,
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Effect Editor Types
 // ─────────────────────────────────────────────────────────────────────────────

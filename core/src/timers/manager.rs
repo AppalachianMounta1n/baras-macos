@@ -6,13 +6,17 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use chrono::NaiveDateTime;
+use chrono::{Local, NaiveDateTime};
 
 use crate::encounters::{BossDefinition, BossEncounterState};
 use crate::events::{GameSignal, SignalHandler};
 use crate::game_data::Difficulty;
 
 use super::{ActiveTimer, TimerDefinition, TimerKey};
+
+/// Maximum age (in minutes) for events to be processed by timers.
+/// Events older than this are skipped since timers are only useful for recent/live events.
+const TIMER_RECENCY_THRESHOLD_MINS: i64 = 5;
 
 /// Current encounter context for filtering timers
 #[derive(Debug, Clone, Default)]
@@ -555,8 +559,18 @@ impl TimerManager {
 
 impl SignalHandler for TimerManager {
     fn handle_signal(&mut self, signal: &GameSignal) {
-        // Update timestamp from signal
+        // Skip if no definitions loaded (historical mode or empty config)
+        if self.definitions.is_empty() && self.boss_definitions.is_empty() {
+            return;
+        }
+
+        // Skip old events - timers only matter for recent/live events
         if let Some(ts) = signal_timestamp(signal) {
+            let now = Local::now().naive_local();
+            let age_mins = (now - ts).num_minutes();
+            if age_mins > TIMER_RECENCY_THRESHOLD_MINS {
+                return;
+            }
             self.last_timestamp = Some(ts);
         }
 

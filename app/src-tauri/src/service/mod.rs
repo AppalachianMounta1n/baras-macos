@@ -22,7 +22,7 @@ use baras_core::encounter::EncounterState;
 use baras_core::encounter::summary::classify_encounter;
 use baras_core::directory_watcher::DirectoryWatcher;
 use baras_core::game_data::{Discipline, Role};
-use baras_core::{ActiveEffect, BossDefinition, DefinitionConfig, DefinitionSet, EffectCategory, EntityType, GameSignal, PlayerMetrics, Reader, SignalHandler, TimerDefinition};
+use baras_core::{ActiveEffect, BossDefinition, DefinitionConfig, DefinitionSet, EffectCategory, EntityType, GameSignal, PlayerMetrics, Reader, SignalHandler};
 use baras_overlay::{BossHealthData, PersonalStats, PlayerRole, RaidEffect, RaidFrame, RaidFrameData, TimerData, TimerEntry};
 
 
@@ -108,6 +108,14 @@ impl SignalHandler for CombatSignalHandler {
                     registry.update_discipline(*entity_id, 0, *discipline_id);
                 }
             }
+            GameSignal::AreaEntered { area_id, .. } => {
+                // Signal that we need to load timer definitions for this area
+                let current = self.shared.current_area_id.load(Ordering::SeqCst);
+                if *area_id != current && *area_id != 0 {
+                    self.shared.pending_area_load.store(*area_id, Ordering::SeqCst);
+                    self.shared.current_area_id.store(*area_id, Ordering::SeqCst);
+                }
+            }
             _ => {}
         }
     }
@@ -128,12 +136,13 @@ pub struct CombatService {
     directory_handle: Option<tokio::task::JoinHandle<()>>,
     metrics_handle: Option<tokio::task::JoinHandle<()>>,
     effects_handle: Option<tokio::task::JoinHandle<()>>,
+    area_loader_handle: Option<tokio::task::JoinHandle<()>>,
     /// Effect definitions loaded at startup for overlay tracking
     definitions: DefinitionSet,
-    /// Timer definitions loaded at startup for boss mechanic timers
-    timer_definitions: Vec<TimerDefinition>,
-    /// Boss definitions for boss detection and phase tracking
-    boss_definitions: Vec<BossDefinition>,
+    /// Area index for lazy loading encounter definitions (area_id -> file path)
+    area_index: Arc<baras_core::encounters::AreaIndex>,
+    /// Currently loaded area ID (0 = none)
+    loaded_area_id: i64,
 }
 
 impl CombatService {
@@ -148,11 +157,8 @@ impl CombatService {
         // Load effect definitions from builtin and user directories
         let definitions = Self::load_effect_definitions(&app_handle);
 
-        // Load timer definitions from builtin directory
-        let timer_definitions = Self::load_timer_definitions(&app_handle);
-
-        // Load boss definitions for boss detection/phases
-        let boss_definitions = Self::load_boss_definitions(&app_handle);
+        // Build area index for lazy loading (fast - only reads headers)
+        let area_index = Arc::new(Self::build_area_index(&app_handle));
 
         let shared = Arc::new(SharedState::new(config, directory_index));
 
@@ -166,14 +172,76 @@ impl CombatService {
             directory_handle: None,
             metrics_handle: None,
             effects_handle: None,
+            area_loader_handle: None,
             definitions,
-            timer_definitions,
-            boss_definitions,
+            area_index,
+            loaded_area_id: 0,
         };
 
         let handle = ServiceHandle { cmd_tx, shared };
 
         (service, handle)
+    }
+
+    /// Build area index from encounter definition files (lightweight - only reads headers)
+    fn build_area_index(app_handle: &AppHandle) -> baras_core::encounters::AreaIndex {
+        use baras_core::encounters::build_area_index;
+
+        // Bundled definitions: shipped with the app in resources
+        let bundled_dir = app_handle
+            .path()
+            .resolve("definitions/encounters", tauri::path::BaseDirectory::Resource)
+            .ok();
+
+        // Custom definitions: user's config directory
+        let custom_dir = dirs::config_dir().map(|p| p.join("baras").join("encounters"));
+
+        let mut index = baras_core::encounters::AreaIndex::new();
+
+        // Build index from bundled directory
+        if let Some(ref path) = bundled_dir && path.exists() {
+            match build_area_index(path) {
+                Ok(area_index) => {
+                    eprintln!("[AREAS] Indexed {} areas from bundled definitions", area_index.len());
+                    index.extend(area_index);
+                }
+                Err(e) => eprintln!("[AREAS] Failed to index bundled: {}", e),
+            }
+        }
+
+        // Build index from custom directory (can override bundled)
+        if let Some(ref path) = custom_dir && path.exists() {
+            match build_area_index(path) {
+                Ok(area_index) => {
+                    eprintln!("[AREAS] Indexed {} areas from custom definitions", area_index.len());
+                    index.extend(area_index);
+                }
+                Err(e) => eprintln!("[AREAS] Failed to index custom: {}", e),
+            }
+        }
+
+        eprintln!("[AREAS] Total: {} areas indexed for lazy loading", index.len());
+        index
+    }
+
+    /// Load boss definitions for a specific area
+    fn load_area_definitions(&self, area_id: i64) -> Option<Vec<BossDefinition>> {
+        use baras_core::encounters::load_bosses_from_file;
+
+        let entry = self.area_index.get(&area_id)?;
+
+        match load_bosses_from_file(&entry.file_path) {
+            Ok(bosses) => {
+                let timer_count: usize = bosses.iter().map(|b| b.timers.len()).sum();
+                eprintln!("[AREAS] Loaded {} bosses, {} timers for '{}'",
+                    bosses.len(), timer_count, entry.name);
+                Some(bosses)
+            }
+            Err(e) => {
+                eprintln!("[AREAS] Failed to load definitions for '{}': {}", entry.name, e);
+                None
+            }
+        }
     }
 
     /// Load effect definitions from bundled and user config directories
@@ -236,73 +304,6 @@ impl CombatService {
         }
     }
 
-    /// Load timer definitions from builtin and user config directories
-    fn load_timer_definitions(app_handle: &AppHandle) -> Vec<TimerDefinition> {
-        use baras_core::timers::load_timers_from_dir;
-
-        // Builtin definitions: bundled with the app in resources
-        let builtin_dir = app_handle
-            .path()
-            .resolve("definitions/timers", tauri::path::BaseDirectory::Resource)
-            .ok();
-
-        // Custom definitions: user's config directory
-        let custom_dir = dirs::config_dir().map(|p| p.join("baras").join("timers"));
-
-        let mut all_timers = Vec::new();
-
-        // Load from builtin directory
-        if let Some(ref path) = builtin_dir && path.exists() {
-            match load_timers_from_dir(path) {
-                Ok(timers) => all_timers.extend(timers),
-                Err(e) => eprintln!("[TIMERS] Failed to load builtin: {}", e),
-            }
-        }
-
-        // Load from custom directory (can override builtins)
-        if let Some(ref path) = custom_dir && path.exists() {
-            match load_timers_from_dir(path) {
-                Ok(timers) => all_timers.extend(timers),
-                Err(e) => eprintln!("[TIMERS] Failed to load custom: {}", e),
-            }
-        }
-
-        all_timers
-    }
-
-    /// Load boss definitions from builtin and user config directories
-    fn load_boss_definitions(app_handle: &AppHandle) -> Vec<BossDefinition> {
-        use baras_core::encounters::load_bosses_from_dir;
-
-        // Builtin definitions: bundled with the app in resources
-        let builtin_dir = app_handle
-            .path()
-            .resolve("definitions/encounters", tauri::path::BaseDirectory::Resource)
-            .ok();
-
-        // Custom definitions: user's config directory
-        let custom_dir = dirs::config_dir().map(|p| p.join("baras").join("encounters"));
-
-        let mut all_bosses = Vec::new();
-
-        // Load from builtin directory
-        if let Some(ref path) = builtin_dir && path.exists() {
-            match load_bosses_from_dir(path) {
-                Ok(bosses) => all_bosses.extend(bosses),
-                Err(e) => eprintln!("[BOSSES] Failed to load builtin: {}", e),
-            }
-        }
-
-        // Load from custom directory (can override builtins)
-        if let Some(ref path) = custom_dir && path.exists() {
-            match load_bosses_from_dir(path) {
-                Ok(bosses) => all_bosses.extend(bosses),
-                Err(e) => eprintln!("[BOSSES] Failed to load custom: {}", e),
-            }
-        }
-
-        all_bosses
-    }
 
     /// Run the service event loop
     pub async fn run(mut self) {
@@ -381,15 +382,21 @@ impl CombatService {
     async fn reload_timer_definitions(&mut self) {
         eprintln!("[SERVICE] Reloading timer definitions...");
 
-        // Reload from disk
-        self.boss_definitions = Self::load_boss_definitions(&self.app_handle);
-        eprintln!("[SERVICE] Loaded {} boss definitions", self.boss_definitions.len());
+        // Rebuild area index from disk
+        self.area_index = Arc::new(Self::build_area_index(&self.app_handle));
+        eprintln!("[SERVICE] Rebuilt area index with {} areas", self.area_index.len());
 
-        // Update the active session if one exists
-        if let Some(session) = self.shared.session.read().await.as_ref() {
-            let session = session.read().await;
-            session.set_boss_definitions(self.boss_definitions.clone());
-            eprintln!("[SERVICE] Updated active session with new definitions");
+        // Reload definitions for the currently loaded area (if any)
+        let current_area = self.shared.current_area_id.load(Ordering::SeqCst);
+        if current_area != 0 {
+            if let Some(bosses) = self.load_area_definitions(current_area) {
+                // Update the active session if one exists
+                if let Some(session) = self.shared.session.read().await.as_ref() {
+                    let session = session.read().await;
+                    session.set_boss_definitions(bosses);
+                    eprintln!("[SERVICE] Updated active session with new definitions");
+                }
+            }
         }
     }
 
@@ -534,11 +541,11 @@ impl CombatService {
 
         let mut session = ParsingSession::new(path.clone(), self.definitions.clone());
 
-        // Load timer definitions into the session
-        session.set_timer_definitions(self.timer_definitions.clone());
-
-        // Load boss definitions for boss detection and phase tracking
-        session.set_boss_definitions(self.boss_definitions.clone());
+        // Timer/boss definitions are now lazy-loaded when AreaEntered signal fires
+        // Reset area tracking for new session
+        self.loaded_area_id = 0;
+        self.shared.current_area_id.store(0, Ordering::SeqCst);
+        self.shared.pending_area_load.store(0, Ordering::SeqCst);
 
         // Add signal handler that triggers metrics on combat state changes
         let handler = CombatSignalHandler::new(self.shared.clone(), trigger_tx.clone());
@@ -644,21 +651,77 @@ impl CombatService {
                     let _ = overlay_tx.try_send(OverlayUpdate::BossHealthUpdated(data));
                 }
 
-                // Send timer data
-                if let Some(data) = build_timer_data(&shared).await {
-                    let _ = overlay_tx.try_send(OverlayUpdate::TimersUpdated(data));
+                // Only poll timers in live mode - historical files don't need real-time timer updates
+                if shared.is_live_tailing.load(Ordering::SeqCst) {
+                    if let Some(data) = build_timer_data(&shared).await {
+                        let _ = overlay_tx.try_send(OverlayUpdate::TimersUpdated(data));
+                    }
                 }
             }
         });
 
+        // Spawn area loader task for lazy loading timer/boss definitions
+        let shared = self.shared.clone();
+        let area_index = self.area_index.clone();
+        let is_live = self.shared.is_live_tailing.load(Ordering::SeqCst);
+        let area_loader_handle = if is_live {
+            Some(tokio::spawn(async move {
+                let mut loaded_area_id: i64 = 0;
+
+                loop {
+                    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+
+                    // Check if there's a pending area to load
+                    let pending = shared.pending_area_load.load(Ordering::SeqCst);
+                    if pending != 0 && pending != loaded_area_id {
+                        // Clear the pending flag
+                        shared.pending_area_load.store(0, Ordering::SeqCst);
+
+                        // Load definitions for this area
+                        if let Some(entry) = area_index.get(&pending) {
+                            use baras_core::encounters::load_bosses_from_file;
+
+                            match load_bosses_from_file(&entry.file_path) {
+                                Ok(bosses) => {
+                                    let timer_count: usize = bosses.iter().map(|b| b.timers.len()).sum();
+                                    eprintln!("[AREAS] Loaded {} bosses, {} timers for '{}'",
+                                        bosses.len(), timer_count, entry.name);
+
+                                    // Update the session with new definitions
+                                    if let Some(session_arc) = &*shared.session.read().await {
+                                        let session = session_arc.read().await;
+                                        session.set_boss_definitions(bosses);
+                                    }
+
+                                    loaded_area_id = pending;
+                                }
+                                Err(e) => {
+                                    eprintln!("[AREAS] Failed to load definitions for '{}': {}", entry.name, e);
+                                }
+                            }
+                        }
+                    }
+                }
+            }))
+        } else {
+            None
+        };
+
         self.tail_handle = Some(tail_handle);
         self.metrics_handle = Some(metrics_handle);
         self.effects_handle = Some(effects_handle);
+        self.area_loader_handle = area_loader_handle;
     }
 
     async fn stop_tailing(&mut self) {
         // Reset combat state
         self.shared.in_combat.store(false, Ordering::SeqCst);
+
+        // Cancel area loader task
+        if let Some(handle) = self.area_loader_handle.take() {
+            handle.abort();
+            let _ = handle.await;
+        }
 
         // Cancel effects task
         if let Some(handle) = self.effects_handle.take() {

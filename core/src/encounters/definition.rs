@@ -9,10 +9,42 @@ use serde::{Deserialize, Serialize};
 // Root Config Structure
 // ═══════════════════════════════════════════════════════════════════════════
 
+/// Area header for consolidated encounter files
+/// Contains area metadata for indexing and lazy loading
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct AreaConfig {
+    /// Display name of the area (e.g., "Dxun", "The Ravagers")
+    pub name: String,
+
+    /// SWTOR area ID for this operation/flashpoint
+    /// Used to match AreaEntered signals for lazy loading
+    #[serde(default)]
+    pub area_id: i64,
+
+    /// Category for UI grouping: "operations", "flashpoints", "lair_bosses"
+    #[serde(default)]
+    pub category: String,
+}
+
 /// Root structure for boss config files (TOML)
 /// A file can contain one or more boss definitions.
+///
+/// New format includes `[area]` header:
+/// ```toml
+/// [area]
+/// name = "Dxun"
+/// area_id = 833571547775792
+///
+/// [[boss]]
+/// id = "red"
+/// ...
+/// ```
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct BossConfig {
+    /// Area metadata (new consolidated format)
+    #[serde(default)]
+    pub area: Option<AreaConfig>,
+
     /// Boss definitions in this file
     #[serde(default, rename = "boss")]
     pub bosses: Vec<BossDefinition>,
@@ -33,6 +65,8 @@ pub struct BossDefinition {
 
     /// Area name as it appears in the game log (for matching)
     /// E.g., "Dxun", "Blood Hunt"
+    /// In consolidated format, this is populated from the [area] header
+    #[serde(default)]
     pub area_name: String,
 
     /// Difficulties this boss config applies to (empty = all)
