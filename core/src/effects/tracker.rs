@@ -27,8 +27,9 @@ impl DefinitionSet {
         Self::default()
     }
 
-    /// Add definitions, returns IDs of any duplicates that were SKIPPED (not overwritten)
-    pub fn add_definitions(&mut self, definitions: Vec<EffectDefinition>) -> Vec<String> {
+    /// Add definitions. If `overwrite` is true, replaces existing definitions with same ID.
+    /// Returns IDs of duplicates that were encountered (skipped if !overwrite, replaced if overwrite).
+    pub fn add_definitions(&mut self, definitions: Vec<EffectDefinition>, overwrite: bool) -> Vec<String> {
         let mut duplicates = Vec::new();
         for def in definitions {
             // Warn about effects that will never match anything
@@ -41,8 +42,10 @@ impl DefinitionSet {
 
             if self.effects.contains_key(&def.id) {
                 duplicates.push(def.id.clone());
-                // Skip duplicate instead of overwriting - keep the first definition
-                continue;
+                if !overwrite {
+                    continue; // Skip duplicate - keep the first definition
+                }
+                // Overwrite mode: user definitions replace bundled
             }
             self.effects.insert(def.id.clone(), def);
         }
@@ -158,8 +161,39 @@ impl EffectTracker {
     }
 
     /// Update definitions (e.g., after config reload)
+    /// Also updates display properties on any active effects that match
     pub fn set_definitions(&mut self, definitions: DefinitionSet) {
+        // Update active effects with new display properties from their definitions
+        for effect in self.active_effects.values_mut() {
+            if let Some(def) = definitions.effects.get(&effect.definition_id) {
+                effect.show_on_raid_frames = def.show_on_raid_frames;
+                effect.show_on_effects_overlay = def.show_on_effects_overlay;
+                effect.color = def.effective_color();
+                effect.category = def.category;
+            }
+        }
         self.definitions = definitions;
+    }
+
+    /// Check if there are any active effects (cheap check before full iteration)
+    pub fn has_active_effects(&self) -> bool {
+        !self.active_effects.is_empty()
+    }
+
+    /// Check if there are effects still ticking (not yet removed/expired)
+    /// Use this for early-out checks - effects with removed_at set are just fading out
+    pub fn has_ticking_effects(&self) -> bool {
+        self.active_effects.values().any(|e| e.removed_at.is_none())
+    }
+
+    /// Check if there's any work to do (effects to render or new targets to register)
+    pub fn has_pending_work(&self) -> bool {
+        self.has_ticking_effects() || !self.new_targets.is_empty()
+    }
+
+    /// Get the current game time (latest timestamp from combat log)
+    pub fn current_game_time(&self) -> Option<NaiveDateTime> {
+        self.current_game_time
     }
 
     /// Get all active effects for rendering
@@ -267,6 +301,8 @@ impl EffectTracker {
                     duration,
                     def.effective_color(),
                     def.category,
+                    def.show_on_raid_frames,
+                    def.show_on_effects_overlay,
                 );
 
                 if let Some(c) = charges {

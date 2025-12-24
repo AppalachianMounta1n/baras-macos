@@ -63,6 +63,8 @@ pub enum OverlayUpdate {
     BossHealthUpdated(BossHealthData),
     /// Timer data for timer overlay
     TimersUpdated(TimerData),
+    /// Effects countdown overlay data
+    EffectsOverlayUpdated(baras_overlay::EffectsData),
     /// Clear all overlay data (sent when switching files)
     ClearAllData,
 }
@@ -96,6 +98,8 @@ struct CombatSignalHandler {
     area_load_tx: std::sync::mpsc::Sender<i64>,
     /// Channel for frontend session updates (event-driven, not polled)
     session_event_tx: std::sync::mpsc::Sender<SessionEvent>,
+    /// Channel for overlay updates (to clear overlays on combat end)
+    overlay_tx: mpsc::Sender<OverlayUpdate>,
 }
 
 impl CombatSignalHandler {
@@ -104,8 +108,9 @@ impl CombatSignalHandler {
         trigger_tx: std::sync::mpsc::Sender<MetricsTrigger>,
         area_load_tx: std::sync::mpsc::Sender<i64>,
         session_event_tx: std::sync::mpsc::Sender<SessionEvent>,
+        overlay_tx: mpsc::Sender<OverlayUpdate>,
     ) -> Self {
-        Self { shared, trigger_tx, area_load_tx, session_event_tx }
+        Self { shared, trigger_tx, area_load_tx, session_event_tx, overlay_tx }
     }
 }
 
@@ -121,6 +126,8 @@ impl SignalHandler for CombatSignalHandler {
                 self.shared.in_combat.store(false, Ordering::SeqCst);
                 let _ = self.trigger_tx.send(MetricsTrigger::CombatEnded);
                 let _ = self.session_event_tx.send(SessionEvent::CombatEnded);
+                // Clear boss health and timer overlays
+                let _ = self.overlay_tx.try_send(OverlayUpdate::CombatEnded);
             }
             GameSignal::DisciplineChanged { entity_id, discipline_id, .. } => {
                 // Update raid registry with discipline info for role icons
@@ -281,21 +288,21 @@ impl CombatService {
         // Load definitions from TOML files
         let mut set = DefinitionSet::new();
 
-        // Load from bundled directory
+        // Load from bundled directory first (defaults)
         if let Some(ref path) = bundled_dir && path.exists() {
-            Self::load_definitions_from_dir(&mut set, path, "bundled");
+            Self::load_definitions_from_dir(&mut set, path, "bundled", false);
         }
 
-        // Load from custom directory (overrides bundled)
+        // Load from custom directory (user edits override bundled)
         if let Some(ref path) = custom_dir && path.exists() {
-            Self::load_definitions_from_dir(&mut set, path, "custom");
+            Self::load_definitions_from_dir(&mut set, path, "custom", true);
         }
 
         set
     }
 
     /// Load effect definitions from a directory of TOML files
-    fn load_definitions_from_dir(set: &mut DefinitionSet, dir: &std::path::Path, source: &str) {
+    fn load_definitions_from_dir(set: &mut DefinitionSet, dir: &std::path::Path, source: &str, overwrite: bool) {
         let entries = match std::fs::read_dir(dir) {
             Ok(e) => e,
             Err(e) => {
@@ -311,8 +318,8 @@ impl CombatService {
                     Ok(contents) => {
                         // Parse TOML and extract effect definitions
                         if let Ok(config) = toml::from_str::<DefinitionConfig>(&contents) {
-                            let duplicates = set.add_definitions(config.effects);
-                            if !duplicates.is_empty() {
+                            let duplicates = set.add_definitions(config.effects, overwrite);
+                            if !duplicates.is_empty() && !overwrite {
                                 eprintln!("[EFFECT WARNING] Duplicate effect IDs SKIPPED in {:?}: {:?}. \
                                     Check your {} definitions for conflicts.",
                                     path.file_name(), duplicates, source);
@@ -587,7 +594,13 @@ impl CombatService {
         self.shared.current_area_id.store(0, Ordering::SeqCst);
 
         // Add signal handler that triggers metrics on combat state changes
-        let handler = CombatSignalHandler::new(self.shared.clone(), trigger_tx.clone(), area_load_tx, session_event_tx);
+        let handler = CombatSignalHandler::new(
+            self.shared.clone(),
+            trigger_tx.clone(),
+            area_load_tx,
+            session_event_tx,
+            self.overlay_tx.clone(),
+        );
         session.add_signal_handler(Box::new(handler));
 
         // Spawn task to emit session events to frontend (event-driven, not polled)
@@ -692,7 +705,7 @@ impl CombatService {
         });
 
         // Spawn effects + boss health sampling task (polls continuously)
-        // Checks overlay status flags to skip work when no overlays need it
+        // Checks overlay status flags and combat state to skip unnecessary work
         let shared = self.shared.clone();
         let overlay_tx = self.overlay_tx.clone();
         let effects_handle = tokio::spawn(async move {
@@ -703,28 +716,37 @@ impl CombatService {
                 let raid_active = shared.raid_overlay_active.load(Ordering::Relaxed);
                 let boss_active = shared.boss_health_overlay_active.load(Ordering::Relaxed);
                 let timer_active = shared.timer_overlay_active.load(Ordering::Relaxed);
+                let effects_active = shared.effects_overlay_active.load(Ordering::Relaxed);
+                let in_combat = shared.in_combat.load(Ordering::Relaxed);
 
                 // Skip entire iteration if no relevant overlays are running
-                if !raid_active && !boss_active && !timer_active {
+                if !raid_active && !boss_active && !timer_active && !effects_active {
                     continue;
                 }
 
-                // Send raid frame effects (always needed for HOT animations)
+                // Raid frames: always poll when active (HOTs can tick outside combat)
                 if raid_active {
                     if let Some(data) = build_raid_frame_data(&shared).await {
                         let _ = overlay_tx.try_send(OverlayUpdate::EffectsUpdated(data));
                     }
                 }
 
-                // Send boss health data
-                if boss_active {
+                // Effects countdown: always poll when active (effects can tick outside combat)
+                if effects_active {
+                    if let Some(data) = build_effects_overlay_data(&shared).await {
+                        let _ = overlay_tx.try_send(OverlayUpdate::EffectsOverlayUpdated(data));
+                    }
+                }
+
+                // Boss health: only poll when in combat
+                if boss_active && in_combat {
                     if let Some(data) = build_boss_health_data(&shared).await {
                         let _ = overlay_tx.try_send(OverlayUpdate::BossHealthUpdated(data));
                     }
                 }
 
-                // Only poll timers if overlay active and in live mode
-                if timer_active && shared.is_live_tailing.load(Ordering::SeqCst) {
+                // Timers: only poll when in combat and in live mode
+                if timer_active && in_combat && shared.is_live_tailing.load(Ordering::SeqCst) {
                     if let Some(data) = build_timer_data(&shared).await {
                         let _ = overlay_tx.try_send(OverlayUpdate::TimersUpdated(data));
                     }
@@ -943,6 +965,11 @@ async fn build_raid_frame_data(shared: &Arc<SharedState>) -> Option<RaidFrameDat
         std::collections::HashMap::new();
 
     for effect in tracker.active_effects() {
+        // Skip effects not marked for raid frames
+        if !effect.show_on_raid_frames {
+            continue;
+        }
+
         let target_id = effect.target_entity_id;
 
         // Only group effects for already-registered players
@@ -1043,6 +1070,72 @@ async fn build_timer_data(shared: &Arc<SharedState>) -> Option<TimerData> {
         .collect();
 
     Some(TimerData { entries })
+}
+
+/// Build effects countdown overlay data from active effects
+async fn build_effects_overlay_data(shared: &Arc<SharedState>) -> Option<baras_overlay::EffectsData> {
+    use baras_overlay::EffectEntry;
+
+    // Get lag offset from config first (before locking tracker)
+    let lag_offset_ms = {
+        let config = shared.config.read().await;
+        config.overlay_settings.effect_lag_offset_ms
+    };
+
+    let session_guard = shared.session.read().await;
+    let session = session_guard.as_ref()?;
+    let session = session.read().await;
+
+    // Get effect tracker
+    let effect_tracker = session.effect_tracker();
+    let tracker = effect_tracker.lock().ok()?;
+
+    // Early out if no effects are ticking (all removed/expired = just fading)
+    if !tracker.has_ticking_effects() {
+        return None;
+    }
+
+    // Filter to effects marked for effects overlay and convert to entries
+    // Use system time (like raid frames) so countdown ticks smoothly outside combat
+    let entries: Vec<EffectEntry> = tracker
+        .active_effects()
+        .filter(|e| e.show_on_effects_overlay && e.removed_at.is_none())
+        .filter_map(|effect| {
+            let duration = effect.duration?;
+            let total = duration.as_secs_f32();
+
+            // Calculate remaining using system time (same logic as convert_to_raid_effect)
+            let time_since_processing = effect.applied_instant.elapsed();
+            let system_time_at_processing = chrono::Local::now().naive_local()
+                - chrono::Duration::milliseconds(time_since_processing.as_millis() as i64);
+            let lag_ms = system_time_at_processing
+                .signed_duration_since(effect.last_refreshed_at)
+                .num_milliseconds()
+                .max(0) as u64;
+            let total_lag_ms = (lag_ms as i64 + lag_offset_ms as i64).max(0) as u64;
+            let total_lag = std::time::Duration::from_millis(total_lag_ms);
+
+            // Compensated expiry instant
+            let compensated_expiry = effect.applied_instant + duration - total_lag.min(duration);
+            let remaining = compensated_expiry.saturating_duration_since(std::time::Instant::now());
+            let remaining_secs = remaining.as_secs_f32();
+
+            if remaining_secs <= 0.0 {
+                return None;
+            }
+
+            Some(EffectEntry {
+                name: effect.name.clone(),
+                remaining_secs,
+                total_secs: total,
+                color: effect.color,
+                stacks: effect.stacks,
+            })
+        })
+        .collect();
+
+    // Always return data (even empty) so overlay clears when effects expire
+    Some(baras_overlay::EffectsData { entries })
 }
 
 /// Convert an ActiveEffect (core) to RaidEffect (overlay)

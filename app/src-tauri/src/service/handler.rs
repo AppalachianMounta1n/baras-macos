@@ -305,6 +305,7 @@ impl ServiceHandle {
             "raid" => self.shared.raid_overlay_active.store(active, Ordering::SeqCst),
             "boss_health" => self.shared.boss_health_overlay_active.store(active, Ordering::SeqCst),
             "timers" => self.shared.timer_overlay_active.store(active, Ordering::SeqCst),
+            "effects" => self.shared.effects_overlay_active.store(active, Ordering::SeqCst),
             _ => {}
         }
     }

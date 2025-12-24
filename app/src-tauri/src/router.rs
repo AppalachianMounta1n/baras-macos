@@ -177,11 +177,51 @@ async fn process_overlay_update(overlay_state: &SharedOverlayState, update: Over
                 )).await;
             }
         }
+        OverlayUpdate::EffectsOverlayUpdated(effects_data) => {
+            // Send effects data to effects countdown overlay
+            let effects_tx = {
+                let state = match overlay_state.lock() {
+                    Ok(s) => s,
+                    Err(_) => return,
+                };
+                state.get_effects_tx().cloned()
+            };
+
+            if let Some(tx) = effects_tx {
+                let _ = tx.send(OverlayCommand::UpdateData(
+                    OverlayData::Effects(effects_data)
+                )).await;
+            }
+        }
         OverlayUpdate::CombatStarted => {
             // Could show overlay or clear entries
         }
         OverlayUpdate::CombatEnded => {
-            // Could hide overlay or freeze display
+            // Clear boss health and timer overlays when combat ends
+            let channels: Vec<_> = {
+                let state = match overlay_state.lock() {
+                    Ok(s) => s,
+                    Err(_) => return,
+                };
+
+                let mut channels = Vec::new();
+
+                // Boss health overlay
+                if let Some(tx) = state.get_boss_health_tx() {
+                    channels.push((tx.clone(), OverlayData::BossHealth(Default::default())));
+                }
+
+                // Timer overlay
+                if let Some(tx) = state.get_timers_tx() {
+                    channels.push((tx.clone(), OverlayData::Timers(Default::default())));
+                }
+
+                channels
+            };
+
+            for (tx, data) in channels {
+                let _ = tx.send(OverlayCommand::UpdateData(data)).await;
+            }
         }
         OverlayUpdate::ClearAllData => {
             // Clear all overlay data when switching files
@@ -221,6 +261,11 @@ async fn process_overlay_update(overlay_state: &SharedOverlayState, update: Over
                 // Timer overlay
                 if let Some(tx) = state.get_timers_tx() {
                     channels.push((tx.clone(), OverlayData::Timers(Default::default())));
+                }
+
+                // Effects overlay
+                if let Some(tx) = state.get_effects_tx() {
+                    channels.push((tx.clone(), OverlayData::Effects(Default::default())));
                 }
 
                 channels

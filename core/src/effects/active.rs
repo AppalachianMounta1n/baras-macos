@@ -85,6 +85,12 @@ pub struct ActiveEffect {
 
     /// Effect category
     pub category: EffectCategory,
+
+    /// Show on raid frames overlay
+    pub show_on_raid_frames: bool,
+
+    /// Show on effects countdown overlay
+    pub show_on_effects_overlay: bool,
 }
 
 impl ActiveEffect {
@@ -101,6 +107,8 @@ impl ActiveEffect {
         duration: Option<Duration>,
         color: [u8; 4],
         category: EffectCategory,
+        show_on_raid_frames: bool,
+        show_on_effects_overlay: bool,
     ) -> Self {
         let now = Instant::now();
         let expires_at = duration.map(|d| {
@@ -124,6 +132,8 @@ impl ActiveEffect {
             stacks: 1,
             color,
             category,
+            show_on_raid_frames,
+            show_on_effects_overlay,
         }
     }
 

@@ -236,9 +236,20 @@ pub fn save_boss_to_file(boss: &BossDefinition, path: &Path) -> Result<(), Strin
 }
 
 /// Save multiple boss definitions to a single TOML file
+/// Preserves the existing [area] header if present
 pub fn save_bosses_to_file(bosses: &[BossDefinition], path: &Path) -> Result<(), String> {
+    // Read existing file to preserve [area] section
+    let existing_area = if path.exists() {
+        fs::read_to_string(path)
+            .ok()
+            .and_then(|content| toml::from_str::<BossConfig>(&content).ok())
+            .and_then(|config| config.area)
+    } else {
+        None
+    };
+
     let config = BossConfig {
-        area: None,
+        area: existing_area,
         bosses: bosses.to_vec(),
     };
 

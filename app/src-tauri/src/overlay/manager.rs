@@ -419,6 +419,7 @@ impl OverlayManager {
         service.set_overlay_active("raid", false);
         service.set_overlay_active("boss_health", false);
         service.set_overlay_active("timers", false);
+        service.set_overlay_active("effects", false);
 
         Ok(true)
     }

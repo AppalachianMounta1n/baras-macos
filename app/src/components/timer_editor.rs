@@ -29,6 +29,7 @@ pub fn TimerEditorPanel() -> Element {
     let mut loading_timers = use_signal(|| false);
 
     // UI state
+    let mut area_filter = use_signal(String::new);
     let mut search_query = use_signal(String::new);
     let mut expanded_timer = use_signal(|| None::<String>);
     let mut expanded_bosses = use_signal(HashSet::<String>::new);
@@ -106,11 +107,17 @@ pub fn TimerEditorPanel() -> Element {
         groups
     });
 
-    // Group areas by category
+    // Group areas by category (with filtering)
     let grouped_areas = use_memo(move || {
+        let filter = area_filter().to_lowercase();
         let mut groups: Vec<(String, Vec<AreaListItem>)> = Vec::new();
 
         for area in areas() {
+            // Filter by name if filter is set
+            if !filter.is_empty() && !area.name.to_lowercase().contains(&filter) {
+                continue;
+            }
+
             if let Some(group) = groups.iter_mut().find(|(cat, _)| cat == &area.category) {
                 group.1.push(area);
             } else {
@@ -235,8 +242,21 @@ pub fn TimerEditorPanel() -> Element {
             div { class: "timer-editor-content",
                 // Area sidebar
                 div { class: "area-sidebar",
+                    // Filter input
+                    div { class: "area-filter",
+                        input {
+                            r#type: "text",
+                            placeholder: "Filter areas...",
+                            value: "{area_filter}",
+                            class: "area-filter-input",
+                            oninput: move |e| area_filter.set(e.value())
+                        }
+                    }
+
                     if loading_areas() {
                         div { class: "area-loading", "Loading areas..." }
+                    } else if grouped_areas().is_empty() && !area_filter().is_empty() {
+                        div { class: "area-no-match", "No areas match" }
                     } else {
                         for (category, category_areas) in grouped_areas() {
                             div { class: "area-category",

@@ -339,7 +339,7 @@ pub async fn update_effect_definition(
 pub async fn create_effect_definition(
     app_handle: AppHandle,
     service: State<'_, ServiceHandle>,
-    effect: EffectListItem,
+    mut effect: EffectListItem,
 ) -> Result<EffectListItem, String> {
     // Validate effect has at least one way to match
     if effect.effect_ids.is_empty() && effect.refresh_abilities.is_empty() {
@@ -347,6 +347,11 @@ pub async fn create_effect_definition(
             "Effect must have at least one effect ID or refresh ability to match against. \
             Without these, the effect will never trigger.".to_string()
         );
+    }
+
+    // Generate ID from name if not provided
+    if effect.id.is_empty() {
+        effect.id = generate_effect_id(&effect.name);
     }
 
     let effects = load_user_effects(&app_handle)?;
@@ -478,4 +483,16 @@ pub async fn get_effect_files(app_handle: AppHandle) -> Result<Vec<String>, Stri
     }
 
     Ok(files)
+}
+
+/// Generate an effect ID from name (snake_case, safe for TOML)
+fn generate_effect_id(name: &str) -> String {
+    name.to_lowercase()
+        .chars()
+        .map(|c| if c.is_alphanumeric() { c } else { '_' })
+        .collect::<String>()
+        .split('_')
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join("_")
 }

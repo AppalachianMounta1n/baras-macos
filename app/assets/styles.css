@@ -2890,6 +2890,36 @@ details[open] .collapsible-summary::before {
   color: var(--text-muted);
 }
 
+.area-filter {
+  margin-bottom: 0.5em;
+}
+
+.area-filter-input {
+  width: 100%;
+  padding: 0.4em 0.6em;
+  background: rgba(50, 50, 55, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.85em;
+}
+
+.area-filter-input::placeholder {
+  color: var(--text-disabled);
+}
+
+.area-filter-input:focus {
+  outline: none;
+  border-color: var(--swtor-blue);
+}
+
+.area-no-match {
+  padding: 1em;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85em;
+}
+
 .area-category {
   margin-bottom: 0.75em;
 }
