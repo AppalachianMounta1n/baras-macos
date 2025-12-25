@@ -21,3 +21,9 @@ build-app:
 
 run-app-image:
   {{justfile_directory()}}/target/release/bundle/appimage/*.AppImage
+
+update-version:
+  cd app/src-tauri && \
+  sed -i "s|\"version\": \"[^\"]*\"|\"version\": \"$(date +%Y.%m.%d)\"|" tauri.conf.json
+
+
