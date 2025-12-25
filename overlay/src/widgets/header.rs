@@ -90,7 +90,6 @@ pub struct Footer {
     /// Secondary value displayed in center (e.g., total sum)
     pub secondary_value: Option<String>,
     pub color: Color,
-    pub show_separator: bool,
 }
 
 impl Footer {
@@ -99,7 +98,6 @@ impl Footer {
             value: value.into(),
             secondary_value: None,
             color: colors::white(),
-            show_separator: true,
         }
     }
 
@@ -111,11 +109,6 @@ impl Footer {
 
     pub fn with_color(mut self, color: Color) -> Self {
         self.color = color;
-        self
-    }
-
-    pub fn with_separator(mut self, show: bool) -> Self {
-        self.show_separator = show;
         self
     }
 
@@ -143,12 +136,6 @@ impl Footer {
         spacing: f32,
     ) {
         let mut current_y = y;
-
-        if self.show_separator {
-            let line_height = 0.2 * frame.scale_factor();
-            frame.fill_rect(x, current_y + 2.0, width, line_height, self.color);
-            current_y += spacing;
-        }
 
         let text_padding = 4.0 * frame.scale_factor();
         let text_y = current_y + font_size;
