@@ -51,11 +51,6 @@ pub fn App() -> Element {
     let mut overlay_settings = use_signal(OverlaySettings::default);
     let selected_overlay_tab = use_signal(|| "dps".to_string());
 
-    // Draggable settings panel
-    let mut settings_panel_pos = use_signal(|| (100i32, 50i32));
-    let mut settings_dragging = use_signal(|| false);
-    let mut settings_drag_offset = use_signal(|| (0i32, 0i32));
-
     // Hotkey state
     let mut hotkey_visibility = use_signal(String::new);
     let mut hotkey_move_mode = use_signal(String::new);
@@ -635,36 +630,25 @@ pub fn App() -> Element {
 
                     }
 
-                    // Floating settings panel
+                    // Overlay settings modal
                     if settings_open() {
-                        if settings_dragging() {
-                            div {
-                                style: "position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 999; cursor: grabbing;",
-                                onmousemove: move |e| {
-                                    let (ox, oy) = settings_drag_offset();
-                                    settings_panel_pos.set((e.client_coordinates().x as i32 - ox, e.client_coordinates().y as i32 - oy));
-                                },
-                                onmouseup: move |_| settings_dragging.set(false),
-                            }
-                        }
                         div {
-                            class: "floating-panel-wrapper",
-                            style: "position: fixed; left: {settings_panel_pos().0}px; top: {settings_panel_pos().1}px; z-index: 1000;",
-                            SettingsPanel {
-                                settings: overlay_settings,
-                                selected_tab: selected_overlay_tab,
-                                profile_names: profile_names,
-                                active_profile: active_profile,
-                                metric_overlays_enabled: metric_overlays_enabled,
-                                personal_enabled: personal_enabled,
-                                raid_enabled: raid_enabled,
-                                overlays_visible: overlays_visible,
-                                on_close: move |_| settings_open.set(false),
-                                on_header_mousedown: move |e: MouseEvent| {
-                                    let (px, py) = settings_panel_pos();
-                                    settings_drag_offset.set((e.client_coordinates().x as i32 - px, e.client_coordinates().y as i32 - py));
-                                    settings_dragging.set(true);
-                                },
+                            class: "modal-backdrop",
+                            onclick: move |_| settings_open.set(false),
+                            div {
+                                onclick: move |e| e.stop_propagation(),
+                                SettingsPanel {
+                                    settings: overlay_settings,
+                                    selected_tab: selected_overlay_tab,
+                                    profile_names: profile_names,
+                                    active_profile: active_profile,
+                                    metric_overlays_enabled: metric_overlays_enabled,
+                                    personal_enabled: personal_enabled,
+                                    raid_enabled: raid_enabled,
+                                    overlays_visible: overlays_visible,
+                                    on_close: move |_| settings_open.set(false),
+                                    on_header_mousedown: move |_| {},
+                                }
                             }
                         }
                     }
