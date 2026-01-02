@@ -57,20 +57,21 @@
     height: 100%;
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: var(--font-xs);
-    color: var(--text-primary);
+    gap: 4px;
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.9);
     overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
-    padding: 0 var(--space-xs);
-    border-right: 1px solid var(--bg-secondary);
+    padding: 0 4px;
+    border-right: 1px solid rgba(0, 0, 0, 0.3);
     transition: filter var(--transition-fast);
     user-select: none;
+    z-index: 6; /* Above track markers (z-index: 5) */
+    /* Background color set via inline style from phase_color() */
 }
 
 .phase-segment:hover {
-    filter: brightness(1.2);
+    filter: brightness(1.15);
 }
 
 .phase-segment.selected {
@@ -79,13 +80,18 @@
     z-index: 1;
 }
 
-/* Phase colors - rotating palette */
-.phase-segment:nth-child(6n+1) { background: var(--class-tank); }
-.phase-segment:nth-child(6n+2) { background: var(--class-healer); }
-.phase-segment:nth-child(6n+3) { background: var(--class-dps); }
-.phase-segment:nth-child(6n+4) { background: hsl(280, 50%, 35%); }
-.phase-segment:nth-child(6n+5) { background: hsl(30, 60%, 35%); }
-.phase-segment:nth-child(6n) { background: hsl(180, 40%, 30%); }
+/* Phase time marker (start time) */
+.phase-time {
+    font-family: var(--font-mono);
+    font-size: 8px;
+    opacity: 0.7;
+}
+
+/* Phase name label */
+.phase-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 
 /* No-phase regions (gaps between phases) */
 .phase-gap {
@@ -179,53 +185,338 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Phase Legend (optional, shows below timeline)
+   Phase Chips (compact selectors below timeline)
    ───────────────────────────────────────────────────────────────────────────── */
 
-.phase-legend {
+.phase-chips {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-xs);
-    padding-top: var(--space-sm);
-    border-top: 1px solid var(--border-subtle);
+    gap: 4px;
+    padding-top: 6px;
 }
 
-.phase-legend-item {
+.phase-chip {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10px;
+    color: var(--text-secondary);
+    padding: 2px 6px;
+    background: var(--bg-tertiary);
+    border: none;
+    border-left: 3px solid var(--chip-color, var(--text-muted));
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.phase-chip:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.phase-chip.active {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    box-shadow: 0 0 0 1px var(--accent-gold);
+}
+
+.chip-instance {
+    color: var(--text-muted);
+    font-size: 0.9em;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Entity Section (Sources filter)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.entity-header {
     display: flex;
     align-items: center;
-    gap: var(--space-xs);
-    font-size: var(--font-xs);
-    color: var(--text-secondary);
-    padding: var(--space-xs) var(--space-sm);
+    justify-content: space-between;
+    margin-bottom: var(--space-xs);
+}
+
+.entity-header h4 {
+    margin: 0;
+}
+
+.entity-filter-tabs {
+    display: flex;
+    gap: 2px;
     background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    padding: 2px;
+}
+
+.filter-tab {
+    font-size: 10px;
+    padding: 3px 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
     border-radius: var(--radius-sm);
     cursor: pointer;
     transition: all var(--transition-fast);
 }
 
-.phase-legend-item:hover {
-    background: var(--bg-hover);
+.filter-tab:hover {
+    color: var(--text-secondary);
+}
+
+.filter-tab.active {
+    background: var(--bg-secondary);
     color: var(--text-primary);
 }
 
-.phase-legend-item.active {
-    outline: 1px solid var(--accent-gold);
+/* NPC rows are slightly dimmed */
+.entity-row.npc {
+    opacity: 0.7;
 }
 
-.phase-legend-color {
-    width: 12px;
-    height: 12px;
-    border-radius: var(--radius-xs);
+.entity-row.npc .entity-name::before {
+    content: "⚔ ";
+    opacity: 0.5;
 }
 
-.phase-legend-name {
-    max-width: 120px;
+/* ─────────────────────────────────────────────────────────────────────────────
+   Ability Section Header & Breakdown Controls
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.ability-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-sm);
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}
+
+.ability-header h4 {
+    margin: 0;
+}
+
+.breakdown-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 11px;
+}
+
+.breakdown-label {
+    color: var(--text-muted);
+}
+
+.breakdown-options {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.breakdown-option {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    white-space: nowrap;
+}
+
+.breakdown-option:hover {
+    background: var(--bg-hover);
+}
+
+.breakdown-option input {
+    margin: 0;
+    cursor: pointer;
+}
+
+.breakdown-option input:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.breakdown-option.primary {
+    background: var(--bg-secondary);
+    border-left: 2px solid var(--accent-gold);
+}
+
+.breakdown-nested {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding-left: 4px;
+    border-left: 1px solid var(--border-subtle);
+    margin-left: 4px;
+}
+
+.breakdown-option.nested {
+    font-size: 10px;
+    padding: 2px 6px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Table Enhancements (Percentage Bar, Target Column)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.target-cell {
+    color: var(--text-secondary);
+    max-width: 150px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.phase-legend-instance {
+.target-time {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
     color: var(--text-muted);
-    font-size: 0.9em;
+    opacity: 0.8;
 }
+
+.pct-cell {
+    position: relative;
+    min-width: 60px;
+}
+
+.pct-bar {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 14px;
+    background: hsla(210, 60%, 50%, 0.3);
+    border-radius: 2px;
+    z-index: 0;
+}
+
+.pct-text {
+    position: relative;
+    z-index: 1;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Data Tab Selector (Damage, Healing, Damage Taken, Healing Taken)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.data-tab-selector {
+    display: flex;
+    gap: 2px;
+    padding: var(--space-xs) 0;
+    margin-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.data-tab {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-align: center;
+}
+
+.data-tab:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.data-tab.active {
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    border-color: var(--border-subtle);
+    border-bottom-color: var(--bg-secondary);
+    position: relative;
+}
+
+/* Active tab underline accent */
+.data-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--accent-gold);
+}
+
+/* Tab-specific accent colors */
+.data-tab:nth-child(1).active::after { background: var(--accent-gold); }  /* Overview - gold */
+.data-tab:nth-child(2).active::after { background: hsl(0, 70%, 50%); }    /* Damage - red */
+.data-tab:nth-child(3).active::after { background: hsl(120, 60%, 45%); }  /* Healing - green */
+.data-tab:nth-child(4).active::after { background: hsl(30, 80%, 50%); }   /* Damage Taken - orange */
+.data-tab:nth-child(5).active::after { background: hsl(180, 60%, 45%); }  /* Healing Taken - teal */
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Raid Overview Table
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.overview-section {
+    padding: var(--space-sm);
+    overflow-x: auto;
+}
+
+.overview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.overview-table th,
+.overview-table td {
+    padding: 6px 8px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.overview-table th {
+    background: var(--bg-tertiary);
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.overview-table th.section-header {
+    text-align: center;
+    border-bottom: 2px solid var(--border-subtle);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.overview-table tr.sub-header th {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.overview-table tbody tr:hover {
+    background: var(--bg-hover);
+}
+
+.overview-table .name-col {
+    font-weight: 500;
+    color: var(--text-primary);
+    min-width: 120px;
+}
+
+.overview-table .num {
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 11px;
+}
+
+/* Color-coded columns */
+.overview-table .dmg { color: hsl(0, 70%, 65%); }
+.overview-table .threat { color: hsl(45, 70%, 60%); }
+.overview-table .taken { color: hsl(30, 70%, 60%); }
+.overview-table .heal { color: hsl(120, 50%, 60%); }

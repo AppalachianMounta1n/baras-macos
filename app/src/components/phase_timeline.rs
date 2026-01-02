@@ -13,6 +13,18 @@ fn format_time(secs: f32) -> String {
     format!("{}:{:02}", mins, secs)
 }
 
+/// Generate a consistent HSL color based on phase_id string.
+/// All instances of the same phase type will get the same color.
+fn phase_color(phase_id: &str) -> String {
+    // Simple hash function to get a consistent hue
+    let hash: u32 = phase_id.bytes().fold(0u32, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u32));
+    let hue = hash % 360;
+    // Vary saturation/lightness slightly based on hash for visual distinction
+    let sat = 45 + (hash % 20);  // 45-65%
+    let light = 35 + (hash % 15); // 35-50%
+    format!("hsl({}, {}%, {}%)", hue, sat, light)
+}
+
 #[derive(Props, Clone, PartialEq)]
 pub struct PhaseTimelineProps {
     /// Timeline data (duration + phases)
@@ -201,24 +213,24 @@ pub fn PhaseTimelineFilter(props: PhaseTimelineProps) -> Element {
                             let is_selected = (range.start - phase.start_secs).abs() < 0.1
                                 && (range.end - phase.end_secs).abs() < 0.1;
                             let phase_clone = phase.clone();
+                            let bg_color = phase_color(&phase.phase_id);
 
                             rsx! {
                                 div {
                                     class: if is_selected { "phase-segment selected" } else { "phase-segment" },
-                                    style: "left: {left}%; width: {width}%;",
+                                    style: "left: {left}%; width: {width}%; background: {bg_color};",
                                     title: "{phase.phase_name} ({format_time(phase.start_secs)} - {format_time(phase.end_secs)})",
                                     onclick: move |e| {
                                         e.stop_propagation();
                                         select_phase(&phase_clone);
                                     },
 
-                                    // Show name if segment is wide enough
-                                    if width > 8.0 {
-                                        if phase.instance > 1 {
-                                            "{phase.phase_name} ({phase.instance})"
-                                        } else {
-                                            "{phase.phase_name}"
-                                        }
+                                    // Show time marker + abbreviated name if wide enough
+                                    if width > 10.0 {
+                                        span { class: "phase-time", "{format_time(phase.start_secs)}" }
+                                        span { class: "phase-label", "{phase.phase_name}" }
+                                    } else if width > 5.0 {
+                                        span { class: "phase-time", "{format_time(phase.start_secs)}" }
                                     }
                                 }
                             }
@@ -260,23 +272,25 @@ pub fn PhaseTimelineFilter(props: PhaseTimelineProps) -> Element {
                 }
             }
 
-            // Phase legend (if there are phases)
+            // Phase legend chips (compact)
             if !phases.is_empty() {
-                div { class: "phase-legend",
+                div { class: "phase-chips",
                     for phase in phases.iter() {
                         {
                             let is_active = (range.start - phase.start_secs).abs() < 0.1
                                 && (range.end - phase.end_secs).abs() < 0.1;
                             let phase_clone = phase.clone();
+                            let bg_color = phase_color(&phase.phase_id);
 
                             rsx! {
-                                div {
-                                    class: if is_active { "phase-legend-item active" } else { "phase-legend-item" },
+                                button {
+                                    class: if is_active { "phase-chip active" } else { "phase-chip" },
+                                    style: "--chip-color: {bg_color};",
                                     onclick: move |_| select_phase(&phase_clone),
 
-                                    span { class: "phase-legend-name", "{phase.phase_name}" }
+                                    "{phase.phase_name}"
                                     if phase.instance > 1 {
-                                        span { class: "phase-legend-instance", "({phase.instance})" }
+                                        span { class: "chip-instance", " ({phase.instance})" }
                                     }
                                 }
                             }

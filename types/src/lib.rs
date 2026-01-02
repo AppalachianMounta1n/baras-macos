@@ -10,17 +10,97 @@ use std::collections::HashMap;
 // Query Result Types (shared between backend and frontend)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Query result for damage/healing by ability.
+/// Data explorer tab type - determines what data to query.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum DataTab {
+    /// Damage dealt by sources
+    #[default]
+    Damage,
+    /// Healing done by sources
+    Healing,
+    /// Damage received (group by source who dealt damage)
+    DamageTaken,
+    /// Healing received (group by source who healed)
+    HealingTaken,
+}
+
+impl DataTab {
+    /// Returns true if this tab shows outgoing data (dealt by source)
+    pub fn is_outgoing(&self) -> bool {
+        matches!(self, DataTab::Damage | DataTab::Healing)
+    }
+
+    /// Returns true if this tab shows healing data
+    pub fn is_healing(&self) -> bool {
+        matches!(self, DataTab::Healing | DataTab::HealingTaken)
+    }
+
+    /// Returns the value column to query (dmg_amount or heal_amount)
+    pub fn value_column(&self) -> &'static str {
+        if self.is_healing() { "heal_amount" } else { "dmg_amount" }
+    }
+
+    /// Returns the display label for the rate column (DPS, HPS, DTPS, HTPS)
+    pub fn rate_label(&self) -> &'static str {
+        match self {
+            DataTab::Damage => "DPS",
+            DataTab::Healing => "HPS",
+            DataTab::DamageTaken => "DTPS",
+            DataTab::HealingTaken => "HTPS",
+        }
+    }
+}
+
+/// Breakdown mode flags for ability queries.
+/// Multiple can be enabled to create hierarchical groupings.
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
+pub struct BreakdownMode {
+    /// Group by ability (default, always on at minimum)
+    pub by_ability: bool,
+    /// Group by target/source type (class_id) - context depends on DataTab
+    pub by_target_type: bool,
+    /// Group by target/source instance (log_id) - context depends on DataTab
+    pub by_target_instance: bool,
+}
+
+impl BreakdownMode {
+    pub fn ability_only() -> Self {
+        Self { by_ability: true, by_target_type: false, by_target_instance: false }
+    }
+}
+
+/// Query result for damage/healing breakdown.
+/// Can be grouped by ability, target type, or target instance.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AbilityBreakdown {
+    // Ability info
     pub ability_name: String,
     pub ability_id: i64,
+
+    // Target info (populated when grouping by target)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_class_id: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_log_id: Option<i64>,
+    /// First hit time in seconds (for distinguishing target instances)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_first_hit_secs: Option<f32>,
+
+    // Metrics
     pub total_value: f64,
     pub hit_count: i64,
     pub crit_count: i64,
     pub crit_rate: f64,
     pub max_hit: f64,
     pub avg_hit: f64,
+
+    // Computed fields (require duration/total context)
+    #[serde(default)]
+    pub dps: f64,
+    #[serde(default)]
+    pub percent_of_total: f64,
 }
 
 /// Query result for damage/healing by source entity.
@@ -28,8 +108,39 @@ pub struct AbilityBreakdown {
 pub struct EntityBreakdown {
     pub source_name: String,
     pub source_id: i64,
+    pub entity_type: String, // "Player", "Npc", "Companion"
     pub total_value: f64,
     pub abilities_used: i64,
+}
+
+/// Raid overview row - aggregated stats per player across all metrics.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RaidOverviewRow {
+    pub name: String,
+    pub entity_type: String,
+
+    // Damage dealt
+    pub damage_total: f64,
+    pub dps: f64,
+
+    // Threat
+    pub threat_total: f64,
+    pub tps: f64,
+
+    // Damage taken
+    pub damage_taken_total: f64,
+    pub dtps: f64,
+    /// Absorbed damage per second (shields that protected this player)
+    pub aps: f64,
+
+    // Healing done
+    pub healing_total: f64,
+    pub hps: f64,
+    /// Effective healing (not overheal)
+    pub healing_effective: f64,
+    pub ehps: f64,
+    /// Percentage of total raid effective healing
+    pub healing_pct: f64,
 }
 
 /// Query result for time-series data (DPS/HPS over time).

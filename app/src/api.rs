@@ -644,22 +644,36 @@ pub async fn install_update() -> Result<(), String> {
 
 // Re-export query types from shared types crate
 pub use baras_types::{
-    AbilityBreakdown, EncounterTimeline, EntityBreakdown, PhaseSegment, TimeRange, TimeSeriesPoint,
+    AbilityBreakdown, BreakdownMode, DataTab, EncounterTimeline, EntityBreakdown, PhaseSegment,
+    RaidOverviewRow, TimeRange, TimeSeriesPoint,
 };
 
-/// Query damage by ability for an encounter.
+/// Query ability breakdown for an encounter and data tab.
 /// Pass encounter_idx for historical, or None for live encounter.
-pub async fn query_damage_by_ability(encounter_idx: Option<u32>, source_name: Option<&str>, time_range: Option<&TimeRange>) -> Option<Vec<AbilityBreakdown>> {
+/// entity_types filters by entity type (e.g., ["Player", "Companion"]).
+/// breakdown_mode controls grouping (by ability, target type, target instance).
+/// duration_secs is used for rate calculation (DPS/HPS/etc.).
+pub async fn query_breakdown(
+    tab: DataTab,
+    encounter_idx: Option<u32>,
+    entity_name: Option<&str>,
+    time_range: Option<&TimeRange>,
+    entity_types: Option<&[&str]>,
+    breakdown_mode: Option<&BreakdownMode>,
+    duration_secs: Option<f32>,
+) -> Option<Vec<AbilityBreakdown>> {
     let obj = js_sys::Object::new();
+    let tab_js = serde_wasm_bindgen::to_value(&tab).unwrap_or(JsValue::NULL);
+    js_sys::Reflect::set(&obj, &JsValue::from_str("tab"), &tab_js).unwrap();
     if let Some(idx) = encounter_idx {
         js_sys::Reflect::set(&obj, &JsValue::from_str("encounterIdx"), &JsValue::from_f64(idx as f64)).unwrap();
     } else {
         js_sys::Reflect::set(&obj, &JsValue::from_str("encounterIdx"), &JsValue::NULL).unwrap();
     }
-    if let Some(name) = source_name {
-        js_sys::Reflect::set(&obj, &JsValue::from_str("sourceName"), &JsValue::from_str(name)).unwrap();
+    if let Some(name) = entity_name {
+        js_sys::Reflect::set(&obj, &JsValue::from_str("entityName"), &JsValue::from_str(name)).unwrap();
     } else {
-        js_sys::Reflect::set(&obj, &JsValue::from_str("sourceName"), &JsValue::NULL).unwrap();
+        js_sys::Reflect::set(&obj, &JsValue::from_str("entityName"), &JsValue::NULL).unwrap();
     }
     if let Some(tr) = time_range {
         let tr_js = serde_wasm_bindgen::to_value(tr).unwrap_or(JsValue::NULL);
@@ -667,13 +681,32 @@ pub async fn query_damage_by_ability(encounter_idx: Option<u32>, source_name: Op
     } else {
         js_sys::Reflect::set(&obj, &JsValue::from_str("timeRange"), &JsValue::NULL).unwrap();
     }
-    let result = invoke("query_damage_by_ability", obj.into()).await;
+    if let Some(types) = entity_types {
+        let types_js = serde_wasm_bindgen::to_value(types).unwrap_or(JsValue::NULL);
+        js_sys::Reflect::set(&obj, &JsValue::from_str("entityTypes"), &types_js).unwrap();
+    } else {
+        js_sys::Reflect::set(&obj, &JsValue::from_str("entityTypes"), &JsValue::NULL).unwrap();
+    }
+    if let Some(mode) = breakdown_mode {
+        let mode_js = serde_wasm_bindgen::to_value(mode).unwrap_or(JsValue::NULL);
+        js_sys::Reflect::set(&obj, &JsValue::from_str("breakdownMode"), &mode_js).unwrap();
+    } else {
+        js_sys::Reflect::set(&obj, &JsValue::from_str("breakdownMode"), &JsValue::NULL).unwrap();
+    }
+    if let Some(dur) = duration_secs {
+        js_sys::Reflect::set(&obj, &JsValue::from_str("durationSecs"), &JsValue::from_f64(dur as f64)).unwrap();
+    } else {
+        js_sys::Reflect::set(&obj, &JsValue::from_str("durationSecs"), &JsValue::NULL).unwrap();
+    }
+    let result = invoke("query_breakdown", obj.into()).await;
     from_js(result)
 }
 
-/// Query breakdown by source entity.
-pub async fn query_entity_breakdown(encounter_idx: Option<u32>, time_range: Option<&TimeRange>) -> Option<Vec<EntityBreakdown>> {
+/// Query breakdown by entity for a data tab.
+pub async fn query_entity_breakdown(tab: DataTab, encounter_idx: Option<u32>, time_range: Option<&TimeRange>) -> Option<Vec<EntityBreakdown>> {
     let obj = js_sys::Object::new();
+    let tab_js = serde_wasm_bindgen::to_value(&tab).unwrap_or(JsValue::NULL);
+    js_sys::Reflect::set(&obj, &JsValue::from_str("tab"), &tab_js).unwrap();
     if let Some(idx) = encounter_idx {
         js_sys::Reflect::set(&obj, &JsValue::from_str("encounterIdx"), &JsValue::from_f64(idx as f64)).unwrap();
     } else {
@@ -686,6 +719,29 @@ pub async fn query_entity_breakdown(encounter_idx: Option<u32>, time_range: Opti
         js_sys::Reflect::set(&obj, &JsValue::from_str("timeRange"), &JsValue::NULL).unwrap();
     }
     let result = invoke("query_entity_breakdown", obj.into()).await;
+    from_js(result)
+}
+
+/// Query raid overview - aggregated stats per player.
+pub async fn query_raid_overview(encounter_idx: Option<u32>, time_range: Option<&TimeRange>, duration_secs: Option<f32>) -> Option<Vec<RaidOverviewRow>> {
+    let obj = js_sys::Object::new();
+    if let Some(idx) = encounter_idx {
+        js_sys::Reflect::set(&obj, &JsValue::from_str("encounterIdx"), &JsValue::from_f64(idx as f64)).unwrap();
+    } else {
+        js_sys::Reflect::set(&obj, &JsValue::from_str("encounterIdx"), &JsValue::NULL).unwrap();
+    }
+    if let Some(tr) = time_range {
+        let tr_js = serde_wasm_bindgen::to_value(tr).unwrap_or(JsValue::NULL);
+        js_sys::Reflect::set(&obj, &JsValue::from_str("timeRange"), &tr_js).unwrap();
+    } else {
+        js_sys::Reflect::set(&obj, &JsValue::from_str("timeRange"), &JsValue::NULL).unwrap();
+    }
+    if let Some(dur) = duration_secs {
+        js_sys::Reflect::set(&obj, &JsValue::from_str("durationSecs"), &JsValue::from_f64(dur as f64)).unwrap();
+    } else {
+        js_sys::Reflect::set(&obj, &JsValue::from_str("durationSecs"), &JsValue::NULL).unwrap();
+    }
+    let result = invoke("query_raid_overview", obj.into()).await;
     from_js(result)
 }
 

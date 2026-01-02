@@ -211,8 +211,9 @@ pub fn run() {
             commands::pick_audio_file,
             commands::list_bundled_sounds,
             // Query commands
-            commands::query_damage_by_ability,
+            commands::query_breakdown,
             commands::query_entity_breakdown,
+            commands::query_raid_overview,
             commands::query_dps_over_time,
             commands::query_encounter_timeline,
             commands::list_encounter_files,
