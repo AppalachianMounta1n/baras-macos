@@ -661,9 +661,10 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
         let idx = *selected_encounter.read();
         let is_overview = *show_overview.read() && !*show_charts.read() && !*show_combat_log.read();
         let tr = time_range();
+        let has_timeline = timeline.read().is_some();
 
-        // Only load when Overview tab is active and we have an encounter
-        if !is_overview || idx.is_none() {
+        // Only load when Overview tab is active, have an encounter, AND timeline is loaded
+        if !is_overview || idx.is_none() || !has_timeline {
             // Clear overview data when leaving the tab
             if !is_overview {
                 overview_data.set(Vec::new());
@@ -688,9 +689,17 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
                 full_duration
             };
 
-            // Load raid overview
-            if let Some(data) = api::query_raid_overview(idx, tr_opt.as_ref(), duration).await {
-                overview_data.set(data);
+            // Load raid overview (with retry for race conditions - up to 3 seconds)
+            for attempt in 0..10 {
+                if let Some(data) = api::query_raid_overview(idx, tr_opt.as_ref(), duration).await {
+                    if !data.is_empty() {
+                        overview_data.set(data);
+                        break;
+                    }
+                }
+                if attempt < 9 {
+                    gloo_timers::future::TimeoutFuture::new(300).await;
+                }
             }
 
             // Load player deaths
@@ -709,9 +718,10 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
         let is_detailed =
             !*show_overview.read() && !*show_charts.read() && !*show_combat_log.read();
         let tr = time_range();
+        let has_timeline = timeline.read().is_some();
 
-        // Only load when a detailed tab is active and we have an encounter
-        if !is_detailed || idx.is_none() {
+        // Only load when a detailed tab is active, have an encounter, AND timeline is loaded
+        if !is_detailed || idx.is_none() || !has_timeline {
             // Clear detailed data when leaving
             if !is_detailed {
                 entities.set(Vec::new());
@@ -729,15 +739,23 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
                 Some(tr)
             };
 
-            // Load entity breakdown
-            let entity_data = match api::query_entity_breakdown(tab, idx, tr_opt.as_ref()).await {
-                Some(data) => data,
-                None => {
-                    error_msg.set(Some("No data available for this encounter".to_string()));
-                    loading.set(false);
-                    return;
+            // Load entity breakdown (with retry for race conditions - up to 3 seconds)
+            let mut entity_data = Vec::new();
+            for attempt in 0..10 {
+                if let Some(data) = api::query_entity_breakdown(tab, idx, tr_opt.as_ref()).await {
+                    if !data.is_empty() {
+                        entity_data = data;
+                        break;
+                    }
                 }
-            };
+                if attempt < 9 {
+                    gloo_timers::future::TimeoutFuture::new(300).await;
+                }
+            }
+            if entity_data.is_empty() {
+                loading.set(false);
+                return;
+            }
 
             // Auto-select first player if none selected
             let auto_selected = if selected_source.read().is_none() {
@@ -788,9 +806,10 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
         let tr = time_range();
         let is_detailed =
             !*show_overview.read() && !*show_charts.read() && !*show_combat_log.read();
+        let has_timeline = timeline.read().is_some();
 
-        // Skip if not on detailed tab or no encounter
-        if !is_detailed || idx.is_none() {
+        // Skip if not on detailed tab, no encounter, or timeline not loaded
+        if !is_detailed || idx.is_none() || !has_timeline {
             return;
         }
 

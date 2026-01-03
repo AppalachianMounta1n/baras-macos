@@ -550,23 +550,31 @@ pub fn ChartsPanel(props: ChartsPanelProps) -> Element {
         "rgba(255, 180, 100, 0.35)", // Orange
     ];
 
-    // Load entities on mount and auto-select first player
+    // Load entities on mount and auto-select first player (with retry for race conditions)
     use_effect({
         let idx = props.encounter_idx;
         move || {
             spawn(async move {
-                // Get entities from raid overview
-                if let Some(data) = api::query_raid_overview(idx, None, None).await {
-                    let names: Vec<String> = data
-                        .into_iter()
-                        .filter(|r| r.entity_type == "Player" || r.entity_type == "Companion")
-                        .map(|r| r.name)
-                        .collect();
-                    // Auto-select first player
-                    if let Some(first) = names.first() {
-                        selected_entity.set(Some(first.clone()));
+                // Retry up to 3 seconds if data not ready
+                for attempt in 0..10 {
+                    if let Some(data) = api::query_raid_overview(idx, None, None).await {
+                        let names: Vec<String> = data
+                            .into_iter()
+                            .filter(|r| r.entity_type == "Player" || r.entity_type == "Companion")
+                            .map(|r| r.name)
+                            .collect();
+                        if !names.is_empty() {
+                            // Auto-select first player
+                            if let Some(first) = names.first() {
+                                selected_entity.set(Some(first.clone()));
+                            }
+                            entities.set(names);
+                            return;
+                        }
                     }
-                    entities.set(names);
+                    if attempt < 9 {
+                        gloo_timers::future::TimeoutFuture::new(300).await;
+                    }
                 }
             });
         }
