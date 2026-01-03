@@ -33,6 +33,12 @@ impl LogParser {
         let brackets: Vec<usize> = memchr_iter(b'[', b).collect();
         let end_brackets: Vec<usize> = memchr_iter(b']', b).collect();
 
+        // guard against invalid lines being read throw away lines w/ != 5 bracket delimited
+        // segments
+        if brackets.len() != 5 || end_brackets.len() != 5 {
+            return None;
+        }
+
         let time_segment = &_line[brackets[0] + 1..end_brackets[0]];
         let source_entity_segment = &_line[brackets[1] + 1..end_brackets[1]];
         let target_entity_segment = &_line[brackets[2] + 1..end_brackets[2]];
