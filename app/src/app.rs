@@ -277,6 +277,18 @@ pub fn App() -> Element {
                         }
                     }
                     p { class: "subtitle", "Battle Analysis and Raid Assessment System" }
+                    a {
+                        class: "header-help",
+                        href: "#",
+                        title: "Documentation & Help",
+                        onclick: move |e| {
+                            e.prevent_default();
+                            spawn(async move {
+                                api::open_url("https://github.com/baras-app/baras/wiki").await;
+                            });
+                        },
+                        i { class: "fa-solid fa-circle-question" }
+                    }
                 }
                 // Session indicator (always visible)
                 div { class: "header-session-indicator",

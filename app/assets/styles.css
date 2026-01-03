@@ -194,6 +194,7 @@ select optgroup {
 
 /* App header */
 .app-header {
+  position: relative;
   flex: 0 0 auto;
   width: 100%;
   display: flex;
@@ -274,6 +275,21 @@ select optgroup {
   margin: 0.25vh 0 0 0;
   font-size: clamp(0.7rem, 1.5vh, 1rem);
   text-align: left;
+}
+
+.app-header .header-help {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: var(--text-disabled);
+  font-size: 1.1rem;
+  opacity: 0.6;
+  transition: opacity 0.2s, color 0.2s;
+}
+
+.app-header .header-help:hover {
+  opacity: 1;
+  color: var(--swtor-blue);
 }
 
 .btn-header-settings {
