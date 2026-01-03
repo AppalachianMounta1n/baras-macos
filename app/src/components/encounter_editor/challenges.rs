@@ -167,20 +167,23 @@ fn ChallengeRow(
                             move |challenge_to_delete: ChallengeListItem| {
                                 let all_challenges = all_challenges.clone();
                                 spawn(async move {
-                                    if api::delete_challenge(
+                                    match api::delete_challenge(
                                         &challenge_to_delete.id,
                                         &challenge_to_delete.boss_id,
                                         &challenge_to_delete.file_path
                                     ).await {
-                                        let updated: Vec<_> = all_challenges.iter()
-                                            .filter(|c| c.id != challenge_to_delete.id)
-                                            .cloned()
-                                            .collect();
-                                        on_change.call(updated);
-                                        on_collapse.call(());
-                                        on_status.call(("Deleted".to_string(), false));
-                                    } else {
-                                        on_status.call(("Failed to delete".to_string(), true));
+                                        Ok(_) => {
+                                            let updated: Vec<_> = all_challenges.iter()
+                                                .filter(|c| c.id != challenge_to_delete.id)
+                                                .cloned()
+                                                .collect();
+                                            on_change.call(updated);
+                                            on_collapse.call(());
+                                            on_status.call(("Deleted".to_string(), false));
+                                        }
+                                        Err(err) => {
+                                            on_status.call((err, true));
+                                        }
                                     }
                                 });
                             }

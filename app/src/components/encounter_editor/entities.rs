@@ -170,20 +170,23 @@ fn EntityRow(
                                     move |entity_to_delete: EntityListItem| {
                                         let all_entities = all_entities.clone();
                                         spawn(async move {
-                                            if api::delete_entity(
+                                            match api::delete_entity(
                                                 &entity_to_delete.name,
                                                 &entity_to_delete.boss_id,
                                                 &entity_to_delete.file_path
                                             ).await {
-                                                let updated: Vec<_> = all_entities.iter()
-                                                    .filter(|e| e.name != entity_to_delete.name)
-                                                    .cloned()
-                                                    .collect();
-                                                on_change.call(updated);
-                                                on_collapse.call(());
-                                                on_status.call(("Deleted".to_string(), false));
-                                            } else {
-                                                on_status.call(("Failed to delete".to_string(), true));
+                                                Ok(_) => {
+                                                    let updated: Vec<_> = all_entities.iter()
+                                                        .filter(|e| e.name != entity_to_delete.name)
+                                                        .cloned()
+                                                        .collect();
+                                                    on_change.call(updated);
+                                                    on_collapse.call(());
+                                                    on_status.call(("Deleted".to_string(), false));
+                                                }
+                                                Err(err) => {
+                                                    on_status.call((err, true));
+                                                }
                                             }
                                         });
                                     }

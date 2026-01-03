@@ -276,17 +276,21 @@ fn TimerEditForm(
         let timer_del = timer.clone();
         let timers = all_timers.clone();
         move |_| {
-            let filtered: Vec<_> = timers.clone().into_iter()
-                .filter(|t| t.timer_id != timer_del.timer_id)
-                .collect();
-            on_change.call(filtered);
-            on_collapse.call(());
             let t = timer_del.clone();
+            let timers_clone = timers.clone();
             spawn(async move {
-                if api::delete_encounter_timer(&t.timer_id, &t.boss_id, &t.file_path).await {
-                    on_status.call(("Deleted".to_string(), false));
-                } else {
-                    on_status.call(("Failed to delete".to_string(), true));
+                match api::delete_encounter_timer(&t.timer_id, &t.boss_id, &t.file_path).await {
+                    Ok(_) => {
+                        let filtered: Vec<_> = timers_clone.into_iter()
+                            .filter(|timer| timer.timer_id != t.timer_id)
+                            .collect();
+                        on_change.call(filtered);
+                        on_collapse.call(());
+                        on_status.call(("Deleted".to_string(), false));
+                    }
+                    Err(err) => {
+                        on_status.call((err, true));
+                    }
                 }
             });
         }

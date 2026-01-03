@@ -4,6 +4,7 @@
 //! boilerplate and centralizing all backend communication.
 
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
 use serde::Serialize;
 
 use crate::types::{AppConfig, OverlayStatus, OverlayType, SessionInfo};
@@ -45,6 +46,37 @@ fn build_args<T: Serialize + ?Sized>(key: &str, value: &T) -> JsValue {
 /// Deserialize a JsValue into a type, returning None on failure
 fn from_js<T: serde::de::DeserializeOwned>(value: JsValue) -> Option<T> {
     serde_wasm_bindgen::from_value(value).ok()
+}
+
+/// Invoke a Tauri command that may return an error, catching the rejection
+/// Returns Ok(JsValue) on success, Err(String) on failure
+async fn try_invoke(cmd: &str, args: JsValue) -> Result<JsValue, String> {
+    use wasm_bindgen_futures::JsFuture;
+    use js_sys::Promise;
+
+    // Get the invoke function from Tauri
+    let window = web_sys::window().ok_or("No window")?;
+    let tauri = js_sys::Reflect::get(&window, &JsValue::from_str("__TAURI__"))
+        .map_err(|_| "No __TAURI__")?;
+    let core = js_sys::Reflect::get(&tauri, &JsValue::from_str("core"))
+        .map_err(|_| "No core")?;
+    let invoke_fn = js_sys::Reflect::get(&core, &JsValue::from_str("invoke"))
+        .map_err(|_| "No invoke")?;
+    let invoke_fn: js_sys::Function = invoke_fn.dyn_into().map_err(|_| "invoke not a function")?;
+
+    // Call invoke and get the promise
+    let promise = invoke_fn
+        .call2(&JsValue::NULL, &JsValue::from_str(cmd), &args)
+        .map_err(|e| format!("invoke call failed: {:?}", e))?;
+    let promise: Promise = promise.dyn_into().map_err(|_| "not a promise")?;
+
+    // Await the promise, catching rejections
+    JsFuture::from(promise)
+        .await
+        .map_err(|e| {
+            // Extract error message from JsValue
+            e.as_string().unwrap_or_else(|| format!("{:?}", e))
+        })
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -321,15 +353,15 @@ pub async fn update_encounter_timer(timer: &TimerListItem) -> bool {
 }
 
 /// Delete a timer
-/// Returns true on success. Tauri commands returning Result<(), E> serialize Ok(()) as null.
-pub async fn delete_encounter_timer(timer_id: &str, boss_id: &str, file_path: &str) -> bool {
+/// Returns Ok(true) on success, Err with message if deletion not allowed (bundled items).
+pub async fn delete_encounter_timer(timer_id: &str, boss_id: &str, file_path: &str) -> Result<bool, String> {
     let obj = js_sys::Object::new();
     js_sys::Reflect::set(&obj, &JsValue::from_str("timerId"), &JsValue::from_str(timer_id)).unwrap();
     js_sys::Reflect::set(&obj, &JsValue::from_str("bossId"), &JsValue::from_str(boss_id)).unwrap();
     js_sys::Reflect::set(&obj, &JsValue::from_str("filePath"), &JsValue::from_str(file_path)).unwrap();
 
-    let _result = invoke("delete_encounter_timer", obj.into()).await;
-    true
+    try_invoke("delete_encounter_timer", obj.into()).await?;
+    Ok(true)
 }
 
 /// Duplicate a timer
@@ -414,14 +446,15 @@ pub async fn create_phase(phase: &PhaseListItem) -> Option<PhaseListItem> {
 }
 
 /// Delete a phase
-pub async fn delete_phase(phase_id: &str, boss_id: &str, file_path: &str) -> bool {
+/// Returns Ok(true) on success, Err with message if deletion not allowed (bundled items).
+pub async fn delete_phase(phase_id: &str, boss_id: &str, file_path: &str) -> Result<bool, String> {
     let obj = js_sys::Object::new();
     js_sys::Reflect::set(&obj, &JsValue::from_str("phaseId"), &JsValue::from_str(phase_id)).unwrap();
     js_sys::Reflect::set(&obj, &JsValue::from_str("bossId"), &JsValue::from_str(boss_id)).unwrap();
     js_sys::Reflect::set(&obj, &JsValue::from_str("filePath"), &JsValue::from_str(file_path)).unwrap();
 
-    let _result = invoke("delete_phase", obj.into()).await;
-    true
+    try_invoke("delete_phase", obj.into()).await?;
+    Ok(true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -452,14 +485,15 @@ pub async fn create_counter(counter: &CounterListItem) -> Option<CounterListItem
 }
 
 /// Delete a counter
-pub async fn delete_counter(counter_id: &str, boss_id: &str, file_path: &str) -> bool {
+/// Returns Ok(true) on success, Err with message if deletion not allowed (bundled items).
+pub async fn delete_counter(counter_id: &str, boss_id: &str, file_path: &str) -> Result<bool, String> {
     let obj = js_sys::Object::new();
     js_sys::Reflect::set(&obj, &JsValue::from_str("counterId"), &JsValue::from_str(counter_id)).unwrap();
     js_sys::Reflect::set(&obj, &JsValue::from_str("bossId"), &JsValue::from_str(boss_id)).unwrap();
     js_sys::Reflect::set(&obj, &JsValue::from_str("filePath"), &JsValue::from_str(file_path)).unwrap();
 
-    let _result = invoke("delete_counter", obj.into()).await;
-    true
+    try_invoke("delete_counter", obj.into()).await?;
+    Ok(true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -490,14 +524,15 @@ pub async fn create_challenge(challenge: &ChallengeListItem) -> Option<Challenge
 }
 
 /// Delete a challenge
-pub async fn delete_challenge(challenge_id: &str, boss_id: &str, file_path: &str) -> bool {
+/// Returns Ok(true) on success, Err with message if deletion not allowed (bundled items).
+pub async fn delete_challenge(challenge_id: &str, boss_id: &str, file_path: &str) -> Result<bool, String> {
     let obj = js_sys::Object::new();
     js_sys::Reflect::set(&obj, &JsValue::from_str("challengeId"), &JsValue::from_str(challenge_id)).unwrap();
     js_sys::Reflect::set(&obj, &JsValue::from_str("bossId"), &JsValue::from_str(boss_id)).unwrap();
     js_sys::Reflect::set(&obj, &JsValue::from_str("filePath"), &JsValue::from_str(file_path)).unwrap();
 
-    let _result = invoke("delete_challenge", obj.into()).await;
-    true
+    try_invoke("delete_challenge", obj.into()).await?;
+    Ok(true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -532,14 +567,15 @@ pub async fn create_entity(entity: &EntityListItem) -> Option<EntityListItem> {
 }
 
 /// Delete an entity
-pub async fn delete_entity(entity_name: &str, boss_id: &str, file_path: &str) -> bool {
+/// Returns Ok(true) on success, Err with message if deletion not allowed (bundled items).
+pub async fn delete_entity(entity_name: &str, boss_id: &str, file_path: &str) -> Result<bool, String> {
     let obj = js_sys::Object::new();
     js_sys::Reflect::set(&obj, &JsValue::from_str("entityName"), &JsValue::from_str(entity_name)).unwrap();
     js_sys::Reflect::set(&obj, &JsValue::from_str("bossId"), &JsValue::from_str(boss_id)).unwrap();
     js_sys::Reflect::set(&obj, &JsValue::from_str("filePath"), &JsValue::from_str(file_path)).unwrap();
 
-    let _result = invoke("delete_entity", obj.into()).await;
-    true
+    try_invoke("delete_entity", obj.into()).await?;
+    Ok(true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

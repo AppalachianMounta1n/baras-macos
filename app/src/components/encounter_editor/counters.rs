@@ -165,20 +165,23 @@ fn CounterRow(
                             move |counter_to_delete: CounterListItem| {
                                 let all_counters = all_counters.clone();
                                 spawn(async move {
-                                    if api::delete_counter(
+                                    match api::delete_counter(
                                         &counter_to_delete.id,
                                         &counter_to_delete.boss_id,
                                         &counter_to_delete.file_path
                                     ).await {
-                                        let updated: Vec<_> = all_counters.iter()
-                                            .filter(|c| c.id != counter_to_delete.id)
-                                            .cloned()
-                                            .collect();
-                                        on_change.call(updated);
-                                        on_collapse.call(());
-                                        on_status.call(("Deleted".to_string(), false));
-                                    } else {
-                                        on_status.call(("Failed to delete".to_string(), true));
+                                        Ok(_) => {
+                                            let updated: Vec<_> = all_counters.iter()
+                                                .filter(|c| c.id != counter_to_delete.id)
+                                                .cloned()
+                                                .collect();
+                                            on_change.call(updated);
+                                            on_collapse.call(());
+                                            on_status.call(("Deleted".to_string(), false));
+                                        }
+                                        Err(err) => {
+                                            on_status.call((err, true));
+                                        }
                                     }
                                 });
                             }

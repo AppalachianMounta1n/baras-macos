@@ -366,6 +366,245 @@ fn has_bundled_counterpart(user_file: &Path, user_base: &Path, bundled_dir: &Pat
     false
 }
 
+/// Check if a file path is in the bundled directory (with canonicalization for Windows)
+/// Returns Some(custom_path) if bundled, None if user file
+fn check_bundled_path(
+    file_path: &Path,
+    app_handle: &AppHandle,
+) -> Result<Option<PathBuf>, String> {
+    let bundled_dir = get_bundled_encounters_dir(app_handle);
+    let user_dir = get_user_encounters_dir();
+
+    let is_bundled = bundled_dir.as_ref().is_some_and(|bd| {
+        let canonical_file = file_path.canonicalize().unwrap_or_else(|_| file_path.to_path_buf());
+        let canonical_bundled = bd.canonicalize().unwrap_or_else(|_| bd.clone());
+        canonical_file.starts_with(&canonical_bundled)
+    });
+
+    if is_bundled {
+        let custom_path = get_custom_file_path(
+            file_path,
+            bundled_dir.as_ref().unwrap(),
+            user_dir.as_ref().ok_or("No user dir")?,
+        );
+        Ok(Some(custom_path))
+    } else {
+        Ok(None)
+    }
+}
+
+/// Check if a timer exists in a custom overlay file (user-created, deletable)
+fn timer_exists_in_custom(custom_path: &Path, boss_id: &str, timer_id: &str) -> bool {
+    use baras_core::boss::load_bosses_from_file;
+    if !custom_path.exists() {
+        return false;
+    }
+    load_bosses_from_file(custom_path)
+        .ok()
+        .map(|bosses| {
+            bosses
+                .iter()
+                .any(|b| b.id == boss_id && b.timers.iter().any(|t| t.id == timer_id))
+        })
+        .unwrap_or(false)
+}
+
+/// Check if a phase exists in a custom overlay file
+fn phase_exists_in_custom(custom_path: &Path, boss_id: &str, phase_id: &str) -> bool {
+    use baras_core::boss::load_bosses_from_file;
+    if !custom_path.exists() {
+        return false;
+    }
+    load_bosses_from_file(custom_path)
+        .ok()
+        .map(|bosses| {
+            bosses
+                .iter()
+                .any(|b| b.id == boss_id && b.phases.iter().any(|p| p.id == phase_id))
+        })
+        .unwrap_or(false)
+}
+
+/// Check if a counter exists in a custom overlay file
+fn counter_exists_in_custom(custom_path: &Path, boss_id: &str, counter_id: &str) -> bool {
+    use baras_core::boss::load_bosses_from_file;
+    if !custom_path.exists() {
+        return false;
+    }
+    load_bosses_from_file(custom_path)
+        .ok()
+        .map(|bosses| {
+            bosses
+                .iter()
+                .any(|b| b.id == boss_id && b.counters.iter().any(|c| c.id == counter_id))
+        })
+        .unwrap_or(false)
+}
+
+/// Check if a challenge exists in a custom overlay file
+fn challenge_exists_in_custom(custom_path: &Path, boss_id: &str, challenge_id: &str) -> bool {
+    use baras_core::boss::load_bosses_from_file;
+    if !custom_path.exists() {
+        return false;
+    }
+    load_bosses_from_file(custom_path)
+        .ok()
+        .map(|bosses| {
+            bosses
+                .iter()
+                .any(|b| b.id == boss_id && b.challenges.iter().any(|c| c.id == challenge_id))
+        })
+        .unwrap_or(false)
+}
+
+/// Check if an entity exists in a custom overlay file
+fn entity_exists_in_custom(custom_path: &Path, boss_id: &str, entity_name: &str) -> bool {
+    use baras_core::boss::load_bosses_from_file;
+    if !custom_path.exists() {
+        return false;
+    }
+    load_bosses_from_file(custom_path)
+        .ok()
+        .map(|bosses| {
+            bosses
+                .iter()
+                .any(|b| b.id == boss_id && b.entities.iter().any(|e| e.name == entity_name))
+        })
+        .unwrap_or(false)
+}
+
+/// Delete a timer from a custom overlay file
+fn delete_timer_from_custom(custom_path: &Path, boss_id: &str, timer_id: &str) -> Result<(), String> {
+    use baras_core::boss::load_bosses_from_file;
+
+    let mut bosses = load_bosses_from_file(custom_path)
+        .map_err(|e| format!("Failed to load custom file: {}", e))?;
+
+    for boss in &mut bosses {
+        if boss.id == boss_id {
+            boss.timers.retain(|t| t.id != timer_id);
+        }
+    }
+
+    // Remove empty boss entries
+    bosses.retain(|b| !b.timers.is_empty() || !b.phases.is_empty() || !b.counters.is_empty()
+        || !b.challenges.is_empty() || !b.entities.is_empty());
+
+    if bosses.is_empty() {
+        // Delete the file if no more custom content
+        std::fs::remove_file(custom_path)
+            .map_err(|e| format!("Failed to delete empty custom file: {}", e))?;
+    } else {
+        save_bosses_to_file(&bosses, custom_path)?;
+    }
+
+    Ok(())
+}
+
+/// Delete a phase from a custom overlay file
+fn delete_phase_from_custom(custom_path: &Path, boss_id: &str, phase_id: &str) -> Result<(), String> {
+    use baras_core::boss::load_bosses_from_file;
+
+    let mut bosses = load_bosses_from_file(custom_path)
+        .map_err(|e| format!("Failed to load custom file: {}", e))?;
+
+    for boss in &mut bosses {
+        if boss.id == boss_id {
+            boss.phases.retain(|p| p.id != phase_id);
+        }
+    }
+
+    bosses.retain(|b| !b.timers.is_empty() || !b.phases.is_empty() || !b.counters.is_empty()
+        || !b.challenges.is_empty() || !b.entities.is_empty());
+
+    if bosses.is_empty() {
+        std::fs::remove_file(custom_path)
+            .map_err(|e| format!("Failed to delete empty custom file: {}", e))?;
+    } else {
+        save_bosses_to_file(&bosses, custom_path)?;
+    }
+
+    Ok(())
+}
+
+/// Delete a counter from a custom overlay file
+fn delete_counter_from_custom(custom_path: &Path, boss_id: &str, counter_id: &str) -> Result<(), String> {
+    use baras_core::boss::load_bosses_from_file;
+
+    let mut bosses = load_bosses_from_file(custom_path)
+        .map_err(|e| format!("Failed to load custom file: {}", e))?;
+
+    for boss in &mut bosses {
+        if boss.id == boss_id {
+            boss.counters.retain(|c| c.id != counter_id);
+        }
+    }
+
+    bosses.retain(|b| !b.timers.is_empty() || !b.phases.is_empty() || !b.counters.is_empty()
+        || !b.challenges.is_empty() || !b.entities.is_empty());
+
+    if bosses.is_empty() {
+        std::fs::remove_file(custom_path)
+            .map_err(|e| format!("Failed to delete empty custom file: {}", e))?;
+    } else {
+        save_bosses_to_file(&bosses, custom_path)?;
+    }
+
+    Ok(())
+}
+
+/// Delete a challenge from a custom overlay file
+fn delete_challenge_from_custom(custom_path: &Path, boss_id: &str, challenge_id: &str) -> Result<(), String> {
+    use baras_core::boss::load_bosses_from_file;
+
+    let mut bosses = load_bosses_from_file(custom_path)
+        .map_err(|e| format!("Failed to load custom file: {}", e))?;
+
+    for boss in &mut bosses {
+        if boss.id == boss_id {
+            boss.challenges.retain(|c| c.id != challenge_id);
+        }
+    }
+
+    bosses.retain(|b| !b.timers.is_empty() || !b.phases.is_empty() || !b.counters.is_empty()
+        || !b.challenges.is_empty() || !b.entities.is_empty());
+
+    if bosses.is_empty() {
+        std::fs::remove_file(custom_path)
+            .map_err(|e| format!("Failed to delete empty custom file: {}", e))?;
+    } else {
+        save_bosses_to_file(&bosses, custom_path)?;
+    }
+
+    Ok(())
+}
+
+/// Delete an entity from a custom overlay file
+fn delete_entity_from_custom(custom_path: &Path, boss_id: &str, entity_name: &str) -> Result<(), String> {
+    use baras_core::boss::load_bosses_from_file;
+
+    let mut bosses = load_bosses_from_file(custom_path)
+        .map_err(|e| format!("Failed to load custom file: {}", e))?;
+
+    for boss in &mut bosses {
+        if boss.id == boss_id {
+            boss.entities.retain(|e| e.name != entity_name);
+        }
+    }
+
+    bosses.retain(|b| !b.timers.is_empty() || !b.phases.is_empty() || !b.counters.is_empty()
+        || !b.challenges.is_empty() || !b.entities.is_empty());
+
+    if bosses.is_empty() {
+        std::fs::remove_file(custom_path)
+            .map_err(|e| format!("Failed to delete empty custom file: {}", e))?;
+    } else {
+        save_bosses_to_file(&bosses, custom_path)?;
+    }
+
+    Ok(())
+}
+
 /// Get the custom file path for saving edits to a bundled boss
 fn get_custom_file_path(bundled_path: &Path, bundled_dir: &Path, user_dir: &Path) -> PathBuf {
     // Get relative path from bundled dir
@@ -493,22 +732,9 @@ pub async fn update_encounter_timer(
 
     // Save definition changes to file
     if def_changed {
-        let bundled_dir = get_bundled_encounters_dir(&app_handle);
-        let user_dir = get_user_encounters_dir();
-
         let timer_def = timer.to_timer_definition();
 
-        let is_bundled = bundled_dir
-            .as_ref()
-            .is_some_and(|bd| file_path.starts_with(bd));
-
-        if is_bundled {
-            // Bundled file - save to custom overlay
-            let custom_path = get_custom_file_path(
-                &file_path,
-                bundled_dir.as_ref().unwrap(),
-                user_dir.as_ref().ok_or("No user dir")?,
-            );
+        if let Some(custom_path) = check_bundled_path(&file_path, &app_handle)? {
             save_timer_to_custom_file(&custom_path, &timer.boss_id, &timer_def)?;
         } else {
             // User file - save directly
@@ -593,6 +819,166 @@ fn save_timer_to_custom_file(
     Ok(())
 }
 
+/// Save a phase to a custom overlay file
+fn save_phase_to_custom_file(
+    custom_path: &Path,
+    boss_id: &str,
+    phase: &PhaseDefinition,
+) -> Result<(), String> {
+    use baras_core::boss::{BossEncounterDefinition, load_bosses_from_file};
+
+    let mut bosses = if custom_path.exists() {
+        load_bosses_from_file(custom_path).unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+
+    let boss = if let Some(b) = bosses.iter_mut().find(|b| b.id == boss_id) {
+        b
+    } else {
+        bosses.push(BossEncounterDefinition {
+            id: boss_id.to_string(),
+            ..Default::default()
+        });
+        bosses.last_mut().unwrap()
+    };
+
+    if let Some(existing) = boss.phases.iter_mut().find(|p| p.id == phase.id) {
+        *existing = phase.clone();
+    } else {
+        boss.phases.push(phase.clone());
+    }
+
+    if let Some(parent) = custom_path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create directory: {}", e))?;
+    }
+
+    save_bosses_to_file(&bosses, custom_path)?;
+    eprintln!("[TIMERS] Saved phase '{}' to custom file {:?}", phase.id, custom_path);
+    Ok(())
+}
+
+/// Save a counter to a custom overlay file
+fn save_counter_to_custom_file(
+    custom_path: &Path,
+    boss_id: &str,
+    counter: &CounterDefinition,
+) -> Result<(), String> {
+    use baras_core::boss::{BossEncounterDefinition, load_bosses_from_file};
+
+    let mut bosses = if custom_path.exists() {
+        load_bosses_from_file(custom_path).unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+
+    let boss = if let Some(b) = bosses.iter_mut().find(|b| b.id == boss_id) {
+        b
+    } else {
+        bosses.push(BossEncounterDefinition {
+            id: boss_id.to_string(),
+            ..Default::default()
+        });
+        bosses.last_mut().unwrap()
+    };
+
+    if let Some(existing) = boss.counters.iter_mut().find(|c| c.id == counter.id) {
+        *existing = counter.clone();
+    } else {
+        boss.counters.push(counter.clone());
+    }
+
+    if let Some(parent) = custom_path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create directory: {}", e))?;
+    }
+
+    save_bosses_to_file(&bosses, custom_path)?;
+    eprintln!("[TIMERS] Saved counter '{}' to custom file {:?}", counter.id, custom_path);
+    Ok(())
+}
+
+/// Save a challenge to a custom overlay file
+fn save_challenge_to_custom_file(
+    custom_path: &Path,
+    boss_id: &str,
+    challenge: &ChallengeDefinition,
+) -> Result<(), String> {
+    use baras_core::boss::{BossEncounterDefinition, load_bosses_from_file};
+
+    let mut bosses = if custom_path.exists() {
+        load_bosses_from_file(custom_path).unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+
+    let boss = if let Some(b) = bosses.iter_mut().find(|b| b.id == boss_id) {
+        b
+    } else {
+        bosses.push(BossEncounterDefinition {
+            id: boss_id.to_string(),
+            ..Default::default()
+        });
+        bosses.last_mut().unwrap()
+    };
+
+    if let Some(existing) = boss.challenges.iter_mut().find(|c| c.id == challenge.id) {
+        *existing = challenge.clone();
+    } else {
+        boss.challenges.push(challenge.clone());
+    }
+
+    if let Some(parent) = custom_path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create directory: {}", e))?;
+    }
+
+    save_bosses_to_file(&bosses, custom_path)?;
+    eprintln!("[TIMERS] Saved challenge '{}' to custom file {:?}", challenge.id, custom_path);
+    Ok(())
+}
+
+/// Save an entity to a custom overlay file
+fn save_entity_to_custom_file(
+    custom_path: &Path,
+    boss_id: &str,
+    entity: &EntityDefinition,
+) -> Result<(), String> {
+    use baras_core::boss::{BossEncounterDefinition, load_bosses_from_file};
+
+    let mut bosses = if custom_path.exists() {
+        load_bosses_from_file(custom_path).unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+
+    let boss = if let Some(b) = bosses.iter_mut().find(|b| b.id == boss_id) {
+        b
+    } else {
+        bosses.push(BossEncounterDefinition {
+            id: boss_id.to_string(),
+            ..Default::default()
+        });
+        bosses.last_mut().unwrap()
+    };
+
+    if let Some(existing) = boss.entities.iter_mut().find(|e| e.name == entity.name) {
+        *existing = entity.clone();
+    } else {
+        boss.entities.push(entity.clone());
+    }
+
+    if let Some(parent) = custom_path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create directory: {}", e))?;
+    }
+
+    save_bosses_to_file(&bosses, custom_path)?;
+    eprintln!("[TIMERS] Saved entity '{}' to custom file {:?}", entity.name, custom_path);
+    Ok(())
+}
+
 /// Create a new timer for a boss
 #[tauri::command]
 pub async fn create_encounter_timer(
@@ -664,18 +1050,19 @@ pub async fn create_encounter_timer(
 
     let item = created_item.ok_or_else(|| format!("Boss '{}' not found", boss_id))?;
 
-    // Save the modified file
-    let file_bosses: Vec<_> = bosses
-        .iter()
-        .filter(|b| b.file_path == file_path_buf)
-        .map(|b| b.boss.clone())
-        .collect();
+    // Save to custom overlay if bundled, or directly if user file
+    if let Some(custom_path) = check_bundled_path(&file_path_buf, &app_handle)? {
+        save_timer_to_custom_file(&custom_path, boss_id, &new_timer)?;
+    } else {
+        let file_bosses: Vec<_> = bosses
+            .iter()
+            .filter(|b| b.file_path == file_path_buf)
+            .map(|b| b.boss.clone())
+            .collect();
+        save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    }
 
-    save_bosses_to_file(&file_bosses, &file_path_buf)?;
-
-    // Reload definitions into the running session
     let _ = service.reload_timer_definitions().await;
-
     Ok(item)
 }
 
@@ -705,59 +1092,52 @@ pub async fn delete_encounter_timer(
     boss_id: String,
     file_path: String,
 ) -> Result<(), String> {
-    let mut bosses = load_merged_bosses(&app_handle)?;
-
-    // Canonicalize paths for reliable comparison
     let file_path_buf = PathBuf::from(&file_path);
-    let canonical_path = file_path_buf
-        .canonicalize()
-        .unwrap_or_else(|_| file_path_buf.clone());
 
-    // Find the boss and remove the timer
-    let mut found = false;
-    let mut matched_file_path: Option<PathBuf> = None;
-
-    for boss_with_path in &mut bosses {
-        let boss_canonical = boss_with_path
-            .file_path
-            .canonicalize()
-            .unwrap_or_else(|_| boss_with_path.file_path.clone());
-
-        if boss_with_path.boss.id == boss_id && boss_canonical == canonical_path {
-            let original_len = boss_with_path.boss.timers.len();
-            boss_with_path.boss.timers.retain(|t| t.id != timer_id);
-            found = boss_with_path.boss.timers.len() < original_len;
-            matched_file_path = Some(boss_with_path.file_path.clone());
-            break;
+    // Check if this is a bundled file
+    if let Some(custom_path) = check_bundled_path(&file_path_buf, &app_handle)? {
+        // Bundled file - only allow deleting if timer exists in custom overlay
+        if timer_exists_in_custom(&custom_path, &boss_id, &timer_id) {
+            delete_timer_from_custom(&custom_path, &boss_id, &timer_id)?;
+        } else {
+            return Err("Cannot delete bundled timers. Disable them instead.".to_string());
         }
-    }
+    } else {
+        // User file - delete directly
+        let mut bosses = load_merged_bosses(&app_handle)?;
+        let canonical_path = file_path_buf.canonicalize().unwrap_or_else(|_| file_path_buf.clone());
 
-    if !found {
-        return Err(format!(
-            "Timer '{}' not found in boss '{}'",
-            timer_id, boss_id
-        ));
-    }
-
-    // Use the actual file path from the matched boss (ensures consistency)
-    let save_path = matched_file_path.unwrap_or(file_path_buf);
-
-    // Save the modified file
-    let file_bosses: Vec<_> = bosses
-        .iter()
-        .filter(|b| {
-            let b_canonical = b
+        let mut found = false;
+        for boss_with_path in &mut bosses {
+            let boss_canonical = boss_with_path
                 .file_path
                 .canonicalize()
-                .unwrap_or_else(|_| b.file_path.clone());
-            b_canonical == canonical_path
-        })
-        .map(|b| b.boss.clone())
-        .collect();
+                .unwrap_or_else(|_| boss_with_path.file_path.clone());
 
-    save_bosses_to_file(&file_bosses, &save_path)?;
+            if boss_with_path.boss.id == boss_id && boss_canonical == canonical_path {
+                let original_len = boss_with_path.boss.timers.len();
+                boss_with_path.boss.timers.retain(|t| t.id != timer_id);
+                found = boss_with_path.boss.timers.len() < original_len;
+                break;
+            }
+        }
 
-    // Reload definitions into the running session (propagate errors)
+        if !found {
+            return Err(format!("Timer '{}' not found in boss '{}'", timer_id, boss_id));
+        }
+
+        let file_bosses: Vec<_> = bosses
+            .iter()
+            .filter(|b| {
+                let b_canonical = b.file_path.canonicalize().unwrap_or_else(|_| b.file_path.clone());
+                b_canonical == canonical_path
+            })
+            .map(|b| b.boss.clone())
+            .collect();
+
+        save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    }
+
     service
         .reload_timer_definitions()
         .await
@@ -1135,6 +1515,7 @@ pub struct NewAreaRequest {
 /// Create a new boss in an existing area file
 #[tauri::command]
 pub async fn create_boss(
+    app_handle: AppHandle,
     service: State<'_, ServiceHandle>,
     boss: BossEditItem,
 ) -> Result<BossEditItem, String> {
@@ -1144,6 +1525,14 @@ pub async fn create_boss(
 
     if !file_path.exists() {
         return Err(format!("Area file not found: {}", boss.file_path));
+    }
+
+    // Prevent adding bosses to bundled area files - user should create their own area
+    if check_bundled_path(&file_path, &app_handle)?.is_some() {
+        return Err(
+            "Cannot add bosses to bundled area files. Please create a custom area file first."
+                .to_string(),
+        );
     }
 
     // Load existing bosses from the file
@@ -1170,7 +1559,7 @@ pub async fn create_boss(
 
     bosses.push(new_boss);
 
-    // Save back to file
+    // Save back to file (user file only, bundled prevented above)
     save_bosses_to_file(&bosses, &file_path)?;
 
     // Reload definitions
@@ -1390,13 +1779,17 @@ pub async fn update_phase(
 
     let item = updated_item.ok_or_else(|| format!("Phase '{}' not found", phase.id))?;
 
-    let file_bosses: Vec<_> = bosses
-        .iter()
-        .filter(|b| b.file_path == file_path_buf)
-        .map(|b| b.boss.clone())
-        .collect();
-
-    save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    // Save to custom overlay if bundled, or directly if user file
+    if let Some(custom_path) = check_bundled_path(&file_path_buf, &app_handle)? {
+        save_phase_to_custom_file(&custom_path, &phase.boss_id, &phase.to_phase_definition())?;
+    } else {
+        let file_bosses: Vec<_> = bosses
+            .iter()
+            .filter(|b| b.file_path == file_path_buf)
+            .map(|b| b.boss.clone())
+            .collect();
+        save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    }
     let _ = service.reload_timer_definitions().await;
 
     Ok(item)
@@ -1430,13 +1823,17 @@ pub async fn create_phase(
 
     let item = created_item.ok_or_else(|| format!("Boss '{}' not found", boss_id))?;
 
-    let file_bosses: Vec<_> = bosses
-        .iter()
-        .filter(|b| b.file_path == file_path_buf)
-        .map(|b| b.boss.clone())
-        .collect();
-
-    save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    // Save to custom overlay if bundled, or directly if user file
+    if let Some(custom_path) = check_bundled_path(&file_path_buf, &app_handle)? {
+        save_phase_to_custom_file(&custom_path, &boss_id, &new_phase)?;
+    } else {
+        let file_bosses: Vec<_> = bosses
+            .iter()
+            .filter(|b| b.file_path == file_path_buf)
+            .map(|b| b.boss.clone())
+            .collect();
+        save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    }
     let _ = service.reload_timer_definitions().await;
 
     Ok(item)
@@ -1451,51 +1848,49 @@ pub async fn delete_phase(
     boss_id: String,
     file_path: String,
 ) -> Result<(), String> {
-    let mut bosses = load_merged_bosses(&app_handle)?;
     let file_path_buf = PathBuf::from(&file_path);
-    let canonical_path = file_path_buf
-        .canonicalize()
-        .unwrap_or_else(|_| file_path_buf.clone());
 
-    let mut found = false;
-    let mut matched_file_path: Option<PathBuf> = None;
-
-    for boss_with_path in &mut bosses {
-        let boss_canonical = boss_with_path
-            .file_path
-            .canonicalize()
-            .unwrap_or_else(|_| boss_with_path.file_path.clone());
-
-        if boss_with_path.boss.id == boss_id && boss_canonical == canonical_path {
-            let original_len = boss_with_path.boss.phases.len();
-            boss_with_path.boss.phases.retain(|p| p.id != phase_id);
-            found = boss_with_path.boss.phases.len() < original_len;
-            matched_file_path = Some(boss_with_path.file_path.clone());
-            break;
+    if let Some(custom_path) = check_bundled_path(&file_path_buf, &app_handle)? {
+        if phase_exists_in_custom(&custom_path, &boss_id, &phase_id) {
+            delete_phase_from_custom(&custom_path, &boss_id, &phase_id)?;
+        } else {
+            return Err("Cannot delete bundled phases. Disable them instead.".to_string());
         }
-    }
+    } else {
+        let mut bosses = load_merged_bosses(&app_handle)?;
+        let canonical_path = file_path_buf.canonicalize().unwrap_or_else(|_| file_path_buf.clone());
 
-    if !found {
-        return Err(format!(
-            "Phase '{}' not found in boss '{}'",
-            phase_id, boss_id
-        ));
-    }
-
-    let save_path = matched_file_path.unwrap_or(file_path_buf);
-    let file_bosses: Vec<_> = bosses
-        .iter()
-        .filter(|b| {
-            let b_canonical = b
+        let mut found = false;
+        for boss_with_path in &mut bosses {
+            let boss_canonical = boss_with_path
                 .file_path
                 .canonicalize()
-                .unwrap_or_else(|_| b.file_path.clone());
-            b_canonical == canonical_path
-        })
-        .map(|b| b.boss.clone())
-        .collect();
+                .unwrap_or_else(|_| boss_with_path.file_path.clone());
 
-    save_bosses_to_file(&file_bosses, &save_path)?;
+            if boss_with_path.boss.id == boss_id && boss_canonical == canonical_path {
+                let original_len = boss_with_path.boss.phases.len();
+                boss_with_path.boss.phases.retain(|p| p.id != phase_id);
+                found = boss_with_path.boss.phases.len() < original_len;
+                break;
+            }
+        }
+
+        if !found {
+            return Err(format!("Phase '{}' not found in boss '{}'", phase_id, boss_id));
+        }
+
+        let file_bosses: Vec<_> = bosses
+            .iter()
+            .filter(|b| {
+                let b_canonical = b.file_path.canonicalize().unwrap_or_else(|_| b.file_path.clone());
+                b_canonical == canonical_path
+            })
+            .map(|b| b.boss.clone())
+            .collect();
+
+        save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    }
+
     service
         .reload_timer_definitions()
         .await
@@ -1627,13 +2022,17 @@ pub async fn update_counter(
 
     let item = updated_item.ok_or_else(|| format!("Counter '{}' not found", counter.id))?;
 
-    let file_bosses: Vec<_> = bosses
-        .iter()
-        .filter(|b| b.file_path == file_path_buf)
-        .map(|b| b.boss.clone())
-        .collect();
-
-    save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    // Save to custom overlay if bundled, or directly if user file
+    if let Some(custom_path) = check_bundled_path(&file_path_buf, &app_handle)? {
+        save_counter_to_custom_file(&custom_path, &counter.boss_id, &counter.to_counter_definition())?;
+    } else {
+        let file_bosses: Vec<_> = bosses
+            .iter()
+            .filter(|b| b.file_path == file_path_buf)
+            .map(|b| b.boss.clone())
+            .collect();
+        save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    }
     let _ = service.reload_timer_definitions().await;
 
     Ok(item)
@@ -1674,13 +2073,17 @@ pub async fn create_counter(
 
     let item = created_item.ok_or_else(|| format!("Boss '{}' not found", boss_id))?;
 
-    let file_bosses: Vec<_> = bosses
-        .iter()
-        .filter(|b| b.file_path == file_path_buf)
-        .map(|b| b.boss.clone())
-        .collect();
-
-    save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    // Save to custom overlay if bundled, or directly if user file
+    if let Some(custom_path) = check_bundled_path(&file_path_buf, &app_handle)? {
+        save_counter_to_custom_file(&custom_path, &boss_id, &new_counter)?;
+    } else {
+        let file_bosses: Vec<_> = bosses
+            .iter()
+            .filter(|b| b.file_path == file_path_buf)
+            .map(|b| b.boss.clone())
+            .collect();
+        save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    }
     let _ = service.reload_timer_definitions().await;
 
     Ok(item)
@@ -1695,51 +2098,49 @@ pub async fn delete_counter(
     boss_id: String,
     file_path: String,
 ) -> Result<(), String> {
-    let mut bosses = load_merged_bosses(&app_handle)?;
     let file_path_buf = PathBuf::from(&file_path);
-    let canonical_path = file_path_buf
-        .canonicalize()
-        .unwrap_or_else(|_| file_path_buf.clone());
 
-    let mut found = false;
-    let mut matched_file_path: Option<PathBuf> = None;
-
-    for boss_with_path in &mut bosses {
-        let boss_canonical = boss_with_path
-            .file_path
-            .canonicalize()
-            .unwrap_or_else(|_| boss_with_path.file_path.clone());
-
-        if boss_with_path.boss.id == boss_id && boss_canonical == canonical_path {
-            let original_len = boss_with_path.boss.counters.len();
-            boss_with_path.boss.counters.retain(|c| c.id != counter_id);
-            found = boss_with_path.boss.counters.len() < original_len;
-            matched_file_path = Some(boss_with_path.file_path.clone());
-            break;
+    if let Some(custom_path) = check_bundled_path(&file_path_buf, &app_handle)? {
+        if counter_exists_in_custom(&custom_path, &boss_id, &counter_id) {
+            delete_counter_from_custom(&custom_path, &boss_id, &counter_id)?;
+        } else {
+            return Err("Cannot delete bundled counters. Disable them instead.".to_string());
         }
-    }
+    } else {
+        let mut bosses = load_merged_bosses(&app_handle)?;
+        let canonical_path = file_path_buf.canonicalize().unwrap_or_else(|_| file_path_buf.clone());
 
-    if !found {
-        return Err(format!(
-            "Counter '{}' not found in boss '{}'",
-            counter_id, boss_id
-        ));
-    }
-
-    let save_path = matched_file_path.unwrap_or(file_path_buf);
-    let file_bosses: Vec<_> = bosses
-        .iter()
-        .filter(|b| {
-            let b_canonical = b
+        let mut found = false;
+        for boss_with_path in &mut bosses {
+            let boss_canonical = boss_with_path
                 .file_path
                 .canonicalize()
-                .unwrap_or_else(|_| b.file_path.clone());
-            b_canonical == canonical_path
-        })
-        .map(|b| b.boss.clone())
-        .collect();
+                .unwrap_or_else(|_| boss_with_path.file_path.clone());
 
-    save_bosses_to_file(&file_bosses, &save_path)?;
+            if boss_with_path.boss.id == boss_id && boss_canonical == canonical_path {
+                let original_len = boss_with_path.boss.counters.len();
+                boss_with_path.boss.counters.retain(|c| c.id != counter_id);
+                found = boss_with_path.boss.counters.len() < original_len;
+                break;
+            }
+        }
+
+        if !found {
+            return Err(format!("Counter '{}' not found in boss '{}'", counter_id, boss_id));
+        }
+
+        let file_bosses: Vec<_> = bosses
+            .iter()
+            .filter(|b| {
+                let b_canonical = b.file_path.canonicalize().unwrap_or_else(|_| b.file_path.clone());
+                b_canonical == canonical_path
+            })
+            .map(|b| b.boss.clone())
+            .collect();
+
+        save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    }
+
     service
         .reload_timer_definitions()
         .await
@@ -1874,13 +2275,17 @@ pub async fn update_challenge(
 
     let item = updated_item.ok_or_else(|| format!("Challenge '{}' not found", challenge.id))?;
 
-    let file_bosses: Vec<_> = bosses
-        .iter()
-        .filter(|b| b.file_path == file_path_buf)
-        .map(|b| b.boss.clone())
-        .collect();
-
-    save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    // Save to custom overlay if bundled, or directly if user file
+    if let Some(custom_path) = check_bundled_path(&file_path_buf, &app_handle)? {
+        save_challenge_to_custom_file(&custom_path, &challenge.boss_id, &challenge.to_challenge_definition())?;
+    } else {
+        let file_bosses: Vec<_> = bosses
+            .iter()
+            .filter(|b| b.file_path == file_path_buf)
+            .map(|b| b.boss.clone())
+            .collect();
+        save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    }
     let _ = service.reload_timer_definitions().await;
 
     Ok(item)
@@ -1921,13 +2326,17 @@ pub async fn create_challenge(
 
     let item = created_item.ok_or_else(|| format!("Boss '{}' not found", boss_id))?;
 
-    let file_bosses: Vec<_> = bosses
-        .iter()
-        .filter(|b| b.file_path == file_path_buf)
-        .map(|b| b.boss.clone())
-        .collect();
-
-    save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    // Save to custom overlay if bundled, or directly if user file
+    if let Some(custom_path) = check_bundled_path(&file_path_buf, &app_handle)? {
+        save_challenge_to_custom_file(&custom_path, &boss_id, &new_challenge)?;
+    } else {
+        let file_bosses: Vec<_> = bosses
+            .iter()
+            .filter(|b| b.file_path == file_path_buf)
+            .map(|b| b.boss.clone())
+            .collect();
+        save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    }
     let _ = service.reload_timer_definitions().await;
 
     Ok(item)
@@ -1942,54 +2351,49 @@ pub async fn delete_challenge(
     boss_id: String,
     file_path: String,
 ) -> Result<(), String> {
-    let mut bosses = load_merged_bosses(&app_handle)?;
     let file_path_buf = PathBuf::from(&file_path);
-    let canonical_path = file_path_buf
-        .canonicalize()
-        .unwrap_or_else(|_| file_path_buf.clone());
 
-    let mut found = false;
-    let mut matched_file_path: Option<PathBuf> = None;
-
-    for boss_with_path in &mut bosses {
-        let boss_canonical = boss_with_path
-            .file_path
-            .canonicalize()
-            .unwrap_or_else(|_| boss_with_path.file_path.clone());
-
-        if boss_with_path.boss.id == boss_id && boss_canonical == canonical_path {
-            let original_len = boss_with_path.boss.challenges.len();
-            boss_with_path
-                .boss
-                .challenges
-                .retain(|c| c.id != challenge_id);
-            found = boss_with_path.boss.challenges.len() < original_len;
-            matched_file_path = Some(boss_with_path.file_path.clone());
-            break;
+    if let Some(custom_path) = check_bundled_path(&file_path_buf, &app_handle)? {
+        if challenge_exists_in_custom(&custom_path, &boss_id, &challenge_id) {
+            delete_challenge_from_custom(&custom_path, &boss_id, &challenge_id)?;
+        } else {
+            return Err("Cannot delete bundled challenges. Disable them instead.".to_string());
         }
-    }
+    } else {
+        let mut bosses = load_merged_bosses(&app_handle)?;
+        let canonical_path = file_path_buf.canonicalize().unwrap_or_else(|_| file_path_buf.clone());
 
-    if !found {
-        return Err(format!(
-            "Challenge '{}' not found in boss '{}'",
-            challenge_id, boss_id
-        ));
-    }
-
-    let save_path = matched_file_path.unwrap_or(file_path_buf);
-    let file_bosses: Vec<_> = bosses
-        .iter()
-        .filter(|b| {
-            let b_canonical = b
+        let mut found = false;
+        for boss_with_path in &mut bosses {
+            let boss_canonical = boss_with_path
                 .file_path
                 .canonicalize()
-                .unwrap_or_else(|_| b.file_path.clone());
-            b_canonical == canonical_path
-        })
-        .map(|b| b.boss.clone())
-        .collect();
+                .unwrap_or_else(|_| boss_with_path.file_path.clone());
 
-    save_bosses_to_file(&file_bosses, &save_path)?;
+            if boss_with_path.boss.id == boss_id && boss_canonical == canonical_path {
+                let original_len = boss_with_path.boss.challenges.len();
+                boss_with_path.boss.challenges.retain(|c| c.id != challenge_id);
+                found = boss_with_path.boss.challenges.len() < original_len;
+                break;
+            }
+        }
+
+        if !found {
+            return Err(format!("Challenge '{}' not found in boss '{}'", challenge_id, boss_id));
+        }
+
+        let file_bosses: Vec<_> = bosses
+            .iter()
+            .filter(|b| {
+                let b_canonical = b.file_path.canonicalize().unwrap_or_else(|_| b.file_path.clone());
+                b_canonical == canonical_path
+            })
+            .map(|b| b.boss.clone())
+            .collect();
+
+        save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    }
+
     service
         .reload_timer_definitions()
         .await
@@ -2105,13 +2509,17 @@ pub async fn update_entity(
 
     let item = updated_item.ok_or_else(|| format!("Entity '{}' not found", original_name))?;
 
-    let file_bosses: Vec<_> = bosses
-        .iter()
-        .filter(|b| b.file_path == file_path_buf)
-        .map(|b| b.boss.clone())
-        .collect();
-
-    save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    // Save to custom overlay if bundled, or directly if user file
+    if let Some(custom_path) = check_bundled_path(&file_path_buf, &app_handle)? {
+        save_entity_to_custom_file(&custom_path, &entity.boss_id, &entity.to_entity_definition())?;
+    } else {
+        let file_bosses: Vec<_> = bosses
+            .iter()
+            .filter(|b| b.file_path == file_path_buf)
+            .map(|b| b.boss.clone())
+            .collect();
+        save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    }
     let _ = service.reload_timer_definitions().await;
 
     Ok(item)
@@ -2156,13 +2564,17 @@ pub async fn create_entity(
 
     let item = created_item.ok_or_else(|| format!("Boss '{}' not found", boss_id))?;
 
-    let file_bosses: Vec<_> = bosses
-        .iter()
-        .filter(|b| b.file_path == file_path_buf)
-        .map(|b| b.boss.clone())
-        .collect();
-
-    save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    // Save to custom overlay if bundled, or directly if user file
+    if let Some(custom_path) = check_bundled_path(&file_path_buf, &app_handle)? {
+        save_entity_to_custom_file(&custom_path, &boss_id, &new_entity)?;
+    } else {
+        let file_bosses: Vec<_> = bosses
+            .iter()
+            .filter(|b| b.file_path == file_path_buf)
+            .map(|b| b.boss.clone())
+            .collect();
+        save_bosses_to_file(&file_bosses, &file_path_buf)?;
+    }
     let _ = service.reload_timer_definitions().await;
 
     Ok(item)
@@ -2177,38 +2589,41 @@ pub async fn delete_entity(
     boss_id: String,
     file_path: String,
 ) -> Result<(), String> {
-    let mut bosses = load_merged_bosses(&app_handle)?;
     let file_path_buf = PathBuf::from(&file_path);
 
-    let mut found = false;
-    for boss_with_path in &mut bosses {
-        if boss_with_path.boss.id == boss_id && boss_with_path.file_path == file_path_buf {
-            let original_len = boss_with_path.boss.entities.len();
-            boss_with_path
-                .boss
-                .entities
-                .retain(|e| e.name != entity_name);
-            found = boss_with_path.boss.entities.len() < original_len;
-            break;
+    if let Some(custom_path) = check_bundled_path(&file_path_buf, &app_handle)? {
+        if entity_exists_in_custom(&custom_path, &boss_id, &entity_name) {
+            delete_entity_from_custom(&custom_path, &boss_id, &entity_name)?;
+        } else {
+            return Err("Cannot delete bundled entities. They are part of the encounter definition.".to_string());
         }
+    } else {
+        let mut bosses = load_merged_bosses(&app_handle)?;
+
+        let mut found = false;
+        for boss_with_path in &mut bosses {
+            if boss_with_path.boss.id == boss_id && boss_with_path.file_path == file_path_buf {
+                let original_len = boss_with_path.boss.entities.len();
+                boss_with_path.boss.entities.retain(|e| e.name != entity_name);
+                found = boss_with_path.boss.entities.len() < original_len;
+                break;
+            }
+        }
+
+        if !found {
+            return Err(format!("Entity '{}' not found in boss '{}'", entity_name, boss_id));
+        }
+
+        let file_bosses: Vec<_> = bosses
+            .iter()
+            .filter(|b| b.file_path == file_path_buf)
+            .map(|b| b.boss.clone())
+            .collect();
+
+        save_bosses_to_file(&file_bosses, &file_path_buf)?;
     }
 
-    if !found {
-        return Err(format!(
-            "Entity '{}' not found in boss '{}'",
-            entity_name, boss_id
-        ));
-    }
-
-    let file_bosses: Vec<_> = bosses
-        .iter()
-        .filter(|b| b.file_path == file_path_buf)
-        .map(|b| b.boss.clone())
-        .collect();
-
-    save_bosses_to_file(&file_bosses, &file_path_buf)?;
     let _ = service.reload_timer_definitions().await;
-
     Ok(())
 }
 

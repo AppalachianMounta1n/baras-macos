@@ -164,21 +164,23 @@ pub fn TimerEditorPanel() -> Element {
         let timer_id = timer.timer_id.clone();
         let boss_id = timer.boss_id.clone();
 
-        let current = timers();
-        let filtered: Vec<_> = current
-            .into_iter()
-            .filter(|t| !(t.timer_id == timer_id && t.boss_id == boss_id))
-            .collect();
-        timers.set(filtered);
-        expanded_timer.set(None);
-
         spawn(async move {
-            if api::delete_encounter_timer(&timer.timer_id, &timer.boss_id, &timer.file_path).await {
-                save_status.set("Deleted".to_string());
-                status_is_error.set(false);
-            } else {
-                save_status.set("Failed to delete".to_string());
-                status_is_error.set(true);
+            match api::delete_encounter_timer(&timer.timer_id, &timer.boss_id, &timer.file_path).await {
+                Ok(_) => {
+                    let current = timers();
+                    let filtered: Vec<_> = current
+                        .into_iter()
+                        .filter(|t| !(t.timer_id == timer_id && t.boss_id == boss_id))
+                        .collect();
+                    timers.set(filtered);
+                    expanded_timer.set(None);
+                    save_status.set("Deleted".to_string());
+                    status_is_error.set(false);
+                }
+                Err(err) => {
+                    save_status.set(err);
+                    status_is_error.set(true);
+                }
             }
         });
     };

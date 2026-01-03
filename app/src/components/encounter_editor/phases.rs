@@ -170,16 +170,19 @@ fn PhaseRow(
                                     move |phase_to_delete: PhaseListItem| {
                                         let all_phases = all_phases.clone();
                                         spawn(async move {
-                                            if api::delete_phase(&phase_to_delete.id, &phase_to_delete.boss_id, &phase_to_delete.file_path).await {
-                                                let updated: Vec<_> = all_phases.iter()
-                                                    .filter(|p| p.id != phase_to_delete.id)
-                                                    .cloned()
-                                                    .collect();
-                                                on_change.call(updated);
-                                                on_collapse.call(());
-                                                on_status.call(("Deleted".to_string(), false));
-                                            } else {
-                                                on_status.call(("Failed to delete".to_string(), true));
+                                            match api::delete_phase(&phase_to_delete.id, &phase_to_delete.boss_id, &phase_to_delete.file_path).await {
+                                                Ok(_) => {
+                                                    let updated: Vec<_> = all_phases.iter()
+                                                        .filter(|p| p.id != phase_to_delete.id)
+                                                        .cloned()
+                                                        .collect();
+                                                    on_change.call(updated);
+                                                    on_collapse.call(());
+                                                    on_status.call(("Deleted".to_string(), false));
+                                                }
+                                                Err(err) => {
+                                                    on_status.call((err, true));
+                                                }
                                             }
                                         });
                                     }

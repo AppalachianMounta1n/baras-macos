@@ -154,48 +154,53 @@ pub struct BossEncounterDefinition {
     pub id: String,
 
     /// Display name
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub name: String,
 
     /// Area name as it appears in the game log (for display/logging)
     /// E.g., "Dxun - The CI-004 Facility", "Blood Hunt"
     /// In consolidated format, this is populated from the [area] header
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub area_name: String,
 
     /// Area ID from game (primary matching key - more reliable than name)
     /// In consolidated format, this is populated from the [area] header
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_zero")]
     pub area_id: i64,
 
     /// Difficulties this boss config applies to (empty = all)
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub difficulties: Vec<String>,
 
     /// Entity roster: all NPCs relevant to this encounter
     /// Define once with IDs, reference by name in triggers
-    #[serde(default, alias = "entity")]
+    #[serde(default, alias = "entity", skip_serializing_if = "Vec::is_empty")]
     pub entities: Vec<EntityDefinition>,
 
-       // ─── Mechanics ───────────────────────────────────────────────────────────
+    // ─── Mechanics ───────────────────────────────────────────────────────────
 
     /// Phase definitions
-    #[serde(default, alias = "phase")]
+    #[serde(default, alias = "phase", skip_serializing_if = "Vec::is_empty")]
     pub phases: Vec<PhaseDefinition>,
 
     /// Counter definitions
-    #[serde(default, alias = "counter")]
+    #[serde(default, alias = "counter", skip_serializing_if = "Vec::is_empty")]
     pub counters: Vec<CounterDefinition>,
 
     /// Boss-specific timers
-    #[serde(default, rename = "timer")]
+    #[serde(default, rename = "timer", skip_serializing_if = "Vec::is_empty")]
     pub timers: Vec<BossTimerDefinition>,
 
     /// Challenge definitions for tracking metrics
-    #[serde(default, alias = "challenge")]
+    #[serde(default, alias = "challenge", skip_serializing_if = "Vec::is_empty")]
     pub challenges: Vec<ChallengeDefinition>,
 
     #[serde(skip)]
     pub all_npc_ids: HashSet<i64>,
+}
+
+fn is_zero(v: &i64) -> bool {
+    *v == 0
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
