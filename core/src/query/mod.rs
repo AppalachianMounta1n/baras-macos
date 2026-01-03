@@ -244,14 +244,20 @@ impl EncounterQuery<'_> {
         let filter = format!("WHERE {}", conditions.join(" AND "));
 
         // Build dynamic SELECT and GROUP BY based on breakdown mode
-        let mut select_cols = vec![
-            "ability_name".to_string(),
-            "ability_id".to_string(),
-        ];
-        let mut group_cols = vec![
-            "ability_name".to_string(),
-            "ability_id".to_string(),
-        ];
+        let mut select_cols = Vec::new();
+        let mut group_cols = Vec::new();
+
+        // Ability columns (can be toggled off if grouping by target)
+        if mode.by_ability {
+            select_cols.push("ability_name".to_string());
+            select_cols.push("ability_id".to_string());
+            group_cols.push("ability_name".to_string());
+            group_cols.push("ability_id".to_string());
+        } else {
+            // When ability is off, use placeholder values
+            select_cols.push("'' as ability_name".to_string());
+            select_cols.push("0 as ability_id".to_string());
+        }
 
         // Add breakdown columns (target for outgoing, source for incoming)
         if mode.by_target_type || mode.by_target_instance {
@@ -265,6 +271,16 @@ impl EncounterQuery<'_> {
         if mode.by_target_instance {
             select_cols.push(breakdown_id_col.to_string());
             group_cols.push(breakdown_id_col.to_string());
+        }
+
+        // Ensure we have at least one grouping column
+        if group_cols.is_empty() {
+            // Fallback to ability grouping if nothing selected
+            select_cols.clear();
+            select_cols.push("ability_name".to_string());
+            select_cols.push("ability_id".to_string());
+            group_cols.push("ability_name".to_string());
+            group_cols.push("ability_id".to_string());
         }
 
         let select_str = select_cols.join(", ");

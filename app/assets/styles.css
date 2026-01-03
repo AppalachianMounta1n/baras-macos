@@ -5192,7 +5192,14 @@ details[open] .collapsible-summary::before {
 }
 
 .entity-row.selected {
-  background: var(--blue-alpha-10);
+  background: rgba(255, 200, 50, 0.15);
+  border-left: 3px solid var(--accent-gold);
+  box-shadow: inset 0 0 12px rgba(255, 200, 50, 0.1);
+}
+
+.entity-row.selected .entity-name {
+  color: var(--accent-gold);
+  font-weight: 600;
 }
 
 .entity-row .entity-name {
@@ -5252,13 +5259,105 @@ details[open] .collapsible-summary::before {
   top: 0;
 }
 
+/* Sortable column headers */
+.ability-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ability-table th.sortable:hover {
+  background: var(--blue-alpha-10);
+  color: var(--swtor-blue);
+}
+
+.ability-table th.sortable::after {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-left: 0.4em;
+  vertical-align: middle;
+  opacity: 0.3;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+}
+
+.ability-table th.sorted-asc::after {
+  opacity: 1;
+  border-top: none;
+  border-bottom: 5px solid currentColor;
+}
+
+.ability-table th.sorted-desc::after {
+  opacity: 1;
+  border-top: 5px solid currentColor;
+}
+
 .ability-table th.num,
 .ability-table td.num {
   text-align: right;
 }
 
+/* Hierarchical grouping styles */
+.ability-table .group-header {
+  background: var(--blue-alpha-10);
+  font-weight: 600;
+  border-top: 1px solid var(--border-default);
+}
+
+.ability-table .group-header:first-child {
+  border-top: none;
+}
+
+.ability-table .group-target {
+  color: var(--swtor-blue);
+  font-size: 0.9em;
+}
+
+.ability-table .group-icon {
+  margin-right: 0.5em;
+  font-size: 0.8em;
+  opacity: 0.6;
+}
+
+.ability-table .group-stat {
+  color: var(--swtor-blue);
+  font-weight: 600;
+  font-size: 0.95em;
+}
+
+.ability-table .target-time {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-left: 0.3em;
+}
+
+.ability-table .ability-row.indented .ability-name-cell {
+  padding-left: 1.75em;
+  color: var(--text-secondary);
+  font-size: 0.9em;
+}
+
+.ability-table .ability-row.indented .ability-name-cell::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--text-disabled);
+  border-radius: 50%;
+  margin-right: 0.5em;
+  vertical-align: middle;
+}
+
 .ability-table tbody tr:hover {
   background: var(--blue-alpha-5);
+}
+
+.ability-table .group-header:hover {
+  background: var(--blue-alpha-15);
 }
 
 .ability-table tbody tr:last-child td {

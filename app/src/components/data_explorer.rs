@@ -18,6 +18,30 @@ use crate::components::history_panel::EncounterSummary;
 use crate::components::phase_timeline::PhaseTimelineFilter;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Sort Types for Ability Table
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[derive(Clone, Copy, PartialEq, Default)]
+enum SortColumn {
+    Target,
+    Ability,
+    #[default]
+    Total,
+    Percent,
+    Rate,
+    Hits,
+    Avg,
+    CritPct,
+}
+
+#[derive(Clone, Copy, PartialEq, Default)]
+enum SortDirection {
+    #[default]
+    Desc,
+    Asc,
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ECharts JS Interop for Overview Donut Charts
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -402,6 +426,10 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
     // Data tab state (Damage, Healing, DamageTaken, HealingTaken)
     let mut selected_tab = use_signal(|| DataTab::Damage);
 
+    // Ability table sort state
+    let mut sort_column = use_signal(SortColumn::default);
+    let mut sort_direction = use_signal(SortDirection::default);
+
     // Overview mode - true shows raid overview (default), false shows detailed tabs
     let mut show_overview = use_signal(|| true);
     let mut overview_data = use_signal(Vec::<RaidOverviewRow>::new);
@@ -695,7 +723,6 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
 
         spawn(async move {
             loading.set(true);
-            let duration = timeline.read().as_ref().map(|t| t.duration_secs);
             let tr_opt = if tr.start == 0.0 && tr.end == 0.0 {
                 None
             } else {
@@ -703,27 +730,45 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
             };
 
             // Load entity breakdown
-            match api::query_entity_breakdown(tab, idx, tr_opt.as_ref()).await {
-                Some(data) => entities.set(data),
+            let entity_data = match api::query_entity_breakdown(tab, idx, tr_opt.as_ref()).await {
+                Some(data) => data,
                 None => {
                     error_msg.set(Some("No data available for this encounter".to_string()));
                     loading.set(false);
                     return;
                 }
+            };
+
+            // Auto-select first player if none selected
+            let auto_selected = if selected_source.read().is_none() {
+                entity_data.iter()
+                    .find(|e| e.entity_type == "Player" || e.entity_type == "Companion")
+                    .map(|e| e.source_name.clone())
+            } else {
+                selected_source.read().clone()
+            };
+
+            entities.set(entity_data);
+
+            // Load ability breakdown for selected (or auto-selected) source
+            let mode = *breakdown_mode.read();
+            if let Some(data) = api::query_breakdown(
+                tab,
+                idx,
+                auto_selected.as_deref(),
+                tr_opt.as_ref(),
+                None,  // No entity filter when source is selected
+                Some(&mode),
+                timeline.read().as_ref().map(|t| t.duration_secs),
+            )
+            .await
+            {
+                abilities.set(data);
             }
 
-            // Load ability breakdown
-            let entity_filter: Option<&[&str]> = if *show_players_only.read() {
-                Some(&["Player", "Companion"])
-            } else {
-                None
-            };
-            let mode = *breakdown_mode.read();
-            match api::query_breakdown(tab, idx, None, None, entity_filter, Some(&mode), duration)
-                .await
-            {
-                Some(data) => abilities.set(data),
-                None => error_msg.set(Some("Failed to load ability breakdown".to_string())),
+            // Set selected source after abilities loaded (triggers downstream effects cleanly)
+            if selected_source.read().is_none() && auto_selected.is_some() {
+                selected_source.set(auto_selected);
             }
 
             loading.set(false);
@@ -733,7 +778,7 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
     // NOTE: Time range changes are now handled by the tab-specific effects above
     // They read time_range() which triggers reload when it changes
 
-    // Reload abilities when entity filter or breakdown mode changes (only if no source selected)
+    // Reload abilities when entity filter or breakdown mode changes
     use_effect(move || {
         let players_only = *show_players_only.read();
         let mode = *breakdown_mode.read();
@@ -744,14 +789,15 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
         let is_detailed =
             !*show_overview.read() && !*show_charts.read() && !*show_combat_log.read();
 
-        // Skip if not on detailed tab, no encounter, or a specific source is selected
-        if !is_detailed || idx.is_none() || src.is_some() {
+        // Skip if not on detailed tab or no encounter
+        if !is_detailed || idx.is_none() {
             return;
         }
 
         spawn(async move {
             loading.set(true);
-            let entity_filter: Option<&[&str]> = if players_only {
+            // Apply entity filter only when no specific source is selected
+            let entity_filter: Option<&[&str]> = if src.is_none() && players_only {
                 Some(&["Player", "Companion"])
             } else {
                 None
@@ -765,7 +811,7 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
             if let Some(data) = api::query_breakdown(
                 tab,
                 idx,
-                None,
+                src.as_deref(),
                 tr_opt.as_ref(),
                 entity_filter,
                 Some(&mode),
@@ -862,6 +908,108 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
             .filter(|e| !players_only || e.entity_type == "Player" || e.entity_type == "Companion")
             .cloned()
             .collect::<Vec<_>>()
+    });
+
+    // Group stats for hierarchical display
+    #[derive(Clone, Default, PartialEq)]
+    struct GroupStats {
+        target: Option<String>,
+        first_hit: Option<f32>,
+        total: f64,
+        percent: f64,
+        rate: f64,
+        hits: i64,
+        avg: f64,
+        crit_pct: f64,
+    }
+
+    // Memoized grouped abilities - groups by target when breakdown mode is enabled
+    let grouped_abilities = use_memo(move || {
+        let col = *sort_column.read();
+        let dir = *sort_direction.read();
+        let mode = *breakdown_mode.read();
+        let list: Vec<AbilityBreakdown> = abilities.read().clone();
+
+        // Sort function for abilities within groups
+        let sort_abilities = |mut items: Vec<AbilityBreakdown>| -> Vec<AbilityBreakdown> {
+            items.sort_by(|a, b| {
+                let cmp = match col {
+                    SortColumn::Target | SortColumn::Ability => a.ability_name.cmp(&b.ability_name),
+                    SortColumn::Total => a.total_value.partial_cmp(&b.total_value).unwrap_or(std::cmp::Ordering::Equal),
+                    SortColumn::Percent => a.percent_of_total.partial_cmp(&b.percent_of_total).unwrap_or(std::cmp::Ordering::Equal),
+                    SortColumn::Rate => a.dps.partial_cmp(&b.dps).unwrap_or(std::cmp::Ordering::Equal),
+                    SortColumn::Hits => a.hit_count.cmp(&b.hit_count),
+                    SortColumn::Avg => a.avg_hit.partial_cmp(&b.avg_hit).unwrap_or(std::cmp::Ordering::Equal),
+                    SortColumn::CritPct => a.crit_rate.partial_cmp(&b.crit_rate).unwrap_or(std::cmp::Ordering::Equal),
+                };
+                match dir {
+                    SortDirection::Asc => cmp,
+                    SortDirection::Desc => cmp.reverse(),
+                }
+            });
+            items
+        };
+
+        // If not grouping by target, return flat list with empty stats
+        if !mode.by_target_type && !mode.by_target_instance {
+            return vec![(GroupStats::default(), sort_abilities(list))];
+        }
+
+        // Group by target (using target_name + target_log_id for instance mode)
+        use std::collections::BTreeMap;
+        let mut groups: BTreeMap<(String, Option<i64>), Vec<AbilityBreakdown>> = BTreeMap::new();
+
+        for ability in list {
+            let target = ability.target_name.clone().unwrap_or_default();
+            // Use target_log_id for instance grouping (unique per NPC spawn)
+            let instance_key = if mode.by_target_instance {
+                ability.target_log_id
+            } else {
+                None
+            };
+            groups.entry((target, instance_key)).or_default().push(ability);
+        }
+
+        // Convert to vec with aggregate group stats
+        let mut result: Vec<(GroupStats, Vec<AbilityBreakdown>)> = groups
+            .into_iter()
+            .map(|((target, _instance_key), abilities)| {
+                let total: f64 = abilities.iter().map(|a| a.total_value).sum();
+                let percent: f64 = abilities.iter().map(|a| a.percent_of_total).sum();
+                let rate: f64 = abilities.iter().map(|a| a.dps).sum();
+                let hits: i64 = abilities.iter().map(|a| a.hit_count).sum();
+                let crits: i64 = abilities.iter().map(|a| a.crit_count).sum();
+                let first_hit = abilities.first().and_then(|a| a.target_first_hit_secs);
+                let avg = if hits > 0 { total / hits as f64 } else { 0.0 };
+                let crit_pct = if hits > 0 { crits as f64 / hits as f64 * 100.0 } else { 0.0 };
+
+                let stats = GroupStats {
+                    target: Some(target),
+                    first_hit,
+                    total,
+                    percent,
+                    rate,
+                    hits,
+                    avg,
+                    crit_pct,
+                };
+                (stats, sort_abilities(abilities))
+            })
+            .collect();
+
+        // Sort groups by total (descending by default)
+        result.sort_by(|a, b| {
+            let cmp = match col {
+                SortColumn::Target => a.0.target.cmp(&b.0.target),
+                _ => a.0.total.partial_cmp(&b.0.total).unwrap_or(std::cmp::Ordering::Equal),
+            };
+            match col {
+                SortColumn::Target => if dir == SortDirection::Asc { cmp } else { cmp.reverse() },
+                _ => cmp.reverse(),
+            }
+        });
+
+        result
     });
 
     rsx! {
@@ -1223,21 +1371,18 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
 
                             // Ability breakdown table
                             div { class: "ability-section",
-                                // Header with title and breakdown controls
+                                // Header with breakdown controls only
                                 div { class: "ability-header",
-                                    h4 {
-                                        if let Some(src) = selected_source.read().as_ref() {
-                                            "Abilities - {src}"
-                                        } else {
-                                            "All Abilities"
-                                        }
-                                    }
                                     // Breakdown mode toggles (nested hierarchy)
                                     // Labels change based on tab: outgoing uses "Target", incoming uses "Source"
+                                    // Instance mode only makes sense for damage tabs (NPCs have multiple spawns)
                                     {
-                                        let is_outgoing = selected_tab.read().is_outgoing();
+                                        let tab = *selected_tab.read();
+                                        let is_outgoing = tab.is_outgoing();
                                         let type_label = if is_outgoing { "Target type" } else { "Source type" };
                                         let instance_label = if is_outgoing { "Target instance" } else { "Source instance" };
+                                        // Instance mode only for Damage/DamageTaken (NPCs), not Healing (players don't have instances)
+                                        let show_instance = matches!(tab, DataTab::Damage | DataTab::DamageTaken);
                                         rsx! {
                                             div { class: "breakdown-controls",
                                                 span { class: "breakdown-label", "Breakdown by" }
@@ -1246,7 +1391,13 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
                                                         input {
                                                             r#type: "checkbox",
                                                             checked: breakdown_mode.read().by_ability,
-                                                            disabled: true, // Always on
+                                                            // Can only disable if target type/instance is enabled (need at least one grouping)
+                                                            disabled: !breakdown_mode.read().by_target_type && !breakdown_mode.read().by_target_instance,
+                                                            onchange: move |e| {
+                                                                let mut mode = *breakdown_mode.read();
+                                                                mode.by_ability = e.checked();
+                                                                breakdown_mode.set(mode);
+                                                            }
                                                         }
                                                         "Ability"
                                                     }
@@ -1261,24 +1412,28 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
                                                                     // If disabling target type, also disable target instance
                                                                     if !e.checked() {
                                                                         mode.by_target_instance = false;
+                                                                        // Re-enable ability if nothing else selected
+                                                                        mode.by_ability = true;
                                                                     }
                                                                     breakdown_mode.set(mode);
                                                                 }
                                                             }
                                                             "{type_label}"
                                                         }
-                                                        label { class: "breakdown-option nested",
-                                                            input {
-                                                                r#type: "checkbox",
-                                                                checked: breakdown_mode.read().by_target_instance,
-                                                                disabled: !breakdown_mode.read().by_target_type,
-                                                                onchange: move |e| {
-                                                                    let mut mode = *breakdown_mode.read();
-                                                                    mode.by_target_instance = e.checked();
-                                                                    breakdown_mode.set(mode);
+                                                        if show_instance {
+                                                            label { class: "breakdown-option nested",
+                                                                input {
+                                                                    r#type: "checkbox",
+                                                                    checked: breakdown_mode.read().by_target_instance,
+                                                                    disabled: !breakdown_mode.read().by_target_type,
+                                                                    onchange: move |e| {
+                                                                        let mut mode = *breakdown_mode.read();
+                                                                        mode.by_target_instance = e.checked();
+                                                                        breakdown_mode.set(mode);
+                                                                    }
                                                                 }
+                                                                "{instance_label}"
                                                             }
-                                                            "{instance_label}"
                                                         }
                                                     }
                                                 }
@@ -1286,53 +1441,129 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
                                         }
                                     }
                                 }
-                                // Table with dynamic columns
+                                // Table with dynamic columns (sortable)
                                 {
                                 let mode = *breakdown_mode.read();
                                 let tab = *selected_tab.read();
                                 let show_breakdown_col = mode.by_target_type || mode.by_target_instance;
+                                let show_ability_col = mode.by_ability;
                                 let breakdown_col_label = if tab.is_outgoing() { "Target" } else { "Source" };
                                 let rate_label = tab.rate_label();
+                                let current_sort = *sort_column.read();
+                                let current_dir = *sort_direction.read();
+
+                                // Helper to get sort indicator class
+                                let sort_class = |col: SortColumn| -> &'static str {
+                                    if current_sort == col {
+                                        match current_dir {
+                                            SortDirection::Asc => "sortable sorted-asc",
+                                            SortDirection::Desc => "sortable sorted-desc",
+                                        }
+                                    } else {
+                                        "sortable"
+                                    }
+                                };
+
+                                // Macro-like helper for sort click (inline to avoid closure issues)
+                                let sort_click = |col: SortColumn, is_text: bool| {
+                                    move |_| {
+                                        if *sort_column.read() == col {
+                                            let new_dir = match *sort_direction.read() {
+                                                SortDirection::Asc => SortDirection::Desc,
+                                                SortDirection::Desc => SortDirection::Asc,
+                                            };
+                                            sort_direction.set(new_dir);
+                                        } else {
+                                            sort_column.set(col);
+                                            sort_direction.set(if is_text { SortDirection::Asc } else { SortDirection::Desc });
+                                        }
+                                    }
+                                };
+
                                 rsx! {
                                     table { class: "ability-table",
                                         thead {
                                             tr {
-                                                if show_breakdown_col {
-                                                    th { "{breakdown_col_label}" }
+                                                // First column: Target/Ability (hierarchical) or just Ability
+                                                th {
+                                                    class: if show_breakdown_col { sort_class(SortColumn::Target) } else { sort_class(SortColumn::Ability) },
+                                                    onclick: if show_breakdown_col { sort_click(SortColumn::Target, true) } else { sort_click(SortColumn::Ability, true) },
+                                                    if show_breakdown_col {
+                                                        "{breakdown_col_label} / Ability"
+                                                    } else {
+                                                        "Ability"
+                                                    }
                                                 }
-                                                th { "Ability" }
-                                                th { class: "num", "Total" }
-                                                th { class: "num", "%" }
-                                                th { class: "num", "{rate_label}" }
-                                                th { class: "num", "Hits" }
-                                                th { class: "num", "Avg" }
-                                                th { class: "num", "Crit%" }
+                                                th {
+                                                    class: "num {sort_class(SortColumn::Total)}",
+                                                    onclick: sort_click(SortColumn::Total, false),
+                                                    "Total"
+                                                }
+                                                th {
+                                                    class: "num {sort_class(SortColumn::Percent)}",
+                                                    onclick: sort_click(SortColumn::Percent, false),
+                                                    "%"
+                                                }
+                                                th {
+                                                    class: "num {sort_class(SortColumn::Rate)}",
+                                                    onclick: sort_click(SortColumn::Rate, false),
+                                                    "{rate_label}"
+                                                }
+                                                th {
+                                                    class: "num {sort_class(SortColumn::Hits)}",
+                                                    onclick: sort_click(SortColumn::Hits, false),
+                                                    "Hits"
+                                                }
+                                                th {
+                                                    class: "num {sort_class(SortColumn::Avg)}",
+                                                    onclick: sort_click(SortColumn::Avg, false),
+                                                    "Avg"
+                                                }
+                                                th {
+                                                    class: "num {sort_class(SortColumn::CritPct)}",
+                                                    onclick: sort_click(SortColumn::CritPct, false),
+                                                    "Crit%"
+                                                }
                                             }
                                         }
                                         tbody {
-                                            for ability in abilities.read().iter() {
-                                                tr {
-                                                    if show_breakdown_col {
-                                                        td { class: "target-cell",
-                                                            {ability.target_name.as_deref().unwrap_or("-")}
-                                                            // Show @M:SS when instance mode is on
-                                                            if let Some(first_hit) = ability.target_first_hit_secs {
+                                            for (stats, abilities) in grouped_abilities().iter() {
+                                                // Group header row (when grouping by target)
+                                                if let Some(target) = &stats.target {
+                                                    tr { class: "group-header",
+                                                        td { class: "group-target",
+                                                            i { class: "fa-solid fa-caret-down group-icon" }
+                                                            "{target}"
+                                                            if let Some(t) = stats.first_hit {
                                                                 span { class: "target-time",
-                                                                    " @{(first_hit as i32) / 60}:{(first_hit as i32) % 60:02}"
+                                                                    " @{(t as i32) / 60}:{(t as i32) % 60:02}"
                                                                 }
                                                             }
                                                         }
+                                                        td { class: "num group-stat", "{format_number(stats.total)}" }
+                                                        td { class: "num group-stat", "{format_pct(stats.percent)}" }
+                                                        td { class: "num group-stat", "{format_number(stats.rate)}" }
+                                                        td { class: "num group-stat", "{stats.hits}" }
+                                                        td { class: "num group-stat", "{format_number(stats.avg)}" }
+                                                        td { class: "num group-stat", "{format_pct(stats.crit_pct)}" }
                                                     }
-                                                    td { "{ability.ability_name}" }
-                                                    td { class: "num", "{format_number(ability.total_value)}" }
-                                                    td { class: "num pct-cell",
-                                                        span { class: "pct-bar", style: "width: {ability.percent_of_total.min(100.0)}%;" }
-                                                        span { class: "pct-text", "{format_pct(ability.percent_of_total)}" }
+                                                }
+                                                // Ability rows (only shown when Ability breakdown is enabled)
+                                                if show_ability_col {
+                                                    for ability in abilities.iter() {
+                                                        tr { class: if stats.target.is_some() { "ability-row indented" } else { "ability-row" },
+                                                            td { class: "ability-name-cell", "{ability.ability_name}" }
+                                                            td { class: "num", "{format_number(ability.total_value)}" }
+                                                            td { class: "num pct-cell",
+                                                                span { class: "pct-bar", style: "width: {ability.percent_of_total.min(100.0)}%;" }
+                                                                span { class: "pct-text", "{format_pct(ability.percent_of_total)}" }
+                                                            }
+                                                            td { class: "num", "{format_number(ability.dps)}" }
+                                                            td { class: "num", "{ability.hit_count}" }
+                                                            td { class: "num", "{format_number(ability.avg_hit)}" }
+                                                            td { class: "num", "{format_pct(ability.crit_rate)}" }
+                                                        }
                                                     }
-                                                    td { class: "num", "{format_number(ability.dps)}" }
-                                                    td { class: "num", "{ability.hit_count}" }
-                                                    td { class: "num", "{format_number(ability.avg_hit)}" }
-                                                    td { class: "num", "{format_pct(ability.crit_rate)}" }
                                                 }
                                             }
                                         }
