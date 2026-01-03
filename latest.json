@@ -1,15 +1,15 @@
 {
   "version": "2026.1.3",
-  "notes": "dry run - testing auto update functionality ",
-  "pub_date": "2026-01-03T10:06:48Z",
+  "notes": "release auto update testing attempt 2",
+  "pub_date": "2026-01-03T11:28:34Z",
   "platforms": {
     "linux-x86_64": {
       "signature": "",
-      "url": "https://github.com/baras-app/baras/releases/download/v2026.1.3/*.tar.gz"
+      "url": "https://github.com/baras-app/baras/releases/download/v2026.1.3/"
     },
     "windows-x86_64": {
       "signature": "",
-      "url": "https://github.com/baras-app/baras/releases/download/v2026.1.3/*.nsis.zip"
+      "url": "https://github.com/baras-app/baras/releases/download/v2026.1.3/"
     }
   }
 }
