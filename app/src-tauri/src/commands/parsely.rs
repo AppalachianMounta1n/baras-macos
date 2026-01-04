@@ -1,6 +1,6 @@
 //! Parsely.io upload commands
 
-use std::io::Write;
+use std::io::BufReader;
 use std::path::PathBuf;
 
 use flate2::Compression;
@@ -37,19 +37,16 @@ pub async fn upload_to_parsely(
         });
     }
 
-    // Read and compress
-    let file_bytes = std::fs::read(&path).map_err(|e| format!("Failed to read log file: {}", e))?;
     let compressed =
-        gzip_compress(&file_bytes).map_err(|e| format!("Failed to compress: {}", e))?;
+        gzip_compress_file(&path).map_err(|e| format!("Failed to compress: {}", e))?;
 
-    // Get filename for the upload
+    // Build Handle
     let filename = path
         .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or("combat.txt")
         .to_string();
 
-    // Build multipart form
     let file_part = Part::bytes(compressed)
         .file_name(filename)
         .mime_str("text/html")
@@ -57,7 +54,6 @@ pub async fn upload_to_parsely(
 
     let mut form = Form::new().part("file", file_part).text("public", "1");
 
-    // Add credentials if configured
     let config = handle.config().await;
     if !config.parsely.username.is_empty() && !config.parsely.password.is_empty() {
         form = form.text("username", config.parsely.username.clone());
@@ -87,10 +83,11 @@ pub async fn upload_to_parsely(
     parse_parsely_response(&response_text)
 }
 
-/// Gzip compress data
-fn gzip_compress(data: &[u8]) -> std::io::Result<Vec<u8>> {
+fn gzip_compress_file(path: &std::path::Path) -> std::io::Result<Vec<u8>> {
+    let file = std::fs::File::open(path)?;
+    let mut reader = BufReader::new(file);
     let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-    encoder.write_all(data)?;
+    std::io::copy(&mut reader, &mut encoder)?;
     encoder.finish()
 }
 
