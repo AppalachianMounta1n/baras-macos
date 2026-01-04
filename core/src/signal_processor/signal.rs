@@ -190,6 +190,10 @@ pub enum GameSignal {
         entity_name: String,
         current_hp: i64,
         max_hp: i64,
+        /// Previous HP percentage (before this update)
+        old_hp_percent: f32,
+        /// New HP percentage (after this update)
+        new_hp_percent: f32,
         timestamp: NaiveDateTime,
     },
 

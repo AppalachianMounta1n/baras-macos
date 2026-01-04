@@ -31,6 +31,8 @@ fn make_effect(id: &str, name: &str, effect_ids: Vec<u64>) -> EffectDefinition {
         enabled: true,
         effects: effect_ids.into_iter().map(EffectSelector::Id).collect(),
         trigger: crate::effects::EffectTriggerMode::default(),
+        start_trigger: None,
+        fixed_duration: false,
         refresh_abilities: Vec::new(),
         source: EntityFilter::Any,
         target: EntityFilter::Any,

@@ -222,7 +222,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for (line_num, line) in lines.iter().enumerate() {
         if let Some(event) = parser.parse_line(line_num as u64, line) {
             event_count += 1;
-            let signals = processor.process_event(event.clone(), &mut cache);
+            let (signals, _event) = processor.process_event(event.clone(), &mut cache);
 
             // Detect local player early (first player entity we see as source or target)
             // This must happen before signal processing for local_player filters to work

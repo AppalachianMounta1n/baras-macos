@@ -397,6 +397,8 @@ impl EventProcessor {
                     entity_name: resolve(entity.name).to_string(),
                     current_hp,
                     max_hp,
+                    old_hp_percent: old_hp,
+                    new_hp_percent: new_hp,
                     timestamp: event.timestamp,
                 });
 

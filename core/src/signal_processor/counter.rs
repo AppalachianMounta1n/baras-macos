@@ -206,13 +206,8 @@ pub fn check_counter_trigger(
         }
         Trigger::BossHpBelow { hp_percent, selector } => {
             current_signals.iter().any(|s| {
-                if let GameSignal::BossHpChanged { current_hp, max_hp, entity_name, .. } = s {
-                    let hp_pct = if *max_hp > 0 {
-                        (*current_hp as f32 / *max_hp as f32) * 100.0
-                    } else {
-                        100.0
-                    };
-                    if hp_pct > *hp_percent {
+                if let GameSignal::BossHpChanged { new_hp_percent, entity_name, .. } = s {
+                    if *new_hp_percent > *hp_percent {
                         return false;
                     }
                     // Check entity filter if specified

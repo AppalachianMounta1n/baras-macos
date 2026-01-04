@@ -60,6 +60,7 @@ pub(super) fn handle_effect_applied(
     manager: &mut TimerManager,
     encounter: Option<&CombatEncounter>,
     effect_id: i64,
+    effect_name: &str,
     source_id: i64,
     source_type: EntityType,
     source_name: IStr,
@@ -76,7 +77,7 @@ pub(super) fn handle_effect_applied(
     let matching: Vec<_> = manager.definitions
         .values()
         .filter(|d| {
-            d.matches_effect_applied(effect_id)
+            d.matches_effect_applied(effect_id, Some(effect_name))
                 && manager.is_definition_active(d, encounter)
                 && manager.matches_source_target_filters(
                     &d.trigger, source_id, source_type, source_name, source_npc_id,
@@ -92,8 +93,8 @@ pub(super) fn handle_effect_applied(
 
     // Check for cancel triggers on effect applied
     manager.cancel_timers_matching(
-        |t| matches!(t, TimerTrigger::EffectApplied { effects, .. } if effects.iter().any(|s| s.matches(effect_id, None))),
-        &format!("effect {} applied", effect_id)
+        |t| matches!(t, TimerTrigger::EffectApplied { effects, .. } if effects.iter().any(|s| s.matches(effect_id, Some(effect_name)))),
+        &format!("effect {} applied", effect_name)
     );
 }
 
@@ -105,6 +106,7 @@ pub(super) fn handle_effect_removed(
     manager: &mut TimerManager,
     encounter: Option<&CombatEncounter>,
     effect_id: i64,
+    effect_name: &str,
     source_id: i64,
     source_type: EntityType,
     source_name: IStr,
@@ -121,7 +123,7 @@ pub(super) fn handle_effect_removed(
     let matching: Vec<_> = manager.definitions
         .values()
         .filter(|d| {
-            d.matches_effect_removed(effect_id)
+            d.matches_effect_removed(effect_id, Some(effect_name))
                 && manager.is_definition_active(d, encounter)
                 && manager.matches_source_target_filters(
                     &d.trigger, source_id, source_type, source_name, source_npc_id,
@@ -137,8 +139,8 @@ pub(super) fn handle_effect_removed(
 
     // Check for cancel triggers on effect removed
     manager.cancel_timers_matching(
-        |t| matches!(t, TimerTrigger::EffectRemoved { effects, .. } if effects.iter().any(|s| s.matches(effect_id, None))),
-        &format!("effect {} removed", effect_id)
+        |t| matches!(t, TimerTrigger::EffectRemoved { effects, .. } if effects.iter().any(|s| s.matches(effect_id, Some(effect_name)))),
+        &format!("effect {} removed", effect_name)
     );
 }
 

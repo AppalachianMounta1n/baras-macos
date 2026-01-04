@@ -126,16 +126,16 @@ impl TimerDefinition {
         self.trigger.matches_ability(ability_id, ability_name)
     }
 
-    /// Check if this timer matches a given effect ID for apply triggers.
+    /// Check if this timer matches a given effect ID/name for apply triggers.
     /// Delegates to unified `Trigger::matches_effect_applied`.
-    pub fn matches_effect_applied(&self, effect_id: u64) -> bool {
-        self.trigger.matches_effect_applied(effect_id, None)
+    pub fn matches_effect_applied(&self, effect_id: u64, effect_name: Option<&str>) -> bool {
+        self.trigger.matches_effect_applied(effect_id, effect_name)
     }
 
-    /// Check if this timer matches a given effect ID for remove triggers.
+    /// Check if this timer matches a given effect ID/name for remove triggers.
     /// Delegates to unified `Trigger::matches_effect_removed`.
-    pub fn matches_effect_removed(&self, effect_id: u64) -> bool {
-        self.trigger.matches_effect_removed(effect_id, None)
+    pub fn matches_effect_removed(&self, effect_id: u64, effect_name: Option<&str>) -> bool {
+        self.trigger.matches_effect_removed(effect_id, effect_name)
     }
 
     /// Check if this timer is triggered by another timer expiring.

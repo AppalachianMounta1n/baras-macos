@@ -13,7 +13,7 @@ use crate::dsl::BossEncounterDefinition;
 use crate::combat_log::EntityType;
 use crate::signal_processor::{GameSignal, SignalHandler};
 use crate::game_data::Difficulty;
-use crate::context::IStr;
+use crate::context::{IStr, resolve};
 
 use super::{ActiveTimer, TimerDefinition, TimerKey, TimerTrigger, TimerPreferences};
 use super::matching::{is_definition_active, matches_source_target_filters};
@@ -648,6 +648,7 @@ impl SignalHandler for TimerManager {
 
             GameSignal::EffectApplied {
                 effect_id,
+                effect_name,
                 source_id,
                 source_entity_type,
                 source_name,
@@ -663,6 +664,7 @@ impl SignalHandler for TimerManager {
                     self,
                     encounter,
                     *effect_id,
+                    resolve(*effect_name),
                     *source_id, *source_entity_type, *source_name, *source_npc_id,
                     *target_id, *target_entity_type, *target_name, *target_npc_id,
                     *timestamp,
@@ -671,6 +673,7 @@ impl SignalHandler for TimerManager {
 
             GameSignal::EffectRemoved {
                 effect_id,
+                effect_name,
                 source_id,
                 source_entity_type,
                 source_name,
@@ -685,6 +688,7 @@ impl SignalHandler for TimerManager {
                     self,
                     encounter,
                     *effect_id,
+                    resolve(*effect_name),
                     *source_id, *source_entity_type, *source_name, 0,
                     *target_id, *target_entity_type, *target_name, 0,
                     *timestamp,
@@ -784,20 +788,10 @@ impl SignalHandler for TimerManager {
                 signal_handlers::handle_combat_start(self, encounter, *timestamp);
             }
 
-            GameSignal::BossHpChanged { npc_id, entity_name, current_hp, max_hp, timestamp, .. } => {
-                let new_hp = if *max_hp > 0 {
-                    (*current_hp as f32 / *max_hp as f32) * 100.0
-                } else {
-                    100.0
-                };
-                // Read previous HP from encounter (source of truth)
-                let old_hp = encounter
-                    .and_then(|e| e.hp_by_npc_id.get(npc_id).copied())
-                    .unwrap_or(100.0);
-
-                // Check for HP threshold timer triggers
-                if (old_hp - new_hp).abs() > 0.01 {
-                    signal_handlers::handle_boss_hp_change(self, encounter, *npc_id, entity_name, old_hp, new_hp, *timestamp);
+            GameSignal::BossHpChanged { npc_id, entity_name, old_hp_percent, new_hp_percent, timestamp, .. } => {
+                // Check for HP threshold timer triggers (using pre-computed percentages from signal)
+                if (*old_hp_percent - *new_hp_percent).abs() > 0.01 {
+                    signal_handlers::handle_boss_hp_change(self, encounter, *npc_id, entity_name, *old_hp_percent, *new_hp_percent, *timestamp);
                 }
             }
 
