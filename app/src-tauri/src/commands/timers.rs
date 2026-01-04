@@ -1024,11 +1024,12 @@ pub async fn create_encounter_timer(
     };
 
     // Convert to BossTimerDefinition
+    let trigger = timer.trigger.clone().with_source_target(timer.source.clone(), timer.target.clone());
     let new_timer = BossTimerDefinition {
         id: timer_id.clone(),
         name: timer.name.clone(),
         display_text: None,
-        trigger: timer.trigger.clone(),
+        trigger,
         duration_secs: timer.duration_secs,
         is_alert: timer.is_alert,
         alert_text: timer.alert_text.clone(),
