@@ -81,7 +81,9 @@ fn format_number(n: i64) -> String {
 }
 
 /// Group encounters into sections by area (based on is_phase_start flag)
-fn group_by_area(encounters: &[EncounterSummary]) -> Vec<(String, Option<String>, Vec<&EncounterSummary>)> {
+fn group_by_area(
+    encounters: &[EncounterSummary],
+) -> Vec<(String, Option<String>, Vec<&EncounterSummary>)> {
     let mut sections: Vec<(String, Option<String>, Vec<&EncounterSummary>)> = Vec::new();
 
     for enc in encounters.iter() {
@@ -123,14 +125,17 @@ pub fn HistoryPanel() -> Element {
             // Extract payload from event object (Tauri events have { payload: "..." } structure)
             if let Ok(payload) = js_sys::Reflect::get(&event, &JsValue::from_str("payload"))
                 && let Some(event_type) = payload.as_string()
-                && (event_type.contains("CombatEnded") || event_type.contains("TailingModeChanged") || event_type.contains("FileLoaded")) {
-                    spawn(async move {
-                        if let Some(history) = api::get_encounter_history().await {
-                            // Use try_write to handle signal being dropped when component unmounts
-                            let _ = encounters.try_write().map(|mut w| *w = history);
-                        }
-                    });
-                }
+                && (event_type.contains("CombatEnded")
+                    || event_type.contains("TailingModeChanged")
+                    || event_type.contains("FileLoaded"))
+            {
+                spawn(async move {
+                    if let Some(history) = api::get_encounter_history().await {
+                        // Use try_write to handle signal being dropped when component unmounts
+                        let _ = encounters.try_write().map(|mut w| *w = history);
+                    }
+                });
+            }
         });
         api::tauri_listen("session-updated", &closure).await;
         closure.forget();
@@ -144,13 +149,24 @@ pub fn HistoryPanel() -> Element {
 
     // Filter encounters if boss-only mode is enabled
     let filtered_history: Vec<_> = if bosses_only {
-        history.iter().filter(|e| e.boss_name.is_some()).cloned().collect()
+        history
+            .iter()
+            .filter(|e| e.boss_name.is_some())
+            .cloned()
+            .collect()
     } else {
         history.clone()
     };
 
     // Group encounters by area (ascending order - oldest first)
-    let sections = group_by_area(&filtered_history);
+    let sections = group_by_area(&filtered_history)
+        .into_iter()
+        .map(|(area, diff, encs)| {
+            let rev_encs: Vec<_> = encs.into_iter().rev().collect();
+            (area, diff, rev_encs)
+        })
+        .rev()
+        .collect::<Vec<_>>();
 
     rsx! {
         section { class: "history-panel",
@@ -336,9 +352,15 @@ fn sort_metrics(metrics: &mut [PlayerMetrics], column: SortColumn, ascending: bo
             SortColumn::Dtps => a.dtps.cmp(&b.dtps),
             SortColumn::Hps => a.hps.cmp(&b.hps),
             SortColumn::Ehps => a.ehps.cmp(&b.ehps),
-            SortColumn::EffectiveHealPct => a.effective_heal_pct.partial_cmp(&b.effective_heal_pct).unwrap_or(std::cmp::Ordering::Equal),
+            SortColumn::EffectiveHealPct => a
+                .effective_heal_pct
+                .partial_cmp(&b.effective_heal_pct)
+                .unwrap_or(std::cmp::Ordering::Equal),
             SortColumn::Abs => a.abs.cmp(&b.abs),
-            SortColumn::Apm => a.apm.partial_cmp(&b.apm).unwrap_or(std::cmp::Ordering::Equal),
+            SortColumn::Apm => a
+                .apm
+                .partial_cmp(&b.apm)
+                .unwrap_or(std::cmp::Ordering::Equal),
         };
         if ascending { cmp } else { cmp.reverse() }
     });
