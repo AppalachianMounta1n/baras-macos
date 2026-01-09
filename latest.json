@@ -1,15 +1,15 @@
 {
-  "version": "2026.1.9",
-  "notes": "see https://github.com/baras-app/baras/releases for full changelog",
-  "pub_date": "2026-01-09T18:59:58Z",
+  "version": "2026.1.901",
+  "notes": "-hotfix timers for non-english users",
+  "pub_date": "2026-01-09T23:26:14Z",
   "platforms": {
     "linux-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTY0pJZnZRK3YyNGhsQ1hianAxOFlLL28vVXp2S1VxR3U2NE9EZVRuSE1tMUtwTXY4eUQxMW9xSkxaRHV4dngrdTFUUUlnc2FRZkZoeFl4UGVYd3kvQTdvVm5uWWVNVWdjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzY3OTg0NTg0CWZpbGU6QkFSQVNfMjAyNi4xLjlfYW1kNjQuQXBwSW1hZ2UKUWl3d0ovSklLZ0l0bHVpWTZrbzBwTmVtcmpRTzNLOXgyL1pmeWY5Ymh4bUh3R0VJWXdkWlhDbFVVMlRYclhobkR1SlpRU0tsL1l2MVBBVGhKQWhDQlE9PQo=",
-      "url": "https://github.com/baras-app/baras/releases/download/v2026.1.9/BARAS_2026.1.9_amd64.AppImage"
+      "signature": "Not Found",
+      "url": "https://github.com/baras-app/baras/releases/download/v2026.1.901/BARAS_2026.1.901_amd64.AppImage"
     },
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTY0pJZnZRK3YyNHEyaHFMaHJOSnlBTTRLbnJIQmtOOE9ncUtNenc0TWVweWNXc1dmTDB6Tkl6SFNIdWlRc3M2QWJpWnJITkNOdG5iQ1N3UG1ORmt4UFFWUDM4KzY0SkFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzY3OTg1MTY3CWZpbGU6QkFSQVNfMjAyNi4xLjlfeDY0LXNldHVwLmV4ZQpHR3VRL3hRRjJoczBuSFJsd2NkaUhBc0lNOEZtVnlMVVZBTU0ySFQxSDNFcWJTZWVZSEcrbWJML2NtbnY4MGFJeTQzWFA0OHp4ZmdqWmtrNEd1WWdBZz09Cg==",
-      "url": "https://github.com/baras-app/baras/releases/download/v2026.1.9/BARAS_2026.1.9_x64-setup.exe"
+      "signature": "Not Found",
+      "url": "https://github.com/baras-app/baras/releases/download/v2026.1.901/BARAS_2026.1.901_x64-setup.exe"
     }
   }
 }
