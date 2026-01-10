@@ -399,22 +399,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
 
-        // Process signals through timer manager
+        // Process signals through timer manager, accumulating IDs across all signals
         let encounter = cache.current_encounter();
+        let mut expired_timer_ids: Vec<String> = Vec::new();
+        let mut cancelled_timer_ids: Vec<String> = Vec::new();
+        let mut started_timer_ids: Vec<String> = Vec::new();
+
         for signal in &signals {
             timer_manager.handle_signal(signal, encounter);
+            // Accumulate IDs after each signal (vectors are cleared per-signal)
+            expired_timer_ids.extend(timer_manager.expired_timer_ids());
+            cancelled_timer_ids.extend(timer_manager.cancelled_timer_ids());
+            started_timer_ids.extend(timer_manager.started_timer_ids());
         }
 
-        // Track timer starts and expirations
+        // Track active timer IDs for prev comparison
         let current_timer_ids: HashSet<String> = timer_manager
             .active_timers()
             .iter()
             .map(|t| t.definition_id.clone())
             .collect();
 
-        // New timers
+        // Log new/restarted timers
         for timer in timer_manager.active_timers() {
-            if !prev_timer_ids.contains(&timer.definition_id) {
+            if started_timer_ids.contains(&timer.definition_id) {
                 cli.timer_start(
                     event.timestamp,
                     &timer.name,
@@ -428,17 +436,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
 
-        // Cancelled timers (must check before expired since cancelled timers also leave prev_timer_ids)
-        let cancelled_timer_ids = timer_manager.cancelled_timer_ids();
-        for cancelled_id in &cancelled_timer_ids {
-            cli.timer_cancel(event.timestamp, cancelled_id, cancelled_id);
+        // Log expired timers (may include timers that immediately restarted)
+        for expired_id in &expired_timer_ids {
+            cli.timer_expire(event.timestamp, expired_id, expired_id);
         }
 
-        // Expired timers (exclude cancelled ones - they were handled above)
-        for old_id in &prev_timer_ids {
-            if !current_timer_ids.contains(old_id) && !cancelled_timer_ids.contains(old_id) {
-                cli.timer_expire(event.timestamp, old_id, old_id);
+        // DEBUG: Check fingers timer state around expected 3rd expiration (05:28 = 328s)
+        if combat_time_secs > 325.0 && combat_time_secs < 350.0 {
+            // 325s = 05:25, 350s = 05:50
+            for timer in timer_manager.active_timers() {
+                if timer.definition_id.contains("fingers_knock") {
+                    let remaining = timer.remaining_secs(event.timestamp);
+                    eprintln!(
+                        "[DEBUG {:.2}s] Timer '{}' active, remaining: {:.2}s",
+                        combat_time_secs, timer.definition_id, remaining
+                    );
+                }
             }
+            if expired_timer_ids.iter().any(|id| id.contains("fingers")) {
+                eprintln!("[DEBUG {:.2}s] Fingers timer expired!", combat_time_secs);
+            }
+            if started_timer_ids.iter().any(|id| id.contains("fingers")) {
+                eprintln!("[DEBUG {:.2}s] Fingers timer started!", combat_time_secs);
+            }
+        }
+
+        // Log cancelled timers
+        for cancelled_id in &cancelled_timer_ids {
+            cli.timer_cancel(event.timestamp, cancelled_id, cancelled_id);
         }
 
         prev_timer_ids = current_timer_ids;
@@ -453,8 +478,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         // Process counter triggers from timer events (expires and starts)
-        let expired_timer_ids = timer_manager.expired_timer_ids();
-        let started_timer_ids = timer_manager.started_timer_ids();
         let timer_counter_signals = check_counter_timer_triggers(
             &expired_timer_ids,
             &started_timer_ids,
@@ -505,6 +528,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         boss_npc_ids.clone(),
                         *timestamp,
                     );
+                    // Set encounter context for timer matching
+                    if let Some(enc) = cache.current_encounter_mut() {
+                        enc.area_id = Some(boss_def.area_id);
+                        enc.area_name = Some(boss_def.area_name.clone());
+                        // Default to Veteran8 for 8-man operations
+                        enc.difficulty = Some(baras_core::Difficulty::Veteran8);
+                    }
                 }
                 GameSignal::CombatEnded { timestamp, .. } => {
                     // Calculate duration from combat start
