@@ -333,18 +333,26 @@ fn PhaseEditForm(
             // ─── Guards ──────────────────────────────────────────────────────
             div { class: "form-row-hz",
                 label { "Preceded By" }
-                select {
-                    class: "select",
-                    style: "width: 180px;",
-                    value: "{draft().preceded_by.clone().unwrap_or_default()}",
-                    onchange: move |e| {
-                        let mut d = draft();
-                        d.preceded_by = if e.value().is_empty() { None } else { Some(e.value()) };
-                        draft.set(d);
-                    },
-                    option { value: "", "(none)" }
-                    for phase_id in &phase_ids {
-                        option { value: "{phase_id}", "{phase_id}" }
+                {
+                    let selected_phase = draft().preceded_by.clone().unwrap_or_default();
+                    rsx! {
+                        select {
+                            class: "select",
+                            style: "width: 180px;",
+                            onchange: move |e| {
+                                let mut d = draft();
+                                d.preceded_by = if e.value().is_empty() { None } else { Some(e.value()) };
+                                draft.set(d);
+                            },
+                            option { value: "", selected: selected_phase.is_empty(), "(none)" }
+                            for phase_id in &phase_ids {
+                                option {
+                                    value: "{phase_id}",
+                                    selected: phase_id == &selected_phase,
+                                    "{phase_id}"
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -443,14 +451,22 @@ fn CounterListEditor(
             // Add from dropdown
             if !remaining.is_empty() {
                 div { class: "flex gap-xs",
-                    select {
-                        class: "select",
-                        style: "width: 150px;",
-                        value: "{selected_counter}",
-                        onchange: move |e| selected_counter.set(e.value()),
-                        option { value: "", "Select counter..." }
-                        for counter_id in &remaining {
-                            option { value: "{counter_id}", "{counter_id}" }
+                    {
+                        let current_selection = selected_counter();
+                        rsx! {
+                            select {
+                                class: "select",
+                                style: "width: 150px;",
+                                onchange: move |e| selected_counter.set(e.value()),
+                                option { value: "", selected: current_selection.is_empty(), "Select counter..." }
+                                for counter_id in &remaining {
+                                    option {
+                                        value: "{counter_id}",
+                                        selected: counter_id == &current_selection,
+                                        "{counter_id}"
+                                    }
+                                }
+                            }
                         }
                     }
                     button {

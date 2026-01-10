@@ -535,18 +535,26 @@ fn TimerEditForm(
 
                         div { class: "form-row-hz",
                             label { "Chains To" }
-                            select {
-                                class: "select",
-                                style: "width: 160px;",
-                                value: "{draft().chains_to.clone().unwrap_or_default()}",
-                                onchange: move |e| {
-                                    let mut d = draft();
-                                    d.chains_to = if e.value().is_empty() { None } else { Some(e.value()) };
-                                    draft.set(d);
-                                },
-                                option { value: "", "(none)" }
-                                for tid in &other_timer_ids {
-                                    option { value: "{tid}", "{tid}" }
+                            {
+                                let selected_timer = draft().chains_to.clone().unwrap_or_default();
+                                rsx! {
+                                    select {
+                                        class: "select",
+                                        style: "width: 160px;",
+                                        onchange: move |e| {
+                                            let mut d = draft();
+                                            d.chains_to = if e.value().is_empty() { None } else { Some(e.value()) };
+                                            draft.set(d);
+                                        },
+                                        option { value: "", selected: selected_timer.is_empty(), "(none)" }
+                                        for tid in &other_timer_ids {
+                                            option {
+                                                value: "{tid}",
+                                                selected: tid == &selected_timer,
+                                                "{tid}"
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
