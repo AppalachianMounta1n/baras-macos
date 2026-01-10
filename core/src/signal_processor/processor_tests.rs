@@ -696,7 +696,7 @@ fn test_bestia_complete_encounter() {
             }
 
             // Tick timers and check active state
-            timer_manager.tick();
+            timer_manager.tick(cache.current_encounter());
             for timer in timer_manager.active_timers() {
                 if !timers_activated.contains(&timer.name) {
                     eprintln!("Timer activated: {}", timer.name);

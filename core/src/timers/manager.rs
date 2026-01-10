@@ -290,10 +290,10 @@ impl TimerManager {
 
     /// Tick to process timer expirations based on real time.
     /// Call periodically to update timers even without new signals.
-    /// Note: Called without encounter context (for render updates).
-    pub fn tick(&mut self) {
+    /// Pass the current encounter context to allow timer restarts.
+    pub fn tick(&mut self, encounter: Option<&crate::encounter::CombatEncounter>) {
         if let Some(ts) = self.last_timestamp {
-            self.process_expirations(ts, None);
+            self.process_expirations(ts, encounter);
         }
     }
 

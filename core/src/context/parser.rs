@@ -333,7 +333,12 @@ impl ParsingSession {
         }
         if let Some(timer_mgr) = &self.timer_manager {
             if let Ok(mut timer_mgr) = timer_mgr.lock() {
-                timer_mgr.tick();
+                // Get encounter from cache for timer restart context
+                let encounter = self
+                    .session_cache
+                    .as_ref()
+                    .and_then(|c| c.current_encounter());
+                timer_mgr.tick(encounter);
             }
         }
     }

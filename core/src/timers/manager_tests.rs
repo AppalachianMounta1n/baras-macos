@@ -474,7 +474,7 @@ fn test_timer_expires_triggers_chain() {
         },
         None,
     );
-    manager.tick();
+    manager.tick(None);
 
     // Timer A should be gone, Timer B should now be active
     let active = manager.active_timers();
@@ -524,7 +524,7 @@ fn test_timer_expires_without_chain() {
         },
         None,
     );
-    manager.tick();
+    manager.tick(None);
 
     // Timer should be gone
     assert!(
@@ -838,7 +838,7 @@ fn test_multi_timer_chain_a_b_c() {
         },
         None,
     );
-    manager.tick();
+    manager.tick(None);
 
     assert_eq!(manager.active_timers().len(), 1, "Timer B should be active");
     assert_eq!(manager.active_timers()[0].name, "Timer B");
@@ -861,7 +861,7 @@ fn test_multi_timer_chain_a_b_c() {
         },
         None,
     );
-    manager.tick();
+    manager.tick(None);
 
     assert_eq!(manager.active_timers().len(), 1, "Timer C should be active");
     assert_eq!(manager.active_timers()[0].name, "Timer C");
@@ -884,7 +884,7 @@ fn test_multi_timer_chain_a_b_c() {
         },
         None,
     );
-    manager.tick();
+    manager.tick(None);
 
     assert!(
         manager.active_timers().is_empty(),
@@ -956,7 +956,7 @@ fn test_cancel_on_timer_with_chain() {
         },
         None,
     );
-    manager.tick();
+    manager.tick(None);
 
     let active = manager.active_timers();
     assert_eq!(
@@ -1159,7 +1159,7 @@ fn test_integration_timer_expiration_with_real_log() {
             let (signals, _) = processor.process_event(event, &mut cache);
             for signal in signals {
                 manager.handle_signal(&signal, None);
-                manager.tick();
+                manager.tick(None);
 
                 for t in manager.active_timers() {
                     if t.name == "Quick Timer" {
