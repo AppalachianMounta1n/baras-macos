@@ -1604,17 +1604,25 @@ pub struct AppConfig {
 
     /// Player alacrity percentage (e.g., 15.4 for 15.4% alacrity).
     /// Used to calculate actual effect durations.
-    #[serde(default)]
+    #[serde(default = "default_alacrity")]
     pub alacrity_percent: f32,
 
     /// Average network latency in milliseconds (e.g., 50 for 50ms).
     /// Used to adjust effect duration calculations.
-    #[serde(default)]
+    #[serde(default = "default_latency")]
     pub latency_ms: u16,
 }
 
 fn default_retention_days() -> u32 {
     21
+}
+
+fn default_alacrity() -> f32 {
+    7.5
+}
+
+fn default_latency() -> u16 {
+    80
 }
 
 impl AppConfig {
