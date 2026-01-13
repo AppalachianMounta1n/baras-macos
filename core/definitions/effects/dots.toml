@@ -10,9 +10,10 @@ name = "Affliction"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   808192586022912,
-], source = "any", target = "any" }
+], source = "local_player", target = "any" }
 refresh_abilities = [808192586022912]
 duration_secs = 18.0
+is_affected_by_alacrity = true
 color = [62, 173, 28, 255]
 
 [[effect]]
@@ -21,9 +22,10 @@ name = "Weaken Mind"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   812861215473664,
-], source = "any", target = "any" }
+], source = "local_player", target = "any" }
 refresh_abilities = [812861215473664]
 duration_secs = 18.0
+is_affected_by_alacrity = true
 color = [153, 143, 121, 255]
 
 [[effect]]
@@ -32,9 +34,10 @@ name = "Creeping Terror"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   808424514256896,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [808424514256896]
 duration_secs = 18.0
+is_affected_by_alacrity = true
 color = [145, 66, 9, 255]
 
 [[effect]]
@@ -43,9 +46,10 @@ name = "Sever Force"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   813226287693824,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [813226287693824]
 duration_secs = 18.0
+is_affected_by_alacrity = true
 color = [64, 145, 76, 255]
 
 [[effect]]
@@ -54,9 +58,10 @@ name = "Force Breach"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   964675424485376,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [964675424485376]
 duration_secs = 18.0
+is_affected_by_alacrity = true
 color = [184, 79, 15, 255]
 
 [[effect]]
@@ -65,9 +70,10 @@ name = "Corrosive Dart"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   3465720780292096,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [3465720780292096]
 duration_secs = 24.0
+is_affected_by_alacrity = true
 color = [145, 64, 98, 255]
 
 [[effect]]
@@ -76,9 +82,10 @@ name = "Vital Shot"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   2115340112756736,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [2115340112756736]
 duration_secs = 24.0
+is_affected_by_alacrity = true
 color = [64, 64, 145, 255]
 
 [[effect]]
@@ -87,9 +94,10 @@ name = "Corrosive Grenade (Op)"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   1703989619982930,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [1703989619982930]
 duration_secs = 24.0
+is_affected_by_alacrity = true
 color = [32, 173, 7, 255]
 
 [[effect]]
@@ -98,9 +106,10 @@ name = "Corrosive Grenade (Sniper)"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   1703989619982932,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [1703989619982932]
 duration_secs = 24.0
+is_affected_by_alacrity = true
 color = [32, 173, 7, 255]
 
 [[effect]]
@@ -109,9 +118,10 @@ name = "Shrap Bomb"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   807698664783872,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [807698664783872]
 duration_secs = 18.0
+is_affected_by_alacrity = true
 color = [148, 114, 34, 255]
 
 [[effect]]
@@ -120,9 +130,10 @@ name = "Scorch"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   3384812186370048,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [3384812186370048]
 duration_secs = 30.0
+is_affected_by_alacrity = true
 color = [173, 46, 3, 255]
 
 [[effect]]
@@ -131,9 +142,10 @@ name = "Plasmatize"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   3391666954174464,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [3391666954174464]
 duration_secs = 30.0
+is_affected_by_alacrity = true
 color = [173, 3, 171, 255]
 
 [[effect]]
@@ -142,9 +154,10 @@ name = "Incendiary Missile"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   2027022700249344,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [2027022700249088]
 duration_secs = 15.0
+is_affected_by_alacrity = true
 color = [204, 145, 37, 255]
 
 [[effect]]
@@ -153,9 +166,10 @@ name = "serrated bolt"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   3418278571540736,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [3418278571540480]
 duration_secs = 15.0
+is_affected_by_alacrity = true
 color = [144, 80, 204, 255]
 
 [[effect]]
@@ -164,9 +178,10 @@ name = "Marked"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   3418278571540762,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [3418278571540480]
 duration_secs = 45.0
+is_affected_by_alacrity = true
 color = [144, 80, 204, 255]
 
 [[effect]]
@@ -175,9 +190,10 @@ name = "Incendiary Round"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   3391477975613734,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [3391477975613440]
 duration_secs = 15.0
+is_affected_by_alacrity = true
 color = [173, 72, 14, 255]
 
 [[effect]]
@@ -186,9 +202,10 @@ name = "Shatter"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   1169953386397696,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [1169953386397696]
 duration_secs = 12.0
+is_affected_by_alacrity = true
 color = [194, 116, 8, 255]
 
 [[effect]]
@@ -197,9 +214,10 @@ name = "Plasma Brand"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   3429368177098752,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [3429368177098752]
 duration_secs = 12.0
+is_affected_by_alacrity = true
 color = [8, 157, 194, 255]
 
 [[effect]]
@@ -208,9 +226,10 @@ name = "Eviscerate"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   3426078232150278,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [2210507998101504]
 duration_secs = 6.0
+is_affected_by_alacrity = true
 color = [194, 8, 29, 255]
 
 [[effect]]
@@ -219,9 +238,10 @@ name = "Burning Purpose"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   3429814853697796,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [2210512293068800]
 duration_secs = 6.0
+is_affected_by_alacrity = true
 color = [194, 70, 8, 255]
 
 [[effect]]
@@ -230,9 +250,10 @@ name = "Draining Scream"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   807857578574081,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [998270658674688]
 duration_secs = 6.0
+is_affected_by_alacrity = true
 color = [153, 27, 2, 255]
 
 [[effect]]
@@ -241,9 +262,10 @@ name = "Burning Blade"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   1280638988583168,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [1191698805817344]
 duration_secs = 6.0
+is_affected_by_alacrity = true
 color = [196, 148, 14, 255]
 
 [[effect]]
@@ -252,7 +274,8 @@ name = "Discharge"
 display_target = "dot_tracker"
 trigger = { type = "effect_applied", effects = [
   808235535695872,
-], source = "local_player", target = "any_npc" }
+], source = "local_player", target = "any" }
 refresh_abilities = [808235535695872]
 duration_secs = 18.0
+is_affected_by_alacrity = true
 color = [126, 14, 196, 255]

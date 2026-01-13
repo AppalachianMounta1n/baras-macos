@@ -16,6 +16,7 @@ refresh_abilities = [
 ]
 duration_secs = 21.0
 color = [38, 181, 81, 255]
+is_affected_by_alacrity = true
 display_target = "raid_frames"
 
 [[effect]]
@@ -31,6 +32,7 @@ refresh_abilities = [
 ]
 duration_secs = 21.0
 color = [38, 181, 81, 255]
+is_affected_by_alacrity = true
 display_target = "raid_frames"
 
 [[effect]]
@@ -42,6 +44,7 @@ trigger = { type = "effect_applied", effects = [
 refresh_abilities = [985226842996736]
 duration_secs = 180.0
 color = [255, 126, 66, 255]
+is_affected_by_alacrity = true
 display_target = "raid_frames"
 
 [[effect]]
@@ -86,6 +89,7 @@ trigger = { type = "effect_applied", effects = [
 refresh_abilities = [3412162538110976]
 duration_secs = 15.0
 color = [193, 120, 165, 255]
+is_affected_by_alacrity = true
 display_target = "raid_frames"
 
 [[effect]]
@@ -97,6 +101,7 @@ trigger = { type = "effect_applied", effects = [
 refresh_abilities = [812809675866112]
 duration_secs = 15.0
 color = [34, 156, 12, 255]
+is_affected_by_alacrity = true
 display_target = "raid_frames"
 
 [[effect]]
