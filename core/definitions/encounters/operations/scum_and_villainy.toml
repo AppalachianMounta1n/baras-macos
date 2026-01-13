@@ -14,7 +14,7 @@ id = 137438993037
 [[boss]]
 id = "dashroode"
 name = "Dash'Roode"
-difficulties = ["story", "veteran"]
+difficulties = ["story", "veteran", "master"]
 
 [[boss.entities]]
 name = "Dash'Roode"
@@ -89,14 +89,13 @@ difficulties = ["veteran", "master"]
 [[boss]]
 id = "titan6"
 name = "Titan 6"
-difficulties = ["story", "veteran"]
+difficulties = ["story", "veteran", "master"]
 
 [[boss.entities]]
 name = "Titan 6"
 ids = [3152463045591040, 3016450021261312, 3152467340558336, 3152458750623744]
 is_boss = true
 is_kill_target = true
-
 
 [[boss.phases]]
 id = "titan_6_main"
@@ -188,7 +187,7 @@ difficulties = ["veteran", "master"]
 [[boss]]
 id = "hateful_entity"
 name = "Hateful Entity"
-difficulties = ["story", "veteran"]
+difficulties = ["master"]
 
 [[boss.entities]]
 name = "Hateful Entity"
@@ -203,13 +202,73 @@ is_kill_target = true
 [[boss]]
 id = "thrasher"
 name = "Thrasher"
-difficulties = ["story", "veteran"]
+difficulties = ["story", "veteran", "master"]
 
 [[boss.entities]]
 name = "Thrasher"
 ids = [3154567579566080, 3045819007631360, 3154571874533376, 3154563284598784]
 is_boss = true
 is_kill_target = true
+
+[[boss.timer]]
+id = "thrasher_double_wave"
+name = "Double Wave"
+trigger = { type = "boss_hp_below", hp_percent = 50.0, selector = ["Thrasher"] }
+is_alert = true
+alert_text = "Double Wave"
+color = [10, 118, 21, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "thrasher_adds_1st"
+name = "Adds 1st"
+display_text = "Adds"
+trigger = { type = "combat_start" }
+duration_secs = 15.0
+color = [10, 118, 21, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "thrasher_adds"
+name = "Adds"
+trigger = { type = "ability_cast", abilities = [3060692479377408] }
+duration_secs = 45.0
+color = [10, 118, 21, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "thrasher_firebug"
+name = "Firebug"
+trigger = { type = "any_of", conditions = [
+  { type = "ability_cast", abilities = [
+    3067100570583040,
+  ] },
+  { type = "ability_cast", abilities = [
+    3060692479377408,
+  ] },
+] }
+duration_secs = 25.0
+color = [219, 91, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "thrasher_knockback_180"
+# orbs_id = "f9f561ab-5e34-43f8-acb8-476aac1b1f11"
+name = "Knockback 180"
+trigger = { type = "ability_cast", abilities = [3045857662337024] }
+duration_secs = 10.5
+color = [33, 224, 220, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "thrasher_knockback_360"
+# orbs_id = "e8d17ac5-e0be-4887-a068-d2b747368deb"
+name = "Knockback 360"
+trigger = { type = "ability_cast", abilities = [3262208049938432] }
+duration_secs = 8.5
+color = [33, 224, 220, 255]
+difficulties = ["veteran", "master"]
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Boss 4: Operations Chief
@@ -218,13 +277,62 @@ is_kill_target = true
 [[boss]]
 id = "operations_chief"
 name = "Operations Chief"
-difficulties = ["story", "veteran"]
+difficulties = ["story", "veteran", "master"]
 
 [[boss.entities]]
 name = "Operations Chief"
 ids = [3157552581836800, 3141940375715840, 3157556876804096, 3157548286869504]
 is_boss = true
 is_kill_target = true
+
+[[boss.timer]]
+id = "operations_chief_flash_bang"
+name = "Flash Bang"
+trigger = { type = "ability_cast", abilities = [3146325537325056] }
+duration_secs = 30.0
+color = [184, 183, 49, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "operations_chief_terminate"
+name = "Terminate"
+trigger = { type = "ability_cast", abilities = [3146334127259648] }
+duration_secs = 24.0
+color = [224, 28, 24, 255]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "operations_chief_explosive_probe"
+name = "Explosive Probe"
+trigger = { type = "ability_cast", abilities = [3146329832292352] }
+duration_secs = 32.0
+color = [224, 88, 29, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "operations_chief_turrets"
+name = "Turrets"
+trigger = { type = "ability_cast", abilities = [3158012143337472] }
+duration_secs = 32.0
+color = [214, 32, 206, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "operations_chief_impulse"
+name = "Impulse"
+trigger = { type = "ability_cast", abilities = [2166591957499904] }
+duration_secs = 15.0
+color = [37, 29, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "operations_chief_thermal_grenade"
+name = "Thermal Grenade"
+trigger = { type = "ability_cast", abilities = [3145707062034432] }
+duration_secs = 20.0
+color = [12, 133, 17, 255]
+difficulties = ["veteran", "master"]
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Boss 5: Olok the Shadow
@@ -240,6 +348,41 @@ name = "Olok the Shadow"
 ids = [3154674953748480, 3016445726294016, 3154679248715776, 3154662068846592]
 is_boss = true
 is_kill_target = true
+
+[[boss.timer]]
+id = "olok_the_shadow_stealthed"
+name = "Stealthed"
+trigger = { type = "ability_cast", abilities = [3132057655967744] }
+duration_secs = 5.5
+color = [29, 224, 221, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "olok_the_shadow_flashbang"
+name = "Flashbang"
+trigger = { type = "ability_cast", abilities = [3131215842377728] }
+is_alert = true
+alert_text = "Flashbang"
+color = [219, 187, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "olok_the_shadow_flashbang_2"
+name = "Flashbang_"
+display_text = "Flashbang"
+trigger = { type = "ability_cast", abilities = [3131215842377728] }
+duration_secs = 40.0
+color = [219, 187, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "olok_the_shadow_stealth"
+name = "Stealth"
+trigger = { type = "ability_cast", abilities = [3131215842377728] }
+duration_secs = 4.5
+color = [29, 224, 221, 255]
+difficulties = ["veteran", "master"]
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Boss 6: Cartel Warlords
@@ -280,6 +423,85 @@ ids = [3054404647256064, 3032766602018816]
 is_boss = true
 is_kill_target = true
 
+[[boss.timer]]
+id = "cartel_warlords_horic_spray"
+name = "Horic Spray"
+trigger = { type = "ability_cast", abilities = [3126156370903040] }
+cancel_trigger = { type = "entity_death", selector = ["Horic"] }
+duration_secs = 15.0
+color = [219, 33, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "cartel_warlords_horic_grenade"
+name = "Horic Grenade"
+trigger = { type = "ability_cast", abilities = [3126843565670400] }
+cancel_trigger = { type = "entity_death", selector = ["Horic"] }
+duration_secs = 15.0
+color = [12, 138, 31, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "cartel_warlords_garr_tp"
+name = "Garr TP"
+trigger = { type = "ability_cast", abilities = [3128772005986304] }
+cancel_trigger = { type = "entity_death", selector = ["Garr"] }
+duration_secs = 10.0
+color = [32, 29, 224, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "cartel_warlords_garr_shivve"
+name = "Garr Shiv"
+trigger = { type = "ability_cast", abilities = [3129673949118464] }
+cancel_trigger = { type = "entity_death", selector = ["Garr"] }
+duration_secs = 11.0
+color = [224, 33, 180, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "cartel_warlords_sunder_fixate"
+name = "Sunder Fixate"
+trigger = { type = "ability_cast", abilities = [3239758255882240] }
+cancel_trigger = { type = "entity_death", selector = ["Sunder"] }
+duration_secs = 12.0
+color = [189, 169, 50, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "cartel_warlords_sunder_root"
+name = "Sunder Root"
+trigger = { type = "ability_cast", abilities = [3125911557767168] }
+cancel_trigger = { type = "entity_death", selector = ["Sunder"] }
+duration_secs = 15.0
+color = [36, 214, 204, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "cartel_warlords_sunder_the_end_vm"
+name = "Sunder The End VM"
+trigger = { type = "ability_cast", abilities = [3145926105366528] }
+duration_secs = 20.0
+color = [224, 35, 33, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "cartel_warlords_sunder_the_end_8m"
+name = "Sunder The End 8m"
+trigger = { type = "ability_cast", abilities = [3145926105366528] }
+duration_secs = 16.0
+color = [224, 29, 32, 255]
+difficulties = ["master"]
+
+[[boss.timer]]
+id = "cartel_warlords_sunder_the_end_16m"
+name = "Sunder The End 16m"
+trigger = { type = "ability_cast", abilities = [3145926105366528] }
+duration_secs = 11.0
+color = [219, 31, 28, 255]
+difficulties = ["master"]
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Boss 7: Dread Master Styrak
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -291,13 +513,65 @@ difficulties = ["story", "veteran"]
 
 [[boss.entities]]
 name = "Dread Master Styrak"
-ids = [
-  3067057620910080,
-  3152441570754560,
-  3225679353085952,
-  3066945951760384,
-  3152445865721856,
-  3152407211016192,
-]
+ids = [3152441570754560, 3066945951760384, 3152445865721856, 3152407211016192]
 is_boss = true
 is_kill_target = true
+
+[[boss.entities]]
+name = "Styrak Chained"
+ids = [3147154466013184]
+
+[[boss.entities]]
+name = "Kell Dragon 1st"
+ids = [3067057620910080]
+is_boss = true
+is_kill_target = false
+
+[[boss.entities]]
+name = "Kell Dragon Burn"
+ids = [3225679353085952]
+is_boss = true
+is_kill_target = false
+
+[[boss.phases]]
+id = "styrak_dragon"
+name = "Dragon"
+trigger = { type = "combat_start" }
+
+[[boss.phases]]
+id = "styrak_main"
+name = "Styrak"
+trigger = { type = "any_of", conditions = [
+  { type = "entity_death", selector = [
+    "Kell Dragon 1st",
+  ] },
+  { type = "entity_death", selector = [
+    "Styrak Chained",
+  ] },
+] }
+
+[[boss.phases]]
+id = "styrak_chained"
+name = "Chained"
+trigger = { type = "npc_appears", selector = ["Styrak Chained"] }
+
+[[boss.phases]]
+id = "styrak_burn"
+name = "Burn"
+start_trigger = { type = "ability_cast", abilities = [3232512646053888] }
+
+[[boss.challenge]]
+id = "styrak_cm_dps"
+name = "Chained Manifestation DPS"
+metric = "damage"
+enabled = true
+color = [255, 100, 100, 255]
+columns = "total_percent"
+
+[[boss.challenge.conditions]]
+type = "phase"
+phase_ids = ["styrak_chained"]
+
+[[boss.challenge.conditions]]
+type = "target"
+match = { selector = ["Styrak Chained"] }
