@@ -13,8 +13,8 @@ use super::encounter_editor::triggers::{
 };
 use crate::api;
 use crate::types::{
-    AbilitySelector, AlertTrigger, AudioConfig, DisplayTarget, EffectCategory, EffectListItem,
-    EffectSelector, EntityFilter, Trigger,
+    AbilitySelector, AlertTrigger, AudioConfig, DisplayTarget, EffectListItem, EffectSelector,
+    EntityFilter, Trigger,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -166,7 +166,6 @@ fn default_effect(name: String) -> EffectListItem {
         display_text: None,
         is_user_override: false,
         enabled: true,
-        category: EffectCategory::Hot,
         trigger: Trigger::EffectApplied {
             effects: vec![],
             source: EntityFilter::LocalPlayer,

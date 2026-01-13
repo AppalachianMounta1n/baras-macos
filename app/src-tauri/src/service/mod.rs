@@ -24,9 +24,8 @@ use baras_core::encounter::summary::classify_encounter;
 use baras_core::game_data::{Discipline, Role};
 use baras_core::timers::FiredAlert;
 use baras_core::{
-    ActiveEffect, BossEncounterDefinition, DefinitionConfig, DefinitionSet,
-    EffectCategory, EntityType, GameSignal, PlayerMetrics, Reader, SignalHandler,
-    EFFECTS_DSL_VERSION,
+    ActiveEffect, BossEncounterDefinition, DefinitionConfig, DefinitionSet, DisplayTarget,
+    EntityType, GameSignal, PlayerMetrics, Reader, SignalHandler, EFFECTS_DSL_VERSION,
 };
 use baras_overlay::{
     BossHealthData, ChallengeData, ChallengeEntry, Color, CooldownData, CooldownEntry, DotEntry,
@@ -1693,8 +1692,8 @@ async fn build_raid_frame_data(
         std::collections::HashMap::new();
 
     for effect in tracker.active_effects() {
-        // Skip effects not marked for raid frames or already removed
-        if !effect.show_on_raid_frames || effect.removed_at.is_some() {
+        // Skip effects not destined for raid frames or already removed
+        if effect.display_target != DisplayTarget::RaidFrames || effect.removed_at.is_some() {
             continue;
         }
 
@@ -1917,16 +1916,10 @@ async fn process_effect_audio(shared: &std::sync::Arc<SharedState>) -> EffectAud
 /// The applied_instant is already backdated to game event time in ActiveEffect::new() and refresh(),
 /// so we just add the duration to get the expiry.
 fn convert_to_raid_effect(effect: &ActiveEffect) -> RaidEffect {
-    // Determine if this is a buff based on category
-    let is_buff = matches!(
-        effect.category,
-        EffectCategory::Buff | EffectCategory::Hot | EffectCategory::Shield
-    );
-
+    // Effects on raid frames are typically HoTs/shields (is_buff defaults to true in RaidEffect::new())
     let mut raid_effect = RaidEffect::new(effect.game_effect_id, effect.name.clone())
         .with_charges(effect.stacks)
-        .with_color_rgba(effect.color)
-        .with_is_buff(is_buff);
+        .with_color_rgba(effect.color);
 
     // applied_instant is already lag-compensated (backdated to game event time)
     // Just add duration to get the expiry instant

@@ -28,8 +28,8 @@ pub use dsl::{
     PhaseDefinition, PhaseTrigger, load_bosses_from_dir,
 };
 pub use effects::{
-    ActiveEffect, DefinitionConfig, DefinitionSet, DisplayTarget, EffectCategory,
-    EffectDefinition, EffectTracker, NewTargetInfo, EFFECTS_DSL_VERSION,
+    ActiveEffect, DefinitionConfig, DefinitionSet, DisplayTarget, EffectDefinition, EffectTracker,
+    NewTargetInfo, EFFECTS_DSL_VERSION,
 };
 pub use encounter::metrics::PlayerMetrics;
 pub use encounter::summary::{EncounterHistory, EncounterSummary};

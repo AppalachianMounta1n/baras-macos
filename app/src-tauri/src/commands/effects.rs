@@ -15,8 +15,7 @@ use tauri::{AppHandle, Manager, State};
 
 use baras_core::dsl::{AudioConfig, Trigger};
 use baras_core::effects::{
-    AlertTrigger, DefinitionConfig, DisplayTarget, EffectCategory, EffectDefinition,
-    EFFECTS_DSL_VERSION,
+    AlertTrigger, DefinitionConfig, DisplayTarget, EffectDefinition, EFFECTS_DSL_VERSION,
 };
 use baras_types::AbilitySelector;
 
@@ -38,7 +37,6 @@ pub struct EffectListItem {
 
     // Effect data
     pub enabled: bool,
-    pub category: EffectCategory,
     pub trigger: Trigger,
     pub ignore_effect_removed: bool,
     pub refresh_abilities: Vec<AbilitySelector>,
@@ -81,7 +79,6 @@ impl EffectListItem {
             display_text: def.display_text.clone(),
             is_user_override,
             enabled: def.enabled,
-            category: def.category,
             trigger: def.trigger.clone(),
             ignore_effect_removed: def.ignore_effect_removed,
             refresh_abilities: def.refresh_abilities.clone(),
@@ -111,14 +108,12 @@ impl EffectListItem {
             name: self.name.clone(),
             display_text: self.display_text.clone(),
             enabled: self.enabled,
-            category: self.category,
             trigger: self.trigger.clone(),
             ignore_effect_removed: self.ignore_effect_removed,
             refresh_abilities: self.refresh_abilities.clone(),
             duration_secs: self.duration_secs,
             is_refreshed_on_modify: self.is_refreshed_on_modify,
             color: self.color,
-            show_on_raid_frames: self.display_target == DisplayTarget::RaidFrames,
             show_at_secs: self.show_at_secs,
             persist_past_death: self.persist_past_death,
             track_outside_combat: self.track_outside_combat,

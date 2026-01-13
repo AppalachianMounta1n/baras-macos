@@ -16,42 +16,6 @@ pub use crate::dsl::{AbilitySelector, EffectSelector};
 // Effect Definitions
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// How an effect should be categorized and displayed
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum EffectCategory {
-    /// Heal over Time (default green)
-    #[default]
-    Hot,
-    /// Absorb shield/barrier (yellow/gold)
-    Shield,
-    /// Beneficial buff (blue)
-    Buff,
-    /// Harmful debuff (red)
-    Debuff,
-    /// Dispellable/cleansable effect (purple)
-    Cleansable,
-    /// Temporary proc (cyan)
-    Proc,
-    /// Boss mechanic on player (orange)
-    Mechanic,
-}
-
-impl EffectCategory {
-    /// Default RGBA color for this category
-    pub fn default_color(&self) -> [u8; 4] {
-        match self {
-            Self::Hot => [80, 200, 80, 255],         // Green
-            Self::Shield => [220, 180, 50, 255],     // Yellow/Gold
-            Self::Buff => [80, 140, 220, 255],       // Blue
-            Self::Debuff => [200, 60, 60, 255],      // Red
-            Self::Cleansable => [180, 80, 200, 255], // Purple
-            Self::Proc => [80, 200, 220, 255],       // Cyan
-            Self::Mechanic => [255, 140, 60, 255],   // Orange
-        }
-    }
-}
-
 /// When to trigger an alert for this effect
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -65,6 +29,9 @@ pub enum AlertTrigger {
     OnExpire,
 }
 
+/// Default RGBA color for effects without explicit color
+const DEFAULT_EFFECT_COLOR: [u8; 4] = [128, 128, 128, 255];
+
 /// Which overlay should display this effect.
 ///
 /// Effects are routed to different overlays based on this setting,
@@ -72,7 +39,7 @@ pub enum AlertTrigger {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DisplayTarget {
-    /// No overlay specified - effect won't display unless show_on_raid_frames is set
+    /// No overlay specified - effect won't display
     #[default]
     None,
     /// Show on raid frames overlay (HOTs on group members)
@@ -148,16 +115,8 @@ pub struct EffectDefinition {
     pub cooldown_ready_secs: f32,
 
     // ─── Display ────────────────────────────────────────────────────────────
-    /// Effect category (determines default color)
-    #[serde(default)]
-    pub category: EffectCategory,
-
-    /// Override color as RGBA (None = use category default)
+    /// Effect color as RGBA
     pub color: Option<[u8; 4]>,
-
-    /// Show this effect on raid frames (HOTs/shields typically true, DOTs false)
-    #[serde(default)]
-    pub show_on_raid_frames: bool,
 
     /// Only show when remaining time is at or below this threshold (0 = always show)
     #[serde(default)]
@@ -212,9 +171,9 @@ pub struct EffectDefinition {
 }
 
 impl EffectDefinition {
-    /// Get the effective color (override or category default)
+    /// Get the effective color (explicit color or default gray)
     pub fn effective_color(&self) -> [u8; 4] {
-        self.color.unwrap_or_else(|| self.category.default_color())
+        self.color.unwrap_or(DEFAULT_EFFECT_COLOR)
     }
 
     /// Get the display text, falling back to name if not set

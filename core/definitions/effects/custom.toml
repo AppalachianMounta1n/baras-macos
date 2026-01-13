@@ -38,12 +38,9 @@ version = 1
 #   - "effects_overlay"   Legacy countdown bars
 #
 # # Display
-# category = "hot"                      # hot | shield | buff | debuff | cleansable | proc | mechanic
-# color = [80, 200, 80, 255]            # Override RGBA (None = use category)
+# color = [80, 200, 80, 255]            # RGBA color
 # icon_ability_id = 123456              # Optional ability ID for icon lookup
 # show_icon = true                      # Use icon (true) or colored square (false)
-# show_on_raid_frames = false           # Legacy: also show on raid frames
-# show_on_effects_overlay = false       # Legacy: also show on effects overlay
 # show_at_secs = 0                      # Only show when remaining <= N
 #
 # # Behavior
@@ -59,7 +56,6 @@ version = 1
 # trigger = { type = "ability_cast", abilities = [123456], source = "local_player", target = "any" }
 # duration_secs = 90.0                  # Cooldown duration
 # # Note: cooldowns automatically ignore EffectRemoved events
-# category = "proc"
 #
 # ─── Personal Buff Tracking (procs on self) ────────────────────────────────
 # [[effect]]
@@ -68,7 +64,6 @@ version = 1
 # display_target = "personal_buffs"
 # trigger = { type = "effect_applied", effects = [123456], source = "local_player", target = "local_player" }
 # duration_secs = 15.0
-# category = "proc"
 #
 # ─── DOT Tracking (debuffs on enemies) ─────────────────────────────────────
 # [[effect]]
@@ -77,7 +72,6 @@ version = 1
 # display_target = "dot_tracker"
 # trigger = { type = "effect_applied", effects = [123456], source = "local_player", target = "any_npc" }
 # duration_secs = 18.0
-# category = "debuff"
 #
 # ─── Audio Settings ────────────────────────────────────────────────────────
 # [effect.audio]

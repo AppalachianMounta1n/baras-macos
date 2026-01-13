@@ -463,21 +463,6 @@ impl DisplayTarget {
     }
 }
 
-/// Effect category for display grouping
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum EffectCategory {
-    #[default]
-    Hot,
-    Shield,
-    Buff,
-    Debuff,
-    Cleansable,
-    Proc,
-    Mechanic,
-}
-
-
 /// When to trigger an alert for this effect
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -516,7 +501,6 @@ pub struct EffectListItem {
 
     // Core
     pub enabled: bool,
-    pub category: EffectCategory,
     pub trigger: Trigger,
 
     // If true, ignore game EffectRemoved - use duration_secs only

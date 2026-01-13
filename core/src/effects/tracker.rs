@@ -299,9 +299,7 @@ impl EffectTracker {
         // Update active effects with new display properties from their definitions
         for effect in self.active_effects.values_mut() {
             if let Some(def) = definitions.effects.get(&effect.definition_id) {
-                effect.show_on_raid_frames = def.show_on_raid_frames;
                 effect.color = def.effective_color();
-                effect.category = def.category;
             }
         }
         self.definitions = definitions;
@@ -350,11 +348,10 @@ impl EffectTracker {
     // ─────────────────────────────────────────────────────────────────────────────
 
     /// Get effects destined for raid frames overlay (HOTs on group members)
-    /// Uses the `show_on_raid_frames` flag, not `display_target`
     pub fn raid_frame_effects(&self) -> impl Iterator<Item = &ActiveEffect> {
         self.active_effects
             .values()
-            .filter(|e| e.show_on_raid_frames && e.removed_at.is_none())
+            .filter(|e| e.display_target == DisplayTarget::RaidFrames && e.removed_at.is_none())
     }
 
     /// Get effects destined for Effects A overlay
@@ -569,10 +566,8 @@ impl EffectTracker {
                     timestamp,
                     duration,
                     def.effective_color(),
-                    def.category,
                     def.display_target,
                     icon_ability_id,
-                    def.show_on_raid_frames,
                     def.show_at_secs,
                     def.show_icon,
                     def.display_source,
@@ -900,10 +895,8 @@ impl EffectTracker {
                     timestamp,
                     duration,
                     def.effective_color(),
-                    def.category,
                     def.display_target,
                     icon_ability_id,
-                    def.show_on_raid_frames,
                     def.show_at_secs,
                     def.show_icon,
                     def.display_source,
@@ -991,10 +984,8 @@ impl EffectTracker {
                     timestamp,
                     duration,
                     def.effective_color(),
-                    def.category,
                     def.display_target,
                     icon_ability_id,
-                    def.show_on_raid_frames,
                     def.show_at_secs,
                     def.show_icon,
                     def.display_source,
