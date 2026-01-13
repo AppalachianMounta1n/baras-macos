@@ -188,6 +188,12 @@ impl DotTrackerOverlay {
 
     /// Render the overlay
     pub fn render(&mut self) {
+        // In move mode, always render preview (bypass dirty check)
+        if self.frame.is_in_move_mode() {
+            self.render_preview();
+            return;
+        }
+
         let max_targets = self.config.max_targets as usize;
 
         // Build current visible state for dirty check
@@ -350,6 +356,124 @@ impl DotTrackerOverlay {
                     let stack_text = format!("{}", dot.stacks);
                     let stack_font_size = time_font_size * 1.1;
                     // Position at bottom-right corner
+                    let stack_x = icon_x + icon_size
+                        - self.frame.measure_text(&stack_text, stack_font_size).0
+                        - 1.0;
+                    let stack_y = y + icon_size - 1.0;
+
+                    self.frame.draw_text(
+                        &stack_text,
+                        stack_x + 1.0,
+                        stack_y + 1.0,
+                        stack_font_size,
+                        colors::text_shadow(),
+                    );
+                    self.frame.draw_text(
+                        &stack_text,
+                        stack_x,
+                        stack_y,
+                        stack_font_size,
+                        colors::effect_buff(),
+                    );
+                }
+
+                icon_x += icon_size + icon_spacing;
+            }
+
+            y += row_height;
+        }
+
+        self.frame.end_frame();
+    }
+
+    /// Render preview placeholders in move mode
+    fn render_preview(&mut self) {
+        let padding = self.frame.scaled(BASE_PADDING);
+        let row_spacing = self.frame.scaled(BASE_ROW_SPACING);
+        let icon_spacing = self.frame.scaled(BASE_ICON_SPACING);
+        let font_size = self.frame.scaled(BASE_FONT_SIZE);
+        let icon_size = self.frame.scaled(self.config.icon_size as f32);
+        let name_width = self.frame.scaled(BASE_NAME_WIDTH);
+        let row_height = icon_size + row_spacing;
+
+        self.frame.begin_frame();
+
+        let mut y = padding;
+
+        // Sample preview data: 2 targets with 3 DOTs each
+        let targets = [
+            ("Target 1", [("12.3", 2u8), ("8.5", 1u8), ("45", 0u8)]),
+            ("Target 2", [("5.2", 3u8), ("18", 1u8), ("3.1", 0u8)]),
+        ];
+
+        for (target_name, dots) in &targets {
+            let x = padding;
+
+            // Wrap target name into lines
+            let name_lines = wrap_name(target_name, NAME_WRAP_CHARS);
+            let line_height = font_size + 2.0;
+            let total_text_height = name_lines.len() as f32 * line_height;
+
+            // Center the text block vertically relative to icon
+            let text_start_y = y + (icon_size - total_text_height) / 2.0 + font_size;
+
+            for (i, line) in name_lines.iter().enumerate() {
+                self.frame.draw_text(
+                    line,
+                    x,
+                    text_start_y + i as f32 * line_height,
+                    font_size,
+                    colors::white(),
+                );
+            }
+
+            // DOT icons after name
+            let mut icon_x = x + name_width;
+
+            for (time_text, stacks) in dots {
+                // Placeholder icon background
+                self.frame.fill_rounded_rect(
+                    icon_x,
+                    y,
+                    icon_size,
+                    icon_size,
+                    2.0,
+                    colors::effect_icon_bg(),
+                );
+
+                // Dashed border to indicate preview
+                self.frame.stroke_rounded_rect_dashed(
+                    icon_x,
+                    y,
+                    icon_size,
+                    icon_size,
+                    2.0,
+                    1.0,
+                    colors::preview_border(),
+                    3.0,
+                    2.0,
+                );
+
+                // Countdown text centered
+                let time_font_size = font_size * 0.85;
+                let text_width = self.frame.measure_text(time_text, time_font_size).0;
+                let text_x = icon_x + (icon_size - text_width) / 2.0;
+                let text_y = y + icon_size / 2.0 + time_font_size / 3.0;
+
+                // Shadow + text
+                self.frame.draw_text(
+                    time_text,
+                    text_x + 1.0,
+                    text_y + 1.0,
+                    time_font_size,
+                    colors::text_shadow(),
+                );
+                self.frame.draw_text(time_text, text_x, text_y, time_font_size, colors::white());
+
+                // Stack count in bottom-right corner
+                if *stacks >= 1 {
+                    let stack_text = format!("{}", stacks);
+                    let stack_font_size = time_font_size * 1.1;
                     let stack_x = icon_x + icon_size
                         - self.frame.measure_text(&stack_text, stack_font_size).0
                         - 1.0;

@@ -188,6 +188,12 @@ impl EffectsABOverlay {
 
     /// Render the overlay
     pub fn render(&mut self) {
+        // In move mode, always render preview (bypass dirty check)
+        if self.frame.is_in_move_mode() {
+            self.render_preview();
+            return;
+        }
+
         match self.config.layout {
             EffectsLayout::Horizontal => self.render_horizontal(),
             EffectsLayout::Vertical => self.render_vertical(),
@@ -627,6 +633,172 @@ impl EffectsABOverlay {
                 stack_font_size,
                 colors::white(),
             );
+        }
+    }
+
+    /// Render preview placeholders in move mode
+    fn render_preview(&mut self) {
+        match self.config.layout {
+            EffectsLayout::Horizontal => self.render_preview_horizontal(),
+            EffectsLayout::Vertical => self.render_preview_vertical(),
+        }
+    }
+
+    /// Render horizontal preview (row of icons)
+    fn render_preview_horizontal(&mut self) {
+        let padding = self.frame.scaled(BASE_PADDING);
+        let spacing = self.frame.scaled(BASE_SPACING);
+        let font_size = self.frame.scaled(BASE_FONT_SIZE);
+        let icon_size = self.frame.scaled(self.config.icon_size as f32);
+
+        self.frame.begin_frame();
+
+        let mut x = padding;
+        let y = padding;
+
+        // Sample preview data: (time, stacks)
+        let previews = [("12.3", 3u8), ("45", 1u8), ("8.5", 2u8)];
+
+        for (time_text, stacks) in &previews {
+            // Placeholder icon background
+            self.frame.fill_rounded_rect(x, y, icon_size, icon_size, 3.0, colors::effect_icon_bg());
+
+            // Dashed border to indicate preview
+            self.frame.stroke_rounded_rect_dashed(
+                x, y, icon_size, icon_size, 3.0, 1.0,
+                colors::preview_border(), 3.0, 2.0,
+            );
+
+            // Stack priority vs normal mode
+            if self.config.stack_priority && *stacks >= 1 {
+                self.draw_preview_stack_priority(x, y, icon_size, font_size, time_text, *stacks);
+            } else {
+                self.draw_preview_normal_mode(x, y, icon_size, font_size, time_text, *stacks);
+            }
+
+            // Effect name below icon
+            if self.config.show_effect_names {
+                let name_font_size = font_size * 0.85;
+                let name = "Effect";
+                let name_width = self.frame.measure_text(name, name_font_size).0;
+                let name_x = x + (icon_size - name_width) / 2.0;
+                let name_y = y + icon_size + name_font_size + 2.0;
+
+                self.frame.draw_text(name, name_x + 1.0, name_y + 1.0, name_font_size, colors::text_shadow());
+                self.frame.draw_text(name, name_x, name_y, name_font_size, colors::white());
+            }
+
+            x += icon_size + spacing;
+        }
+
+        self.frame.end_frame();
+    }
+
+    /// Render vertical preview (column with text beside icons)
+    fn render_preview_vertical(&mut self) {
+        let padding = self.frame.scaled(BASE_PADDING);
+        let row_spacing = self.frame.scaled(BASE_SPACING);
+        let font_size = self.frame.scaled(BASE_FONT_SIZE);
+        let icon_size = self.frame.scaled(self.config.icon_size as f32);
+        let row_height = icon_size + row_spacing;
+
+        self.frame.begin_frame();
+
+        let mut y = padding;
+
+        // Sample preview data: (time, stacks)
+        let previews = [("12.3", 3u8), ("45", 1u8), ("8.5", 2u8)];
+
+        for (time_text, stacks) in &previews {
+            let x = padding;
+
+            // Placeholder icon background
+            self.frame.fill_rounded_rect(x, y, icon_size, icon_size, 3.0, colors::effect_icon_bg());
+
+            // Dashed border to indicate preview
+            self.frame.stroke_rounded_rect_dashed(
+                x, y, icon_size, icon_size, 3.0, 1.0,
+                colors::preview_border(), 3.0, 2.0,
+            );
+
+            // Stack count in corner
+            if *stacks >= 1 {
+                let stack_text = format!("{}", stacks);
+                let stack_font_size = font_size * 0.9;
+                let stack_x = x + icon_size - self.frame.measure_text(&stack_text, stack_font_size).0 - 2.0;
+                let stack_y = y + stack_font_size + 2.0;
+
+                self.frame.draw_text(&stack_text, stack_x + 1.0, stack_y + 1.0, stack_font_size, colors::text_shadow());
+                self.frame.draw_text(&stack_text, stack_x, stack_y, stack_font_size, colors::effect_buff());
+            }
+
+            // Text to the right of icon
+            let text_x = x + icon_size + padding;
+            let text_y = y + icon_size / 2.0;
+
+            if self.config.show_effect_names {
+                // Effect name on top
+                let name_y = text_y - font_size * 0.3;
+                self.frame.draw_text("Effect", text_x, name_y, font_size, colors::white());
+
+                // Countdown below
+                if self.config.show_countdown {
+                    let time_y = name_y + font_size + 2.0;
+                    self.frame.draw_text(time_text, text_x, time_y, font_size * 0.9, colors::label_dim());
+                }
+            } else if self.config.show_countdown {
+                // Just countdown centered
+                self.frame.draw_text(time_text, text_x, text_y + font_size / 3.0, font_size, colors::white());
+            }
+
+            y += row_height;
+        }
+
+        self.frame.end_frame();
+    }
+
+    /// Draw preview stack-priority mode (big stacks centered, timer in corner)
+    fn draw_preview_stack_priority(&mut self, x: f32, y: f32, icon_size: f32, font_size: f32, time_text: &str, stacks: u8) {
+        let stack_text = format!("{}", stacks);
+        let stack_font_size = font_size * 1.9;
+        let text_width = self.frame.measure_text(&stack_text, stack_font_size).0;
+        let text_x = x + (icon_size - text_width) / 2.0;
+        let text_y = y + icon_size / 2.0 + stack_font_size / 3.0;
+
+        self.frame.draw_text(&stack_text, text_x + 1.0, text_y + 1.0, stack_font_size, colors::text_shadow());
+        self.frame.draw_text(&stack_text, text_x, text_y, stack_font_size, colors::white());
+
+        // Timer small in top-right corner
+        if self.config.show_countdown {
+            let time_font_size = font_size * 0.8;
+            let time_x = x + icon_size - self.frame.measure_text(time_text, time_font_size).0 - 2.0;
+            let time_y = y + time_font_size + 2.0;
+
+            self.frame.draw_text(time_text, time_x + 1.0, time_y + 1.0, time_font_size, colors::text_shadow());
+            self.frame.draw_text(time_text, time_x, time_y, time_font_size, colors::label_dim());
+        }
+    }
+
+    /// Draw preview normal mode (timer centered, stacks in corner)
+    fn draw_preview_normal_mode(&mut self, x: f32, y: f32, icon_size: f32, font_size: f32, time_text: &str, stacks: u8) {
+        if self.config.show_countdown {
+            let text_width = self.frame.measure_text(time_text, font_size).0;
+            let text_x = x + (icon_size - text_width) / 2.0;
+            let text_y = y + icon_size / 2.0 + font_size / 3.0;
+
+            self.frame.draw_text(time_text, text_x + 1.0, text_y + 1.0, font_size, colors::text_shadow());
+            self.frame.draw_text(time_text, text_x, text_y, font_size, colors::white());
+        }
+
+        // Stack count in bottom-right corner
+        if stacks >= 1 {
+            let stack_text = format!("{}", stacks);
+            let stack_font_size = font_size * 1.3;
+            let stack_x = x + icon_size - self.frame.measure_text(&stack_text, stack_font_size).0 - 2.0;
+            let stack_y = y + icon_size - 2.0;
+
+            self.frame.draw_text(&stack_text, stack_x + 1.0, stack_y + 1.0, stack_font_size, colors::text_shadow());
+            self.frame.draw_text(&stack_text, stack_x, stack_y, stack_font_size, colors::white());
         }
     }
 }

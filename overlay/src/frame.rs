@@ -332,6 +332,12 @@ impl OverlayFrame {
         self.window.is_interactive()
     }
 
+    /// Check if in move mode (interactive AND drag enabled)
+    /// This is the state where overlays show preview content and can be repositioned
+    pub fn is_in_move_mode(&self) -> bool {
+        self.window.is_interactive() && self.window.is_drag_enabled()
+    }
+
     /// Check if pointer is in the resize corner
     pub fn in_resize_corner(&self) -> bool {
         self.window.in_resize_corner()

@@ -229,6 +229,12 @@ pub fn effect_icon_border() -> Color {
     Color::from_rgba8(150, 150, 150, 200)
 }
 
+/// Preview border for move mode placeholders
+#[inline]
+pub fn preview_border() -> Color {
+    Color::from_rgba8(180, 180, 180, 180)
+}
+
 /// Effect bar background (inside icon)
 #[inline]
 pub fn effect_bar_bg() -> Color {

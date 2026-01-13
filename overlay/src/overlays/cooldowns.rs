@@ -190,6 +190,12 @@ impl CooldownOverlay {
 
     /// Render the overlay
     pub fn render(&mut self) {
+        // In move mode, always render preview (bypass dirty check)
+        if self.frame.is_in_move_mode() {
+            self.render_preview();
+            return;
+        }
+
         let max_display = self.config.max_display as usize;
 
         // Build current visible state for dirty check
@@ -400,6 +406,106 @@ impl CooldownOverlay {
                         colors::label_dim(),
                     );
                 }
+            }
+
+            y += row_height;
+        }
+
+        self.frame.end_frame();
+    }
+
+    /// Render preview placeholders in move mode
+    fn render_preview(&mut self) {
+        let padding = self.frame.scaled(BASE_PADDING);
+        let row_spacing = self.frame.scaled(BASE_ROW_SPACING);
+        let font_size = self.frame.scaled(BASE_FONT_SIZE);
+        let icon_size = self.frame.scaled(self.config.icon_size as f32);
+        let row_height = icon_size + row_spacing;
+
+        self.frame.begin_frame();
+
+        let mut y = padding;
+
+        // Sample preview data
+        let previews = [
+            ("Ability", "12.3s", 2u8),
+            ("Ability", "45.0s", 1u8),
+            ("Ability", "1:30", 0u8),
+        ];
+
+        for (name, time_text, charges) in &previews {
+            let x = padding;
+
+            // Placeholder icon background
+            self.frame.fill_rounded_rect(
+                x,
+                y,
+                icon_size,
+                icon_size,
+                3.0,
+                colors::effect_icon_bg(),
+            );
+
+            // Dashed border to indicate preview
+            self.frame.stroke_rounded_rect_dashed(
+                x,
+                y,
+                icon_size,
+                icon_size,
+                3.0,
+                1.0,
+                colors::preview_border(),
+                3.0,
+                2.0,
+            );
+
+            // Charge count in corner (if > 1)
+            if *charges > 1 {
+                let charge_text = format!("{}", charges);
+                let charge_font_size = font_size * 0.9;
+                let charge_x =
+                    x + icon_size - self.frame.measure_text(&charge_text, charge_font_size).0 - 2.0;
+                let charge_y = y + charge_font_size + 2.0;
+
+                self.frame.draw_text(
+                    &charge_text,
+                    charge_x + 1.0,
+                    charge_y + 1.0,
+                    charge_font_size,
+                    colors::text_shadow(),
+                );
+                self.frame.draw_text(
+                    &charge_text,
+                    charge_x,
+                    charge_y,
+                    charge_font_size,
+                    colors::effect_buff(),
+                );
+            }
+
+            // Text to the right
+            let text_x = x + icon_size + padding;
+            let text_y = y + icon_size / 2.0;
+
+            if self.config.show_ability_names {
+                // Ability name on top
+                let name_y = text_y - font_size * 0.3;
+                self.frame
+                    .draw_text(name, text_x, name_y, font_size, colors::white());
+
+                // Countdown below
+                let time_y = name_y + font_size + 2.0;
+                self.frame
+                    .draw_text(time_text, text_x, time_y, font_size * 0.9, colors::label_dim());
+            } else {
+                // Just countdown centered
+                self.frame.draw_text(
+                    time_text,
+                    text_x,
+                    text_y + font_size / 3.0,
+                    font_size,
+                    colors::white(),
+                );
             }
 
             y += row_height;
