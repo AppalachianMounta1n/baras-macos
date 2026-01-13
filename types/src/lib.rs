@@ -1208,9 +1208,6 @@ pub struct EffectsBConfig {
     /// Show countdown text on icons
     #[serde(default = "default_true")]
     pub show_countdown: bool,
-    /// Highlight cleansable effects
-    #[serde(default = "default_true")]
-    pub highlight_cleansable: bool,
     /// When true, stacks are shown large and centered; timer is secondary
     #[serde(default)]
     pub stack_priority: bool,
@@ -1224,7 +1221,6 @@ impl Default for EffectsBConfig {
             layout_vertical: false,
             show_effect_names: false,
             show_countdown: true,
-            highlight_cleansable: true,
             stack_priority: false,
         }
     }

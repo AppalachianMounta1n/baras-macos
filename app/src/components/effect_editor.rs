@@ -1056,7 +1056,7 @@ fn EffectEditForm(
                                     draft.set(d);
                                 }
                             }
-                            "Affected by Alacrity"
+                            "Duration Affected by Alacrity"
                         }
 
                         // Cooldown Ready Secs (only for Cooldowns display target)
@@ -1095,7 +1095,7 @@ fn EffectEditForm(
                                         draft.set(d);
                                     }
                                 }
-                                "Ignore Effect Removed"
+                                "Fixed Duration - ignore effect removed after applied"
                             }
                         }
 
@@ -1109,7 +1109,7 @@ fn EffectEditForm(
                                     draft.set(d);
                                 }
                             }
-                            "Refresh on Charge Change"
+                            "Refresh Duration When Charges Modified"
                         }
 
                         label { class: "flex items-center gap-xs text-sm",

@@ -704,19 +704,6 @@ pub fn SettingsPanel(
                     }
 
                     div { class: "setting-row",
-                        label { "Highlight Cleansable" }
-                        input {
-                            r#type: "checkbox",
-                            checked: current_settings.effects_b.highlight_cleansable,
-                            onchange: move |e: Event<FormData>| {
-                                let mut new_settings = draft_settings();
-                                new_settings.effects_b.highlight_cleansable = e.checked();
-                                update_draft(new_settings);
-                            }
-                        }
-                    }
-
-                    div { class: "setting-row",
                         label { "Prioritize Stacked Effects" }
                         input {
                             r#type: "checkbox",

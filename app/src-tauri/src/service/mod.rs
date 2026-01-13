@@ -1996,7 +1996,6 @@ async fn build_effects_a_data(
                 icon,
                 show_icon: effect.show_icon,
                 display_source: effect.display_source,
-                is_cleansable: false,
             })
         })
         .collect();
@@ -2046,7 +2045,6 @@ async fn build_effects_b_data(
                 total_secs,
                 color: effect.color,
                 stacks: effect.stacks,
-                is_cleansable: effect.category == EffectCategory::Cleansable,
                 source_name: resolve(effect.source_name).to_string(),
                 target_name: resolve(effect.target_name).to_string(),
                 icon,

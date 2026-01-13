@@ -53,8 +53,6 @@ pub struct EffectABEntry {
     pub show_icon: bool,
     /// Whether to display the source entity name
     pub display_source: bool,
-    /// Whether this is a cleansable effect (for highlight)
-    pub is_cleansable: bool,
 }
 
 impl EffectABEntry {
@@ -97,8 +95,6 @@ pub struct EffectsABConfig {
     pub layout: EffectsLayout,
     pub show_effect_names: bool,
     pub show_countdown: bool,
-    /// Highlight cleansable effects (purple border)
-    pub highlight_cleansable: bool,
     /// When true, stacks are shown large and centered; timer is secondary
     pub stack_priority: bool,
 }
@@ -111,7 +107,6 @@ impl Default for EffectsABConfig {
             layout: EffectsLayout::Horizontal,
             show_effect_names: false,
             show_countdown: true,
-            highlight_cleansable: false,
             stack_priority: false,
         }
     }
@@ -123,9 +118,6 @@ const BASE_HEIGHT: f32 = 300.0;
 const BASE_PADDING: f32 = 4.0;
 const BASE_SPACING: f32 = 4.0;
 const BASE_FONT_SIZE: f32 = 10.0;
-
-/// Cleansable highlight color (purple glow)
-const CLEANSABLE_HIGHLIGHT: [u8; 4] = [180, 80, 200, 255];
 
 /// Effects overlay - displays effect icons in horizontal or vertical layout
 pub struct EffectsABOverlay {
@@ -241,20 +233,6 @@ impl EffectsABOverlay {
         let effects: Vec<_> = self.data.effects.iter().take(max_display).cloned().collect();
 
         for effect in &effects {
-            // Cleansable highlight border
-            if self.config.highlight_cleansable && effect.is_cleansable {
-                let highlight_color = color_from_rgba(CLEANSABLE_HIGHLIGHT);
-                self.frame.stroke_rounded_rect(
-                    x - 2.0,
-                    y - 2.0,
-                    icon_size + 4.0,
-                    icon_size + 4.0,
-                    4.0,
-                    2.0,
-                    highlight_color,
-                );
-            }
-
             // Draw icon
             self.draw_icon(effect, x, y, icon_size, icon_size_u32);
 
@@ -385,20 +363,6 @@ impl EffectsABOverlay {
 
         for effect in &effects {
             let x = padding;
-
-            // Cleansable highlight border
-            if self.config.highlight_cleansable && effect.is_cleansable {
-                let highlight_color = color_from_rgba(CLEANSABLE_HIGHLIGHT);
-                self.frame.stroke_rounded_rect(
-                    x - 2.0,
-                    y - 2.0,
-                    icon_size + 4.0,
-                    icon_size + 4.0,
-                    4.0,
-                    2.0,
-                    highlight_color,
-                );
-            }
 
             // Draw icon
             self.draw_icon(effect, x, y, icon_size, icon_size_u32);

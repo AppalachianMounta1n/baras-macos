@@ -291,7 +291,6 @@ impl OverlayManager {
                     layout,
                     show_effect_names: cfg.show_effect_names,
                     show_countdown: cfg.show_countdown,
-                    highlight_cleansable: false,
                     stack_priority: cfg.stack_priority,
                 };
                 OverlayConfigUpdate::EffectsA(buffs_config, settings.effects_a_opacity)
@@ -309,7 +308,6 @@ impl OverlayManager {
                     layout,
                     show_effect_names: cfg.show_effect_names,
                     show_countdown: cfg.show_countdown,
-                    highlight_cleansable: cfg.highlight_cleansable,
                     stack_priority: cfg.stack_priority,
                 };
                 OverlayConfigUpdate::EffectsB(

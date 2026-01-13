@@ -490,7 +490,6 @@ pub fn create_effects_a_overlay(
         },
         show_effect_names: effects_config.show_effect_names,
         show_countdown: effects_config.show_countdown,
-        highlight_cleansable: false,
         stack_priority: effects_config.stack_priority,
     };
 
@@ -540,7 +539,6 @@ pub fn create_effects_b_overlay(
         },
         show_effect_names: effects_config.show_effect_names,
         show_countdown: effects_config.show_countdown,
-        highlight_cleansable: effects_config.highlight_cleansable,
         stack_priority: effects_config.stack_priority,
     };
 
