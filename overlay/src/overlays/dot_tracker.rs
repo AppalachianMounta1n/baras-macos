@@ -12,8 +12,8 @@ use super::{Overlay, OverlayConfigUpdate, OverlayData};
 use crate::frame::OverlayFrame;
 use crate::platform::{OverlayConfig, PlatformError};
 use crate::utils::color_from_rgba;
-use crate::widgets::colors;
 use crate::widgets::Header;
+use crate::widgets::colors;
 
 /// Cache for pre-scaled icons
 type ScaledIconCache = HashMap<(u64, u32), Vec<u8>>;
@@ -247,7 +247,14 @@ impl DotTrackerOverlay {
             let content_width = self.frame.width() as f32 - 2.0 * padding;
             Header::new("DOT Tracker")
                 .with_color(colors::white())
-                .render(&mut self.frame, padding, padding, content_width, header_font_size, row_spacing);
+                .render(
+                    &mut self.frame,
+                    padding,
+                    padding,
+                    content_width,
+                    header_font_size,
+                    row_spacing,
+                );
         }
 
         if self.data.targets.is_empty() {
@@ -269,12 +276,23 @@ impl DotTrackerOverlay {
             // Wrap target name into lines
             let name_lines = wrap_name(&target.name, NAME_WRAP_CHARS);
             let line_height = font_size + 2.0;
-            let total_text_height = name_lines.len() as f32 * line_height;
+            let total_text_height = std::cmp::min(2, name_lines.len()) as f32 * line_height;
 
             // Center the text block vertically relative to icon
             let text_start_y = y + (icon_size - total_text_height) / 2.0 + font_size;
 
             for (i, line) in name_lines.iter().enumerate() {
+                if i == 1 {
+                    self.frame.draw_text(
+                        &format!("{}...", line),
+                        x,
+                        text_start_y + i as f32 * line_height,
+                        font_size,
+                        colors::white(),
+                    );
+                    break;
+                }
+
                 self.frame.draw_text(
                     line,
                     x,
@@ -433,7 +451,14 @@ impl DotTrackerOverlay {
             let content_width = self.frame.width() as f32 - 2.0 * padding;
             Header::new("DOT Tracker")
                 .with_color(colors::white())
-                .render(&mut self.frame, padding, padding, content_width, header_font_size, row_spacing);
+                .render(
+                    &mut self.frame,
+                    padding,
+                    padding,
+                    content_width,
+                    header_font_size,
+                    row_spacing,
+                );
         }
 
         let mut y = padding + header_space;
@@ -506,7 +531,8 @@ impl DotTrackerOverlay {
                     time_font_size,
                     colors::text_shadow(),
                 );
-                self.frame.draw_text(time_text, text_x, text_y, time_font_size, colors::white());
+                self.frame
+                    .draw_text(time_text, text_x, text_y, time_font_size, colors::white());
 
                 // Stack count in bottom-right corner
                 if *stacks >= 1 {
