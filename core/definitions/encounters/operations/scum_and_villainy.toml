@@ -22,6 +22,66 @@ ids = [3153571147153408, 3058837053505536, 3153575442120704, 3153558262251520]
 is_boss = true
 is_kill_target = true
 
+[[boss.timer]]
+id = "dash_xuvvas_1st"
+name = "Xuvvas CS"
+display_text = "Adds"
+trigger = { type = "combat_start" }
+duration_secs = 15.0
+color = [17, 153, 21, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dash_roode_xuvvas"
+name = "Xuvvas"
+display_text = "Adds"
+trigger = { type = "ability_cast", abilities = [3121285877989376] }
+duration_secs = 20.0
+color = [17, 153, 21, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dash_roode_updraft_1st"
+name = "Updraft CS"
+display_text = "Updraft"
+trigger = { type = "combat_start" }
+duration_secs = 30.0
+color = [219, 110, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dash_groundshatter"
+name = "Groundshatter"
+trigger = { type = "ability_cast", abilities = [3063810625634304] }
+duration_secs = 20.0
+color = [219, 32, 35, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dash_roode_updraft"
+name = "Updraft"
+trigger = { type = "ability_cast", abilities = [3134548736999424] }
+duration_secs = 30.0
+color = [219, 110, 32, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dash_roode_kick"
+# orbs_id = "284002bd-aac1-4ab5-8625-2fc1c157a8e8"
+name = "Kick"
+trigger = { type = "any_of", conditions = [
+  { type = "ability_cast", abilities = [
+    3063806330667008,
+  ] },
+  { type = "ability_cast", abilities = [
+    3063810625634304,
+  ] },
+] }
+duration_secs = 8.0
+color = [39, 32, 219, 255]
+difficulties = ["veteran", "master"]
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Boss 2: Titan 6
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -36,6 +96,90 @@ name = "Titan 6"
 ids = [3152463045591040, 3016450021261312, 3152467340558336, 3152458750623744]
 is_boss = true
 is_kill_target = true
+
+
+[[boss.phases]]
+id = "titan_6_main"
+name = "Titan 6"
+trigger = { type = "combat_start" }
+
+[[boss.phases]]
+id = "titan_6_burn"
+name = "Burn"
+trigger = { type = "boss_hp_below", hp_percent = 20.0, boss = ["Titan 6"] }
+
+[[boss.timer]]
+id = "titan_6_reposition"
+name = "Reposition"
+trigger = { type = "ability_cast", abilities = [3152269772062720] }
+duration_secs = 16.5
+color = [37, 216, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "titan_6_huge_grenade"
+name = "Huge Grenade"
+display_text = "Huge Grenade"
+trigger = { type = "any_of", conditions = [
+  { type = "combat_start" },
+  { type = "timer_expires", timer_id = "titan_6_reposition" },
+] }
+cancel_trigger = { type = "phase_entered", phase_id = "titan_6_burn" }
+duration_secs = 45.0
+color = [169, 194, 25, 255]
+difficulties = ["veteran", "master"]
+phase = ["titan_6_main"]
+
+[[boss.timer]]
+id = "titan_6_airstrike"
+name = "Airstrike"
+trigger = { type = "any_of", conditions = [
+  { type = "combat_start" },
+  { type = "timer_expires", timer_id = "titan_6_reposition" },
+] }
+cancel_trigger = { type = "phase_entered", phase_id = "titan_6_burn" }
+duration_secs = 35.0
+color = [219, 28, 32, 255]
+difficulties = ["veteran", "master"]
+phase = ["titan_6_main"]
+
+[[boss.timer]]
+id = "titan_6_lots_of_missiles"
+# orbs_id = "5699af46-0485-44a0-b813-eac71a94b1a1"
+name = "Lots of Missiles"
+display_text = "Missiles"
+trigger = { type = "any_of", conditions = [
+  { type = "combat_start" },
+  { type = "ability_cast", abilities = [
+    3153901859635200,
+  ] },
+] }
+cancel_trigger = { type = "phase_entered", phase_id = "titan_6_burn" }
+duration_secs = 40.0
+color = [224, 98, 24, 255]
+difficulties = ["veteran", "master"]
+
+
+[[boss.timer]]
+id = "titan_6_kick_lom"
+name = "Kick + Missiles"
+trigger = { type = "any_of", conditions = [
+  { type = "combat_start" },
+  { type = "timer_expires", timer_id = "titan_6_reposition" },
+] }
+duration_secs = 15.0
+cancel_trigger = { type = "phase_entered", phase_id = "titan_6_burn" }
+
+[[boss.timer]]
+id = "titan_6_huge_grenade_b"
+# orbs_id = "62cbb948-a1e0-4e8c-bd31-54abb6df24d9"
+name = "Huge Grenade (Burn)"
+display_text = "Huge Grenade"
+trigger = { type = "ability_cast", abilities = [3255761304027136] }
+duration_secs = 20.0
+color = [169, 194, 25, 255]
+difficulties = ["veteran", "master"]
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Secret Boss: Hateful Entity
