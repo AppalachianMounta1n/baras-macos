@@ -491,6 +491,8 @@ pub fn create_effects_a_overlay(
         show_effect_names: effects_config.show_effect_names,
         show_countdown: effects_config.show_countdown,
         stack_priority: effects_config.stack_priority,
+        show_header: effects_config.show_header,
+        header_title: "Effects A".to_string(),
     };
 
     let factory = move || {
@@ -540,6 +542,8 @@ pub fn create_effects_b_overlay(
         show_effect_names: effects_config.show_effect_names,
         show_countdown: effects_config.show_countdown,
         stack_priority: effects_config.stack_priority,
+        show_header: effects_config.show_header,
+        header_title: "Effects B".to_string(),
     };
 
     let factory = move || {
@@ -583,6 +587,7 @@ pub fn create_cooldowns_overlay(
         sort_by_remaining: cooldowns_config.sort_by_remaining,
         show_source_name: cooldowns_config.show_source_name,
         show_target_name: cooldowns_config.show_target_name,
+        show_header: cooldowns_config.show_header,
     };
 
     let factory = move || {
@@ -625,6 +630,7 @@ pub fn create_dot_tracker_overlay(
         prune_delay_secs: dot_config.prune_delay_secs,
         show_effect_names: dot_config.show_effect_names,
         show_source_name: dot_config.show_source_name,
+        show_header: dot_config.show_header,
     };
 
     let factory = move || {

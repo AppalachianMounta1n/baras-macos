@@ -292,6 +292,8 @@ impl OverlayManager {
                     show_effect_names: cfg.show_effect_names,
                     show_countdown: cfg.show_countdown,
                     stack_priority: cfg.stack_priority,
+                    show_header: cfg.show_header,
+                    header_title: "Effects A".to_string(),
                 };
                 OverlayConfigUpdate::EffectsA(buffs_config, settings.effects_a_opacity)
             }
@@ -309,6 +311,8 @@ impl OverlayManager {
                     show_effect_names: cfg.show_effect_names,
                     show_countdown: cfg.show_countdown,
                     stack_priority: cfg.stack_priority,
+                    show_header: cfg.show_header,
+                    header_title: "Effects B".to_string(),
                 };
                 OverlayConfigUpdate::EffectsB(
                     debuffs_config,
@@ -324,6 +328,7 @@ impl OverlayManager {
                     sort_by_remaining: cfg.sort_by_remaining,
                     show_source_name: cfg.show_source_name,
                     show_target_name: cfg.show_target_name,
+                    show_header: cfg.show_header,
                 };
                 OverlayConfigUpdate::Cooldowns(cooldowns_config, settings.cooldown_tracker_opacity)
             }
@@ -335,6 +340,7 @@ impl OverlayManager {
                     prune_delay_secs: cfg.prune_delay_secs,
                     show_effect_names: cfg.show_effect_names,
                     show_source_name: cfg.show_source_name,
+                    show_header: cfg.show_header,
                 };
                 OverlayConfigUpdate::DotTracker(dot_config, settings.dot_tracker_opacity)
             }

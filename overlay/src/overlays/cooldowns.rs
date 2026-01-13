@@ -11,6 +11,7 @@ use crate::frame::OverlayFrame;
 use crate::platform::{OverlayConfig, PlatformError};
 use crate::utils::color_from_rgba;
 use crate::widgets::colors;
+use crate::widgets::Header;
 
 /// Cache for pre-scaled icons
 type ScaledIconCache = HashMap<(u64, u32), Vec<u8>>;
@@ -96,6 +97,8 @@ pub struct CooldownConfig {
     pub sort_by_remaining: bool,
     pub show_source_name: bool,
     pub show_target_name: bool,
+    /// Show header title above overlay
+    pub show_header: bool,
 }
 
 impl Default for CooldownConfig {
@@ -107,6 +110,7 @@ impl Default for CooldownConfig {
             sort_by_remaining: true,
             show_source_name: false,
             show_target_name: false,
+            show_header: false,
         }
     }
 }
@@ -218,15 +222,32 @@ impl CooldownOverlay {
         let font_size = self.frame.scaled(BASE_FONT_SIZE);
         let icon_size = self.frame.scaled(self.config.icon_size as f32);
         let row_height = icon_size + row_spacing;
+        let scale = self.frame.scale_factor();
+        let header_font_size = font_size * 1.4;
+
+        // Calculate header space if enabled
+        let header_space = if self.config.show_header {
+            header_font_size + row_spacing + 2.0 + row_spacing + 4.0 * scale
+        } else {
+            0.0
+        };
 
         self.frame.begin_frame();
+
+        // Render header if enabled
+        if self.config.show_header {
+            let content_width = self.frame.width() as f32 - 2.0 * padding;
+            Header::new("Cooldowns")
+                .with_color(colors::white())
+                .render(&mut self.frame, padding, padding, content_width, header_font_size, row_spacing);
+        }
 
         if self.data.entries.is_empty() {
             self.frame.end_frame();
             return;
         }
 
-        let mut y = padding;
+        let mut y = padding + header_space;
 
         let icon_size_u32 = icon_size as u32;
 
@@ -421,10 +442,27 @@ impl CooldownOverlay {
         let font_size = self.frame.scaled(BASE_FONT_SIZE);
         let icon_size = self.frame.scaled(self.config.icon_size as f32);
         let row_height = icon_size + row_spacing;
+        let scale = self.frame.scale_factor();
+        let header_font_size = font_size * 1.4;
+
+        // Calculate header space if enabled
+        let header_space = if self.config.show_header {
+            header_font_size + row_spacing + 2.0 + row_spacing + 4.0 * scale
+        } else {
+            0.0
+        };
 
         self.frame.begin_frame();
 
-        let mut y = padding;
+        // Render header if enabled
+        if self.config.show_header {
+            let content_width = self.frame.width() as f32 - 2.0 * padding;
+            Header::new("Cooldowns")
+                .with_color(colors::white())
+                .render(&mut self.frame, padding, padding, content_width, header_font_size, row_spacing);
+        }
+
+        let mut y = padding + header_space;
 
         // Sample preview data
         let previews = [

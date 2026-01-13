@@ -557,6 +557,19 @@ pub fn SettingsPanel(
                     h4 { style: "margin-top: 16px;", "Display Options" }
 
                     div { class: "setting-row",
+                        label { "Show Header" }
+                        input {
+                            r#type: "checkbox",
+                            checked: current_settings.effects_a.show_header,
+                            onchange: move |e: Event<FormData>| {
+                                let mut new_settings = draft_settings();
+                                new_settings.effects_a.show_header = e.checked();
+                                update_draft(new_settings);
+                            }
+                        }
+                    }
+
+                    div { class: "setting-row",
                         label { "Show Countdown" }
                         input {
                             r#type: "checkbox",
@@ -678,6 +691,19 @@ pub fn SettingsPanel(
                     h4 { style: "margin-top: 16px;", "Display Options" }
 
                     div { class: "setting-row",
+                        label { "Show Header" }
+                        input {
+                            r#type: "checkbox",
+                            checked: current_settings.effects_b.show_header,
+                            onchange: move |e: Event<FormData>| {
+                                let mut new_settings = draft_settings();
+                                new_settings.effects_b.show_header = e.checked();
+                                update_draft(new_settings);
+                            }
+                        }
+                    }
+
+                    div { class: "setting-row",
                         label { "Show Countdown" }
                         input {
                             r#type: "checkbox",
@@ -782,6 +808,19 @@ pub fn SettingsPanel(
                     }
 
                     h4 { style: "margin-top: 16px;", "Display Options" }
+
+                    div { class: "setting-row",
+                        label { "Show Header" }
+                        input {
+                            r#type: "checkbox",
+                            checked: current_settings.cooldown_tracker.show_header,
+                            onchange: move |e: Event<FormData>| {
+                                let mut new_settings = draft_settings();
+                                new_settings.cooldown_tracker.show_header = e.checked();
+                                update_draft(new_settings);
+                            }
+                        }
+                    }
 
                     div { class: "setting-row",
                         label { "Show Ability Names" }
@@ -894,6 +933,19 @@ pub fn SettingsPanel(
                     }
 
                     h4 { style: "margin-top: 16px;", "Display Options" }
+
+                    div { class: "setting-row",
+                        label { "Show Header" }
+                        input {
+                            r#type: "checkbox",
+                            checked: current_settings.dot_tracker.show_header,
+                            onchange: move |e: Event<FormData>| {
+                                let mut new_settings = draft_settings();
+                                new_settings.dot_tracker.show_header = e.checked();
+                                update_draft(new_settings);
+                            }
+                        }
+                    }
 
                     div { class: "setting-row",
                         label { "Show Effect Names" }

@@ -1168,6 +1168,9 @@ pub struct EffectsAConfig {
     /// When true, stacks are shown large and centered; timer is secondary
     #[serde(default)]
     pub stack_priority: bool,
+    /// Show header title above overlay
+    #[serde(default)]
+    pub show_header: bool,
 }
 
 fn default_icon_size() -> u8 {
@@ -1186,6 +1189,7 @@ impl Default for EffectsAConfig {
             show_effect_names: false,
             show_countdown: true,
             stack_priority: false,
+            show_header: false,
         }
     }
 }
@@ -1211,6 +1215,9 @@ pub struct EffectsBConfig {
     /// When true, stacks are shown large and centered; timer is secondary
     #[serde(default)]
     pub stack_priority: bool,
+    /// Show header title above overlay
+    #[serde(default)]
+    pub show_header: bool,
 }
 
 impl Default for EffectsBConfig {
@@ -1222,6 +1229,7 @@ impl Default for EffectsBConfig {
             show_effect_names: false,
             show_countdown: true,
             stack_priority: false,
+            show_header: false,
         }
     }
 }
@@ -1255,6 +1263,9 @@ pub struct CooldownTrackerConfig {
     /// Show target of ability (for targeted CDs like taunts)
     #[serde(default)]
     pub show_target_name: bool,
+    /// Show header title above overlay
+    #[serde(default)]
+    pub show_header: bool,
 }
 
 fn default_max_cooldowns() -> u8 {
@@ -1270,6 +1281,7 @@ impl Default for CooldownTrackerConfig {
             sort_by_remaining: true,
             show_source_name: false,
             show_target_name: false,
+            show_header: false,
         }
     }
 }
@@ -1299,6 +1311,9 @@ pub struct DotTrackerConfig {
     /// Show source name (who applied)
     #[serde(default)]
     pub show_source_name: bool,
+    /// Show header title above overlay
+    #[serde(default)]
+    pub show_header: bool,
 }
 
 fn default_max_targets() -> u8 {
@@ -1320,6 +1335,7 @@ impl Default for DotTrackerConfig {
             font_color: overlay_colors::WHITE,
             show_effect_names: false,
             show_source_name: false,
+            show_header: false,
         }
     }
 }

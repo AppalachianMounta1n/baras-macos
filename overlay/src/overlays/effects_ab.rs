@@ -12,6 +12,7 @@ use crate::frame::OverlayFrame;
 use crate::platform::{OverlayConfig, PlatformError};
 use crate::utils::color_from_rgba;
 use crate::widgets::colors;
+use crate::widgets::Header;
 
 /// Cache for pre-scaled icons to avoid re-scaling every frame
 type ScaledIconCache = HashMap<(u64, u32), Vec<u8>>;
@@ -97,6 +98,10 @@ pub struct EffectsABConfig {
     pub show_countdown: bool,
     /// When true, stacks are shown large and centered; timer is secondary
     pub stack_priority: bool,
+    /// Show header title above overlay
+    pub show_header: bool,
+    /// Title to display in header
+    pub header_title: String,
 }
 
 impl Default for EffectsABConfig {
@@ -108,6 +113,8 @@ impl Default for EffectsABConfig {
             show_effect_names: false,
             show_countdown: true,
             stack_priority: false,
+            show_header: false,
+            header_title: String::new(),
         }
     }
 }
@@ -223,8 +230,25 @@ impl EffectsABOverlay {
         let spacing = self.frame.scaled(BASE_SPACING);
         let font_size = self.frame.scaled(BASE_FONT_SIZE);
         let icon_size = self.frame.scaled(self.config.icon_size as f32);
+        let scale = self.frame.scale_factor();
+        let header_font_size = font_size * 1.4;
+
+        // Calculate header space if enabled
+        let header_space = if self.config.show_header {
+            header_font_size + spacing + 2.0 + spacing + 4.0 * scale
+        } else {
+            0.0
+        };
 
         self.frame.begin_frame();
+
+        // Render header if enabled
+        if self.config.show_header && !self.config.header_title.is_empty() {
+            let content_width = self.frame.width() as f32 - 2.0 * padding;
+            Header::new(&self.config.header_title)
+                .with_color(colors::white())
+                .render(&mut self.frame, padding, padding, content_width, header_font_size, spacing);
+        }
 
         if self.data.effects.is_empty() {
             self.frame.end_frame();
@@ -232,7 +256,7 @@ impl EffectsABOverlay {
         }
 
         let mut x = padding;
-        let y = padding;
+        let y = padding + header_space;
         let icon_size_u32 = icon_size as u32;
 
         // Clone effects to avoid borrow issues
@@ -353,15 +377,32 @@ impl EffectsABOverlay {
         let font_size = self.frame.scaled(BASE_FONT_SIZE);
         let icon_size = self.frame.scaled(self.config.icon_size as f32);
         let row_height = icon_size + row_spacing;
+        let scale = self.frame.scale_factor();
+        let header_font_size = font_size * 1.4;
+
+        // Calculate header space if enabled
+        let header_space = if self.config.show_header {
+            header_font_size + row_spacing + 2.0 + row_spacing + 4.0 * scale
+        } else {
+            0.0
+        };
 
         self.frame.begin_frame();
+
+        // Render header if enabled
+        if self.config.show_header && !self.config.header_title.is_empty() {
+            let content_width = self.frame.width() as f32 - 2.0 * padding;
+            Header::new(&self.config.header_title)
+                .with_color(colors::white())
+                .render(&mut self.frame, padding, padding, content_width, header_font_size, row_spacing);
+        }
 
         if self.data.effects.is_empty() {
             self.frame.end_frame();
             return;
         }
 
-        let mut y = padding;
+        let mut y = padding + header_space;
         let icon_size_u32 = icon_size as u32;
 
         // Clone effects to avoid borrow issues
@@ -650,11 +691,28 @@ impl EffectsABOverlay {
         let spacing = self.frame.scaled(BASE_SPACING);
         let font_size = self.frame.scaled(BASE_FONT_SIZE);
         let icon_size = self.frame.scaled(self.config.icon_size as f32);
+        let scale = self.frame.scale_factor();
+        let header_font_size = font_size * 1.4;
+
+        // Calculate header space if enabled
+        let header_space = if self.config.show_header {
+            header_font_size + spacing + 2.0 + spacing + 4.0 * scale
+        } else {
+            0.0
+        };
 
         self.frame.begin_frame();
 
+        // Render header if enabled
+        if self.config.show_header && !self.config.header_title.is_empty() {
+            let content_width = self.frame.width() as f32 - 2.0 * padding;
+            Header::new(&self.config.header_title)
+                .with_color(colors::white())
+                .render(&mut self.frame, padding, padding, content_width, header_font_size, spacing);
+        }
+
         let mut x = padding;
-        let y = padding;
+        let y = padding + header_space;
 
         // Sample preview data: (time, stacks)
         let previews = [("12.3", 3u8), ("45", 1u8), ("8.5", 2u8)];
@@ -701,10 +759,27 @@ impl EffectsABOverlay {
         let font_size = self.frame.scaled(BASE_FONT_SIZE);
         let icon_size = self.frame.scaled(self.config.icon_size as f32);
         let row_height = icon_size + row_spacing;
+        let scale = self.frame.scale_factor();
+        let header_font_size = font_size * 1.4;
+
+        // Calculate header space if enabled
+        let header_space = if self.config.show_header {
+            header_font_size + row_spacing + 2.0 + row_spacing + 4.0 * scale
+        } else {
+            0.0
+        };
 
         self.frame.begin_frame();
 
-        let mut y = padding;
+        // Render header if enabled
+        if self.config.show_header && !self.config.header_title.is_empty() {
+            let content_width = self.frame.width() as f32 - 2.0 * padding;
+            Header::new(&self.config.header_title)
+                .with_color(colors::white())
+                .render(&mut self.frame, padding, padding, content_width, header_font_size, row_spacing);
+        }
+
+        let mut y = padding + header_space;
 
         // Sample preview data: (time, stacks)
         let previews = [("12.3", 3u8), ("45", 1u8), ("8.5", 2u8)];

@@ -13,6 +13,7 @@ use crate::frame::OverlayFrame;
 use crate::platform::{OverlayConfig, PlatformError};
 use crate::utils::color_from_rgba;
 use crate::widgets::colors;
+use crate::widgets::Header;
 
 /// Cache for pre-scaled icons
 type ScaledIconCache = HashMap<(u64, u32), Vec<u8>>;
@@ -97,6 +98,8 @@ pub struct DotTrackerConfig {
     pub prune_delay_secs: f32,
     pub show_effect_names: bool,
     pub show_source_name: bool,
+    /// Show header title above overlay
+    pub show_header: bool,
 }
 
 impl Default for DotTrackerConfig {
@@ -107,6 +110,7 @@ impl Default for DotTrackerConfig {
             prune_delay_secs: 2.0,
             show_effect_names: false,
             show_source_name: false,
+            show_header: false,
         }
     }
 }
@@ -226,15 +230,32 @@ impl DotTrackerOverlay {
         let icon_size = self.frame.scaled(self.config.icon_size as f32);
         let name_width = self.frame.scaled(BASE_NAME_WIDTH);
         let row_height = icon_size + row_spacing;
+        let scale = self.frame.scale_factor();
+        let header_font_size = font_size * 1.4;
+
+        // Calculate header space if enabled
+        let header_space = if self.config.show_header {
+            header_font_size + row_spacing + 2.0 + row_spacing + 4.0 * scale
+        } else {
+            0.0
+        };
 
         self.frame.begin_frame();
+
+        // Render header if enabled
+        if self.config.show_header {
+            let content_width = self.frame.width() as f32 - 2.0 * padding;
+            Header::new("DOT Tracker")
+                .with_color(colors::white())
+                .render(&mut self.frame, padding, padding, content_width, header_font_size, row_spacing);
+        }
 
         if self.data.targets.is_empty() {
             self.frame.end_frame();
             return;
         }
 
-        let mut y = padding;
+        let mut y = padding + header_space;
         let icon_size_u32 = icon_size as u32;
 
         for target in self.data.targets.iter().take(max_targets) {
@@ -395,10 +416,27 @@ impl DotTrackerOverlay {
         let icon_size = self.frame.scaled(self.config.icon_size as f32);
         let name_width = self.frame.scaled(BASE_NAME_WIDTH);
         let row_height = icon_size + row_spacing;
+        let scale = self.frame.scale_factor();
+        let header_font_size = font_size * 1.4;
+
+        // Calculate header space if enabled
+        let header_space = if self.config.show_header {
+            header_font_size + row_spacing + 2.0 + row_spacing + 4.0 * scale
+        } else {
+            0.0
+        };
 
         self.frame.begin_frame();
 
-        let mut y = padding;
+        // Render header if enabled
+        if self.config.show_header {
+            let content_width = self.frame.width() as f32 - 2.0 * padding;
+            Header::new("DOT Tracker")
+                .with_color(colors::white())
+                .render(&mut self.frame, padding, padding, content_width, header_font_size, row_spacing);
+        }
+
+        let mut y = padding + header_space;
 
         // Sample preview data: 2 targets with 3 DOTs each
         let targets = [
