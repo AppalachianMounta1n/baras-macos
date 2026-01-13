@@ -810,6 +810,8 @@ impl CombatService {
                 let mut index_guard = self.shared.directory_index.write().await;
                 *index_guard = index;
             }
+            // Notify frontend of rebuilt index
+            let _ = self.app_handle.emit("log-files-changed", ());
 
             // Auto-load newest file if available
             if let Some(ref newest_path) = newest {
