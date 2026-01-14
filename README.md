@@ -51,6 +51,8 @@ If you are running a NVIDIA graphics card you must run the application with the 
 - [ ] World Bosses
 - [ ] Improved dummy parse handling
 - [ ] PvP Support
+- [ ] Multi-file data persistance
+- [ ] MacOS Support
 
 
 ## Platform Support
