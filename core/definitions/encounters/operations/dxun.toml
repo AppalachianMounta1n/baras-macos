@@ -409,7 +409,7 @@ ids = [4265104388390912]
 is_boss = true
 is_kill_target = false
 
-[[boss.entitites]]
+[[boss.entities]]
 name = "Shelleigh"
 ids = [4281661487316992, 4330237567434752]
 is_boss = true
