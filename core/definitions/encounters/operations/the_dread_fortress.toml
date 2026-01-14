@@ -221,6 +221,7 @@ increment_on = { type = "npc_appears", selector = [
 id = "draxus_grenade"
 name = "Grenade"
 trigger = { type = "ability_cast", abilities = [3289043005603840] }
+cancel_trigger = { type = "timer_expires", timer_id = "draxus_escape" }
 duration_secs = 12.0
 color = [204, 182, 30, 255]
 difficulties = ["veteran", "master"]
@@ -232,6 +233,7 @@ difficulties = ["veteran", "master"]
 id = "draxus_suppressive"
 name = "Suppressive Fire"
 trigger = { type = "ability_cast", abilities = [3289034415669248] }
+cancel_trigger = { type = "timer_started", timer_id = "draxus_escape" }
 duration_secs = 15.0
 color = [219, 96, 28, 255]
 difficulties = ["veteran", "master"]
