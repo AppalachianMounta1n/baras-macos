@@ -45,10 +45,13 @@ If you are running a NVIDIA graphics card you must run the application with the 
 
 - [x] Complete data exploration tool
 - [x] Raid challenges and boss phase tracking
-- [ ] Community curated set of default Timers and effects
+- [x] Class and ability icons
 - [x] Timer/effect audio cues
+- [ ] Complete default encounter timers and effects
+- [ ] World Bosses
+- [ ] Improved dummy parse handling
 - [ ] PvP Support
-- [ ] Class and ability icons
+
 
 ## Platform Support
 
