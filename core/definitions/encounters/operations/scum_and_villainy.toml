@@ -577,6 +577,32 @@ phase_ids = ["styrak_chained"]
 type = "target"
 match = { selector = ["Styrak Chained"] }
 
+[[boss.timer]]
+id = "dread_master_styrak_knockback_1st"
+# orbs_id = "48f2689e-1b35-46cb-a499-9eb0c87aac30"
+name = "Knockback 1st"
+trigger = { type = "npc_appears", selector = [] }
+duration_secs = 20.0
+color = [140, 32, 219, 255]
+difficulties = ["veteran", "master"]
+
+[[boss.timer]]
+id = "dread_master_styrak_knockback_vm"
+name = "Knockback VM"
+trigger = { type = "ability_cast", abilities = [3133187232366592] }
+duration_secs = 60.0
+color = [140, 32, 219, 255]
+difficulties = ["veteran"]
+
+[[boss.timer]]
+id = "dread_master_styrak_knockback"
+name = "Knockback"
+trigger = { type = "ability_cast", abilities = [3294763902042112] }
+duration_secs = 60.0
+color = [140, 32, 219, 255]
+difficulties = ["master"]
+
+
 # -- Dragon Phases
 
 # [[boss.timer]]
