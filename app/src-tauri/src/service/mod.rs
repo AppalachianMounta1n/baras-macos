@@ -55,6 +55,7 @@ struct WorkerPlayerInfo {
 struct WorkerAreaInfo {
     area_name: String,
     area_id: i64,
+    difficulty_id: i64,
     difficulty_name: String,
 }
 
@@ -1044,6 +1045,7 @@ impl CombatService {
                             // Import area info
                             cache.current_area.area_name = parse_result.area.area_name.clone();
                             cache.current_area.area_id = parse_result.area.area_id;
+                            cache.current_area.difficulty_id = parse_result.area.difficulty_id;
                             cache.current_area.difficulty_name =
                                 parse_result.area.difficulty_name.clone();
 

@@ -382,8 +382,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 entity_id,
                 ..
             } = signal
-            {
-                if let Some(enc) = cache.current_encounter_mut() {
+                && let Some(enc) = cache.current_encounter_mut() {
                     enc.set_boss(ActiveBoss {
                         definition_id: definition_id.clone(),
                         name: boss_name.clone(),
@@ -392,7 +391,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         current_hp: 0,
                     });
                 }
-            }
         }
 
         // Process signals through timer manager, accumulating IDs across all signals

@@ -59,6 +59,7 @@ struct PlayerDisciplineEntry {
 struct AreaInfoOutput {
     area_name: String,
     area_id: i64,
+    difficulty_id: i64,
     difficulty_name: String,
 }
 
@@ -648,6 +649,7 @@ fn process_and_write_encounters(
     let area = AreaInfoOutput {
         area_name: cache.current_area.area_name.clone(),
         area_id: cache.current_area.area_id,
+        difficulty_id: cache.current_area.difficulty_id,
         difficulty_name: cache.current_area.difficulty_name.clone(),
     };
 
