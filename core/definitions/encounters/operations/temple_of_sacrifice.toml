@@ -272,6 +272,24 @@ id = "revanite_commanders"
 name = "Revanite Commanders"
 difficulties = ["veteran"]
 # its a faceroll do you really need timers ??
+#
+[[boss.entities]]
+name = "Sano"
+ids = [3456894622498816]
+is_boss = true
+is_kill_target = true
+
+[[boss.entities]]
+name = "Deer Jerker"
+ids = [3456890327531520]
+is_boss = true
+is_kill_target = true
+
+[[boss.entities]]
+name = "Kurse"
+ids = [3456898917466112]
+is_boss = true
+is_kill_target = true
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Revan, the Returned
