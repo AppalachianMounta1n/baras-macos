@@ -1212,7 +1212,7 @@ pub fn App() -> Element {
                                         onclick: move |_| {
                                             let mut toast = use_toast();
                                             spawn(async move {
-                                                if let Some(path) = api::pick_directory("Select Log Directory").await {
+                                                if let Some(path) = api::pick_log_directory().await {
                                                     log_directory.set(path.clone());
                                                     if let Some(mut cfg) = api::get_config().await {
                                                         cfg.log_directory = path;

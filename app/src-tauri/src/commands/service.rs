@@ -119,6 +119,19 @@ pub async fn pick_audio_file(app: tauri::AppHandle) -> Result<Option<String>, St
     Ok(file.map(|f| f.to_string()))
 }
 
+#[tauri::command]
+pub async fn pick_log_directory(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    let folder = app
+        .dialog()
+        .file()
+        .set_title("Select Combat Log Directory")
+        .blocking_pick_folder();
+
+    Ok(folder.map(|f| f.to_string()))
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Config Commands
 // ─────────────────────────────────────────────────────────────────────────────

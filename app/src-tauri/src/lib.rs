@@ -189,6 +189,7 @@ pub fn run() {
             commands::resume_live_tailing,
             commands::is_live_tailing,
             commands::pick_audio_file,
+            commands::pick_log_directory,
             // Profile commands
             commands::get_profile_names,
             commands::get_active_profile,

@@ -543,6 +543,13 @@ pub async fn pick_audio_file() -> Option<String> {
     from_js(result).unwrap_or(None)
 }
 
+/// Open a folder picker for the log directory, returns the selected path or None.
+/// This is handled on the Rust side to maintain macOS security-scoped access.
+pub async fn pick_log_directory() -> Option<String> {
+    let result = invoke("pick_log_directory", JsValue::NULL).await;
+    from_js(result).unwrap_or(None)
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Updater Commands
 // ─────────────────────────────────────────────────────────────────────────────

@@ -843,28 +843,43 @@ impl CombatService {
         };
 
         // Guard against invalid input
-        if !dir.exists() || !dir.is_dir() {
+        if !dir.exists() {
+            warn!(directory = %dir.display(), "Log directory does not exist");
+            return;
+        }
+        if !dir.is_dir() {
+            warn!(directory = %dir.display(), "Log directory path is not a directory");
             return;
         }
 
         // Build initial index
-        if let Ok((index, newest)) = directory_watcher::build_index(&dir) {
-            {
-                let mut index_guard = self.shared.directory_index.write().await;
-                *index_guard = index;
-            }
-            // Notify frontend of rebuilt index
-            let _ = self.app_handle.emit("log-files-changed", ());
+        match directory_watcher::build_index(&dir) {
+            Ok((index, newest)) => {
+                {
+                    let mut index_guard = self.shared.directory_index.write().await;
+                    *index_guard = index;
+                }
+                // Notify frontend of rebuilt index
+                let _ = self.app_handle.emit("log-files-changed", ());
 
-            // Auto-load newest file if available
-            if let Some(ref newest_path) = newest {
-                self.start_tailing(newest_path.clone()).await;
+                // Auto-load newest file if available
+                if let Some(ref newest_path) = newest {
+                    self.start_tailing(newest_path.clone()).await;
+                }
+            }
+            Err(e) => {
+                error!(directory = %dir.display(), error = %e, "Failed to build directory index - check folder permissions");
+                let _ = self.app_handle.emit("directory-error", e);
             }
         }
 
-        let Ok(mut watcher) = DirectoryWatcher::new(&dir) else {
-            self.shared.watching.store(false, Ordering::SeqCst);
-            return;
+        let mut watcher = match DirectoryWatcher::new(&dir) {
+            Ok(w) => w,
+            Err(e) => {
+                error!(directory = %dir.display(), error = %e, "Failed to create directory watcher");
+                self.shared.watching.store(false, Ordering::SeqCst);
+                return;
+            }
         };
 
         // Clone the command sender so watcher can send back to service
