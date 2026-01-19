@@ -42,7 +42,7 @@ mod examples {
         };
 
         let appearance = OverlayAppearanceConfig::default();
-        let mut metric = match MetricOverlay::new(config, "DPS Meter", appearance, 180, true, false, 1.0) {
+        let mut metric = match MetricOverlay::new(config, "DPS Meter", appearance, 180, true, false, 1.0, true) {
             Ok(m) => m,
             Err(e) => {
                 tracing::error!(error = %e, "Failed to create metric overlay");
@@ -145,7 +145,7 @@ mod examples {
             ..Default::default()
         };
 
-        let mut metric = match MetricOverlay::new(config, "DPS Meter (8 Players)", appearance, 180, true, false, 1.0)
+        let mut metric = match MetricOverlay::new(config, "DPS Meter (8 Players)", appearance, 180, true, false, 1.0, true)
         {
             Ok(m) => m,
             Err(e) => {
@@ -237,7 +237,7 @@ mod examples {
             ..Default::default()
         };
 
-        let mut metric = match MetricOverlay::new(config, "DPS Meter (16 Players)", appearance, 180, true, false, 1.0)
+        let mut metric = match MetricOverlay::new(config, "DPS Meter (16 Players)", appearance, 180, true, false, 1.0, true)
         {
             Ok(m) => m,
             Err(e) => {
