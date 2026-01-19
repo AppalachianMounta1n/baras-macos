@@ -20,7 +20,7 @@ use objc2_app_kit::{
 };
 
 // Keep core-graphics for CGContext operations
-use core_graphics::base::kCGImageAlphaPremultipliedFirst;
+use core_graphics::base::{kCGBitmapByteOrder32Little, kCGImageAlphaPremultipliedFirst};
 use core_graphics::color_space::CGColorSpace;
 use core_graphics::context::CGContext;
 
@@ -121,6 +121,7 @@ define_class!(
                 let color_space = CGColorSpace::create_device_rgb();
 
                 // Create CGContext from our pixel buffer (BGRA format)
+                // kCGBitmapByteOrder32Little | kCGImageAlphaPremultipliedFirst = BGRA on little-endian
                 let ctx = CGContext::create_bitmap_context(
                     Some(pixel_ptr),
                     width as usize,
@@ -128,7 +129,7 @@ define_class!(
                     8,
                     (width * 4) as usize,
                     &color_space,
-                    kCGImageAlphaPremultipliedFirst,
+                    kCGBitmapByteOrder32Little | kCGImageAlphaPremultipliedFirst,
                 );
 
                 // create_image returns Option<CGImage>
