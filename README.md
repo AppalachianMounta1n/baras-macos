@@ -104,9 +104,9 @@ The **Battle Analysis and Raid Assessment System** (BARAS) is the ultimate compa
 
 | Platform      | Status                                        |
 | ------------- | --------------------------------------------- |
-| Windows 10/11 | Native |
-| Linux         | X11, Wayland Native |
-| MacOS         | Native (experimental) | 
+| Windows 10/11 | ✔️ Native |
+| Linux         | ✔️ X11, Wayland Native |
+| MacOS         | 🟡 Native (experimental) | 
 
 ## Quick Start
 
