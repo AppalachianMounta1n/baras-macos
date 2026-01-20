@@ -215,7 +215,7 @@ jobs:
           sleep 10
 
           # Read changelog for notes (first non-empty content line as summary)
-         NOTES=$(sed -n '/^## /,/^## /p' app/src-tauri/CHANGELOG.md | head -1 | sed 's/^## //')
+           NOTES=$(sed -n '/^## /,/^## /p' app/src-tauri/CHANGELOG.md | head -1 | sed 's/^## //')
 
           # Download signatures
           LINUX_SIG=$(curl -sL "https://github.com/baras-app/baras/releases/download/v${VERSION}/BARAS_${VERSION}_amd64.AppImage.sig")
