@@ -8,9 +8,7 @@ workspace = true
 
 [dependencies]
 baras-types = { path = "../types" }
-confy = { version = "2.0.0", default-features = false, features = [
-  "toml_conf",
-] }
+confy = { version = "2.0.0", features = ["toml_conf"] }
 hashbrown = "0.16.1"
 memchr = "2.7.6"
 notify = "8.2"

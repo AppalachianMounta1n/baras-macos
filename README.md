@@ -128,6 +128,7 @@ The **Battle Analysis and Raid Assessment System** (BARAS) is the ultimate compa
 Configuration files are stored in:
 
 - **Windows**: `%APPDATA%\baras\`
+- **macOS**: `~/Library/Application Support/baras/`
 - **Linux**: `~/.config/baras/`
 
 All configuration files are in a human readable TOML format.
