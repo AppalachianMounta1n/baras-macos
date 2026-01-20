@@ -17,27 +17,34 @@ The **Battle Analysis and Raid Assessment System** (BARAS) is the ultimate compa
 
 ### macOS
 
-  1. Download the `.dmg` file from the [Releases page](https://github.com/baras-app/baras/releases)
-  2. Open the `.dmg` and drag **BARAS.app** to your `Applications` folder
-  3. **Important - First Run Setup:**
+1. Download the `.dmg` file from the [Releases page](https://github.com/baras-app/baras/releases)
+2. Open the `.dmg` and drag **BARAS.app** to your `Applications` folder
+3. **Important - First Run Setup:**
 
-     BARAS is not signed with an Apple Developer certificate, so macOS will block it by default.
+   BARAS is not signed with an Apple Developer certificate, so macOS will block it by default.
 
-     Open **Terminal** (search "Terminal" in Spotlight) and run the command:
+   Open **Terminal** (search "Terminal" in Spotlight) and run the command:
      ```bash
      xattr -cr /Applications/BARAS.app
    This removes the quarantine flag so all components of the app can run.
 
-  4. Grant File Access:
+  #### 4. Grant File Access:
 
-  4. BARAS needs permission to read your SWTOR combat logs (usually in ~/Documents).
+  BARAS needs permission to read your SWTOR combat logs (usually in ~/Documents).
 
-  4. If no data appears after after selecting your log folder:
+  ##### Scoped Permissions 
+
+  If no data appears after after selecting your log folder:
     - Go to System Settings → Privacy & Security → Files and Folders
-    - Find BARAS and enable Documents Folder access
+    - Find BARAS and enable Documents Folder access (or wherever the location of your logs directory is)
 
-  Or, if you really trust this application, grant Full Disk Access if the above doesn't work.
-  5. Launch BARAS and select your combat log directory
+  ##### Full Permissions ⚠️ Last resort only
+  
+  If the above doesn't work, you can grant Full Disk Access in **System Settings → Privacy & Security → Full Disk Access**
+  
+  BARAS is a memory safe program and only accesses 1) the selected log directory 2) The application config directory and 3) the application data directory. However, giving the application full acess to the system is not best practices.
+  
+5. Launch BARAS and select your combat log directory 
 
 ### Linux
 
