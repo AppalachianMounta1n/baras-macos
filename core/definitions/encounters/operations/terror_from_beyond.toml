@@ -781,12 +781,13 @@ difficulties = ["veteran", "master"]
 
 # Burn alert - when "Faded Reality" buff is lost (player returns from scream)
 [[boss.timer]]
-id = "tfb_burn"
+id = "tfb_faded_reality"
 name = "Burn"
-trigger = { type = "effect_removed", effects = [3052914293604611] }
-target = "local_player"
+trigger = { type = "effect_applied", effects = [
+  3052914293604611,
+], target = "local_player" }
 is_alert = true
-alert_text = "Burn!"
+alert_text = "Faded Reality"
 color = [220, 26, 26, 255]
 difficulties = ["veteran", "master"]
 
@@ -848,19 +849,17 @@ duration_secs = 28.0
 color = [228, 127, 40, 255]
 difficulties = ["veteran", "master"]
 
-# Void Disturbance debuff - when buff removed from local player
 [[boss.timer]]
 id = "tfb_void_disturbance_debuff"
 name = "Void Disturbance"
 trigger = { type = "any_of", conditions = [
   { type = "effect_removed", effects = [
     3246243656499200,
-  ] },
+  ], taget = "local_player" },
   { type = "effect_removed", effects = [
     3250010342817792,
-  ] },
+  ], target = "local_player" },
 ] }
-target = "local_player"
 duration_secs = 20.0
 color = [222, 26, 32, 255]
 difficulties = ["veteran", "master"]
