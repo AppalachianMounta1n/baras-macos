@@ -1,5 +1,11 @@
 # v2026.1.1900
 
+## Hotfix v2026.1.1901
+
+- macOS overlay colors should now render correctly
+- update readme instructions addressing potential permissions issues on macOS
+- application config now writes to the ~/Library/Application Support on macOS
+
 ## New Features
 
 - macOS support (experimental)
