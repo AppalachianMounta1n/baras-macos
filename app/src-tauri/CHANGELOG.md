@@ -1,5 +1,11 @@
 # v2026.1.1900
 
+## Hotfix v2026.1.1902
+
+- Fixed issue causing names to not appear in raid frames
+- Raid frames now fill in vertically by column
+- Update prompt button is now easier to spot
+
 ## Hotfix v2026.1.1901
 
 - macOS overlay colors should now render correctly
