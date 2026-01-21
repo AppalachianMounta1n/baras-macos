@@ -552,10 +552,10 @@ impl RaidOverlay {
     // Layout & Hit Testing
     // ─────────────────────────────────────────────────────────────────────────
 
-    /// Calculate the pixel bounds for a given slot
+    /// Calculate the pixel bounds for a given slot (column-first ordering)
     fn slot_bounds(&self, slot: u8) -> (f32, f32, f32, f32) {
-        let col = (slot % self.layout.columns) as f32;
-        let row = (slot / self.layout.columns) as f32;
+        let col = (slot / self.layout.rows) as f32;
+        let row = (slot % self.layout.rows) as f32;
 
         let x = self.padding() + col * (self.frame_width() + self.gap());
         let y = self.padding() + row * (self.frame_height() + self.gap());
