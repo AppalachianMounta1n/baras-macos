@@ -212,7 +212,6 @@ impl CheckpointVerifier {
             checkpoints_total: total,
         }
     }
-
 }
 
 #[cfg(test)]

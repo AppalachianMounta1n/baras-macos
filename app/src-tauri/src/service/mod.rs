@@ -1174,7 +1174,10 @@ impl CombatService {
             }
         }
 
-        info!(elapsed_ms = timer.elapsed().as_millis() as u64, "Parse completed");
+        info!(
+            elapsed_ms = timer.elapsed().as_millis() as u64,
+            "Parse completed"
+        );
 
         // Trigger initial metrics send after file processing
         let _ = trigger_tx.try_send(MetricsTrigger::InitialLoad);

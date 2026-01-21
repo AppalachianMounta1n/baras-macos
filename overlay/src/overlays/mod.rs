@@ -27,7 +27,9 @@ pub use challenges::{ChallengeData, ChallengeEntry, ChallengeOverlay, PlayerCont
 pub use cooldowns::{CooldownConfig, CooldownData, CooldownEntry, CooldownOverlay};
 pub use dot_tracker::{DotEntry, DotTarget, DotTrackerConfig, DotTrackerData, DotTrackerOverlay};
 pub use effects::{EffectEntry, EffectsData, EffectsOverlay};
-pub use effects_ab::{EffectABEntry, EffectsABConfig, EffectsABData, EffectsABOverlay, EffectsLayout};
+pub use effects_ab::{
+    EffectABEntry, EffectsABConfig, EffectsABData, EffectsABOverlay, EffectsLayout,
+};
 pub use metric::{MetricEntry, MetricOverlay};
 pub use personal::{PersonalOverlay, PersonalStats};
 pub use raid::{

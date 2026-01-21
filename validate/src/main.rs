@@ -316,7 +316,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         LagSimulator::disabled()
     };
 
-
     let mut event_count = 0;
     let mut local_player_id: i64 = 0;
     let mut kill_target_death_time: Option<NaiveDateTime> = None;
@@ -382,15 +381,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 entity_id,
                 ..
             } = signal
-                && let Some(enc) = cache.current_encounter_mut() {
-                    enc.set_boss(ActiveBoss {
-                        definition_id: definition_id.clone(),
-                        name: boss_name.clone(),
-                        entity_id: *entity_id,
-                        max_hp: 0,
-                        current_hp: 0,
-                    });
-                }
+                && let Some(enc) = cache.current_encounter_mut()
+            {
+                enc.set_boss(ActiveBoss {
+                    definition_id: definition_id.clone(),
+                    name: boss_name.clone(),
+                    entity_id: *entity_id,
+                    max_hp: 0,
+                    current_hp: 0,
+                });
+            }
         }
 
         // Process signals through timer manager, accumulating IDs across all signals
@@ -452,7 +452,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for cancelled_id in &cancelled_timer_ids {
             cli.timer_cancel(event.timestamp, cancelled_id, cancelled_id);
         }
-
 
         // Process alerts
         for alert in timer_manager.take_fired_alerts() {

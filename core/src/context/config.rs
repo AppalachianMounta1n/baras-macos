@@ -90,7 +90,8 @@ impl AppConfigExt for AppConfig {
             return Err("Maximum number of profiles reached (12)");
         }
 
-        self.profiles.push(OverlayProfile::new(name.clone(), settings_to_save));
+        self.profiles
+            .push(OverlayProfile::new(name.clone(), settings_to_save));
         self.active_profile_name = Some(name);
         Ok(())
     }

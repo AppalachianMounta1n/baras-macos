@@ -6,8 +6,8 @@
 use std::fs::File;
 use std::os::fd::AsFd;
 
-use rustix::fs::{memfd_create, MemfdFlags};
-use rustix::mm::{mmap, MapFlags, ProtFlags};
+use rustix::fs::{MemfdFlags, memfd_create};
+use rustix::mm::{MapFlags, ProtFlags, mmap};
 use x11rb::atom_manager;
 use x11rb::connection::Connection;
 use x11rb::protocol::randr::ConnectionExt as _;
@@ -17,8 +17,8 @@ use x11rb::protocol::xproto::*;
 use x11rb::rust_connection::RustConnection;
 use x11rb::wrapper::ConnectionExt as _;
 
-use super::{MonitorInfo, OverlayConfig, OverlayPlatform, PlatformError};
 use super::{MAX_OVERLAY_HEIGHT, MAX_OVERLAY_WIDTH, MIN_OVERLAY_SIZE, RESIZE_CORNER_SIZE};
+use super::{MonitorInfo, OverlayConfig, OverlayPlatform, PlatformError};
 
 // Atoms needed for EWMH hints
 atom_manager! {
@@ -104,7 +104,7 @@ pub struct X11Overlay {
     depth: u8,
 
     // Pixel buffers
-    pixel_data: Vec<u8>,  // RGBA from renderer
+    pixel_data: Vec<u8>, // RGBA from renderer
     shm_buffer: ShmBuffer,
 
     // Interaction state
@@ -533,7 +533,7 @@ impl OverlayPlatform for X11Overlay {
         for (i, chunk) in self.pixel_data.chunks(4).enumerate() {
             let offset = i * 4;
             if chunk.len() == 4 && offset + 3 < shm_slice.len() {
-                shm_slice[offset] = chunk[2];     // B
+                shm_slice[offset] = chunk[2]; // B
                 shm_slice[offset + 1] = chunk[1]; // G
                 shm_slice[offset + 2] = chunk[0]; // R
                 shm_slice[offset + 3] = chunk[3]; // A

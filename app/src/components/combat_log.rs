@@ -156,7 +156,6 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
         }
 
         spawn(async move {
-
             let tr_opt = if tr.start == 0.0 && tr.end == 0.0 {
                 None
             } else {
@@ -254,19 +253,19 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
 
                 if let Some(data) = api::query_combat_log(
                     Some(idx),
-                        new_offset,
-                        PAGE_SIZE,
-                        source.as_deref(),
-                        target.as_deref(),
-                        search_opt.as_deref(),
-                        tr_opt,
-                    )
-                    .await
-                    {
-                        loaded_offset.set(new_offset);
-                        rows.set(data);
-                    }
-                });
+                    new_offset,
+                    PAGE_SIZE,
+                    source.as_deref(),
+                    target.as_deref(),
+                    search_opt.as_deref(),
+                    tr_opt,
+                )
+                .await
+                {
+                    loaded_offset.set(new_offset);
+                    rows.set(data);
+                }
+            });
         }
     });
 

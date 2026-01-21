@@ -23,7 +23,9 @@ pub fn process_challenge_events(event: &CombatEvent, cache: &mut SessionCache) {
 
     // Build context from current encounter state (phase, counters, HP)
     let Some(enc) = cache.current_encounter() else {
-        tracing::error!("BUG: encounter disappeared after boss_npc_ids extraction in process_challenge_events");
+        tracing::error!(
+            "BUG: encounter disappeared after boss_npc_ids extraction in process_challenge_events"
+        );
         return;
     };
     let ctx = enc.challenge_context(&boss_npc_ids);

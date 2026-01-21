@@ -11,8 +11,8 @@
 
 use arrow::array::{
     ArrayBuilder, ArrayRef, BooleanBuilder, Float32Builder, Int32Builder, Int64Builder, ListArray,
-    StringBuilder, StructArray, TimestampMillisecondBuilder, UInt32Builder, UInt64Builder,
-    UInt8Builder,
+    StringBuilder, StructArray, TimestampMillisecondBuilder, UInt8Builder, UInt32Builder,
+    UInt64Builder,
 };
 use arrow::buffer::{NullBuffer, OffsetBuffer};
 use arrow::datatypes::{DataType, Field, Fields, Schema, TimeUnit};
@@ -20,8 +20,8 @@ use arrow::record_batch::RecordBatch;
 use baras_core::combat_log::{CombatEvent, EntityType, LogParser};
 use baras_core::context::{parse_log_filename, resolve};
 use baras_core::dsl::{BossEncounterDefinition, load_bosses_from_dir, merge_boss_definition};
-use baras_core::game_data::defense_type;
 use baras_core::encounter::summary::EncounterSummary;
+use baras_core::game_data::defense_type;
 use baras_core::signal_processor::{EventProcessor, GameSignal};
 use baras_core::state::SessionCache;
 use baras_core::storage::encounter_filename;
@@ -34,9 +34,9 @@ use parquet::file::properties::WriterProperties;
 use rayon::prelude::*;
 use serde::Serialize;
 use std::fs::{self, File};
-use tracing_subscriber::filter::EnvFilter;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use tracing_subscriber::filter::EnvFilter;
 
 /// Player session info for main process.
 #[derive(Debug, Serialize)]
@@ -203,12 +203,7 @@ impl FastEncounterWriter {
     }
 
     #[inline]
-    fn append_event(
-        &mut self,
-        event: &CombatEvent,
-        cache: &SessionCache,
-        encounter_idx: u32,
-    ) {
+    fn append_event(&mut self, event: &CombatEvent, cache: &SessionCache, encounter_idx: u32) {
         // Core identity
         self.timestamp
             .append_value(event.timestamp.and_utc().timestamp_millis());
@@ -223,7 +218,8 @@ impl FastEncounterWriter {
         self.source_entity_type
             .append_value(entity_type_str(&event.source_entity.entity_type));
         self.source_hp.append_value(event.source_entity.health.0);
-        self.source_max_hp.append_value(event.source_entity.health.1);
+        self.source_max_hp
+            .append_value(event.source_entity.health.1);
 
         // Target entity
         self.target_id.append_value(event.target_entity.log_id);
@@ -234,7 +230,8 @@ impl FastEncounterWriter {
         self.target_entity_type
             .append_value(entity_type_str(&event.target_entity.entity_type));
         self.target_hp.append_value(event.target_entity.health.0);
-        self.target_max_hp.append_value(event.target_entity.health.1);
+        self.target_max_hp
+            .append_value(event.target_entity.health.1);
 
         // Action
         self.ability_id.append_value(event.action.action_id);
@@ -283,27 +280,24 @@ impl FastEncounterWriter {
         self.encounter_idx.append_value(encounter_idx);
         self.combat_time_secs.append_option(combat_time);
         self.phase_id.append_option(current_phase.as_deref());
-        self.phase_name.append_option(
-            current_phase.as_ref().and_then(|phase_id| {
+        self.phase_name
+            .append_option(current_phase.as_ref().and_then(|phase_id| {
                 boss_def.and_then(|def| {
                     def.phases
                         .iter()
                         .find(|p| &p.id == phase_id)
                         .map(|p| p.name.as_str())
                 })
-            }),
-        );
-        self.area_name
-            .append_value(&cache.current_area.area_name);
+            }));
+        self.area_name.append_value(&cache.current_area.area_name);
         self.boss_name
             .append_option(boss_def.map(|d| d.name.as_str()));
-        self.difficulty.append_option(
-            if cache.current_area.difficulty_name.is_empty() {
+        self.difficulty
+            .append_option(if cache.current_area.difficulty_name.is_empty() {
                 None
             } else {
                 Some(cache.current_area.difficulty_name.as_str())
-            },
-        );
+            });
 
         // Shield attribution context - capture active shields for damage events with absorption
         let is_natural_shield = event.details.defense_type_id == defense_type::SHIELD
@@ -320,7 +314,8 @@ impl FastEncounterWriter {
                         self.shield_positions.append_value(s.position);
                         self.shield_estimated_maxes.append_value(s.estimated_max);
                     }
-                    self.shield_list_offsets.push(Some((start, self.shield_effect_ids.len())));
+                    self.shield_list_offsets
+                        .push(Some((start, self.shield_effect_ids.len())));
                 } else {
                     self.shield_list_offsets.push(None);
                 }
@@ -363,7 +358,8 @@ impl FastEncounterWriter {
                     Arc::new(self.shield_estimated_maxes.finish()) as ArrayRef,
                 ],
                 None,
-            ).ok()?;
+            )
+            .ok()?;
 
             // Build offsets and nulls for the list
             let mut offsets: Vec<i32> = Vec::with_capacity(self.shield_list_offsets.len() + 1);
@@ -389,7 +385,8 @@ impl FastEncounterWriter {
                 OffsetBuffer::new(offsets.into()),
                 Arc::new(struct_array),
                 Some(NullBuffer::from(nulls)),
-            ).ok()?
+            )
+            .ok()?
         };
 
         let columns: Vec<ArrayRef> = vec![
@@ -440,7 +437,10 @@ impl FastEncounterWriter {
     }
 
     /// Write a RecordBatch to a parquet file (can be called from any thread)
-    fn write_batch_to_file(batch: RecordBatch, path: PathBuf) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    fn write_batch_to_file(
+        batch: RecordBatch,
+        path: PathBuf,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let schema = batch.schema();
         let file = File::create(&path)?;
         let props = WriterProperties::builder()
@@ -577,33 +577,34 @@ fn main() {
     // 2. Load from user config directory (standalone + overlay user encounters)
     if let Some(user_dir) =
         dirs::config_dir().map(|p| p.join("baras").join("definitions").join("encounters"))
-        && user_dir.exists() {
-            match load_bosses_from_dir(&user_dir) {
-                Ok(user_bosses) => {
-                    if !user_bosses.is_empty() {
-                        tracing::debug!(count = user_bosses.len(), "Loaded user boss definitions");
-                        // Merge: field-level merge for existing bosses, append new ones
-                        for user_boss in user_bosses {
-                            if let Some(existing) =
-                                boss_definitions.iter_mut().find(|b| b.id == user_boss.id)
-                            {
-                                // Field-level merge: timers, phases, entities, etc. by ID
-                                merge_boss_definition(existing, user_boss);
-                            } else {
-                                // New standalone boss - just add it
-                                boss_definitions.push(user_boss);
-                            }
-                        }
-                        // Rebuild indexes after merge (entities may have been added)
-                        for boss in &mut boss_definitions {
-                            boss.build_indexes();
+        && user_dir.exists()
+    {
+        match load_bosses_from_dir(&user_dir) {
+            Ok(user_bosses) => {
+                if !user_bosses.is_empty() {
+                    tracing::debug!(count = user_bosses.len(), "Loaded user boss definitions");
+                    // Merge: field-level merge for existing bosses, append new ones
+                    for user_boss in user_bosses {
+                        if let Some(existing) =
+                            boss_definitions.iter_mut().find(|b| b.id == user_boss.id)
+                        {
+                            // Field-level merge: timers, phases, entities, etc. by ID
+                            merge_boss_definition(existing, user_boss);
+                        } else {
+                            // New standalone boss - just add it
+                            boss_definitions.push(user_boss);
                         }
                     }
-                }
-                Err(e) => {
-                    tracing::warn!(error = %e, "Failed to load user definitions");
+                    // Rebuild indexes after merge (entities may have been added)
+                    for boss in &mut boss_definitions {
+                        boss.build_indexes();
+                    }
                 }
             }
+            Err(e) => {
+                tracing::warn!(error = %e, "Failed to load user definitions");
+            }
+        }
     }
 
     let timer = std::time::Instant::now();
@@ -691,7 +692,15 @@ fn process_and_write_encounters(
     events: Vec<CombatEvent>,
     output_dir: &Path,
     boss_definitions: &[BossEncounterDefinition],
-) -> Result<(Vec<EncounterSummary>, PlayerInfo, AreaInfoOutput, Vec<PlayerDisciplineEntry>), String> {
+) -> Result<
+    (
+        Vec<EncounterSummary>,
+        PlayerInfo,
+        AreaInfoOutput,
+        Vec<PlayerDisciplineEntry>,
+    ),
+    String,
+> {
     use std::sync::mpsc;
 
     // Spawn background writer thread

@@ -117,8 +117,9 @@ fn main() {
     let mut buffs_overlay = PersonalBuffsOverlay::new(buffs_config, buffs_cfg, 180)
         .expect("Failed to create buffs overlay");
 
-    let mut buffs_stack_overlay = PersonalBuffsOverlay::new(buffs_stack_config, buffs_stack_cfg, 180)
-        .expect("Failed to create stack priority buffs overlay");
+    let mut buffs_stack_overlay =
+        PersonalBuffsOverlay::new(buffs_stack_config, buffs_stack_cfg, 180)
+            .expect("Failed to create stack priority buffs overlay");
 
     let mut debuffs_overlay = PersonalDebuffsOverlay::new(debuffs_config, debuffs_cfg, 180)
         .expect("Failed to create debuffs overlay");
@@ -257,7 +258,7 @@ impl CachedIcons {
             alacrity: load(3417509772394496),
             shatter: load(1460787096846336),
             ap_cell: load(828301622902784),
-            supercharge: load(801671729430528),  // Supercharged Celerity / Combat Support Cell
+            supercharge: load(801671729430528), // Supercharged Celerity / Combat Support Cell
             tactical_surge: load(3244358165856256), // Reuse power surge icon
         }
     }

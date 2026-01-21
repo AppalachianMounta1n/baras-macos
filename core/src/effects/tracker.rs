@@ -23,8 +23,12 @@ use super::{ActiveEffect, AlertTrigger, DisplayTarget, EffectDefinition, EffectK
 /// Get the entity roster from the current encounter, or empty slice if none.
 fn get_entities(encounter: Option<&CombatEncounter>) -> &[EntityDefinition] {
     static EMPTY: &[EntityDefinition] = &[];
-    let Some(enc) = encounter else { return EMPTY; };
-    let Some(idx) = enc.active_boss_idx() else { return EMPTY; };
+    let Some(enc) = encounter else {
+        return EMPTY;
+    };
+    let Some(idx) = enc.active_boss_idx() else {
+        return EMPTY;
+    };
     enc.boss_definitions()[idx].entities.as_slice()
 }
 
@@ -655,10 +659,12 @@ impl EffectTracker {
             .filter(|def| def.can_refresh_with(action_id as u64, Some(action_name_str)))
             // Only match definitions where source is local_player or any
             // (this function is only called for local player abilities)
-            .filter(|def| matches!(
-                def.source_filter(),
-                EntityFilter::LocalPlayer | EntityFilter::Any
-            ))
+            .filter(|def| {
+                matches!(
+                    def.source_filter(),
+                    EntityFilter::LocalPlayer | EntityFilter::Any
+                )
+            })
             .map(|def| RefreshableEffect {
                 id: def.id.clone(),
                 name: def.name.clone(),

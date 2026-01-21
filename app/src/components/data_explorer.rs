@@ -18,7 +18,7 @@ use crate::components::class_icons::{get_class_icon, get_role_icon};
 use crate::components::combat_log::CombatLog;
 use crate::components::history_panel::EncounterSummary;
 use crate::components::phase_timeline::PhaseTimelineFilter;
-use crate::components::{use_toast, ToastSeverity};
+use crate::components::{ToastSeverity, use_toast};
 use crate::utils::js_set;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -549,13 +549,13 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
 
     // Load encounter list on mount
 
-  use_effect(move || {
-      spawn(async move {
-          if let Some(list) = api::get_encounter_history().await {
-              let _ = encounters.try_write().map(|mut w| *w = list);  // ← safe
-          }
-      });
-  });
+    use_effect(move || {
+        spawn(async move {
+            if let Some(list) = api::get_encounter_history().await {
+                let _ = encounters.try_write().map(|mut w| *w = list); // ← safe
+            }
+        });
+    });
     // Store unlisten handle for cleanup (Tauri returns an unlisten function)
     let mut unlisten_handle = use_signal(|| None::<js_sys::Function>);
 
@@ -617,7 +617,9 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
         let _ = last_overview_fetch.try_write().map(|mut w| *w = None);
         let _ = selected_source.try_write().map(|mut w| *w = None);
         let _ = timeline.try_write().map(|mut w| *w = None);
-        let _ = time_range.try_write().map(|mut w| *w = TimeRange::default());
+        let _ = time_range
+            .try_write()
+            .map(|mut w| *w = TimeRange::default());
         let _ = timeline_state.try_write().map(|mut w| *w = LoadState::Idle);
         let _ = content_state.try_write().map(|mut w| *w = LoadState::Idle);
 
@@ -625,7 +627,9 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
             return; // No encounter selected
         };
 
-        let _ = timeline_state.try_write().map(|mut w| *w = LoadState::Loading);
+        let _ = timeline_state
+            .try_write()
+            .map(|mut w| *w = LoadState::Loading);
 
         spawn(async move {
             // Check if this request is still current
@@ -640,9 +644,13 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
                         return;
                     }
                     let dur = tl.duration_secs;
-                    let _ = time_range.try_write().map(|mut w| *w = TimeRange::full(dur));
+                    let _ = time_range
+                        .try_write()
+                        .map(|mut w| *w = TimeRange::full(dur));
                     let _ = timeline.try_write().map(|mut w| *w = Some(tl));
-                    let _ = timeline_state.try_write().map(|mut w| *w = LoadState::Loaded);
+                    let _ = timeline_state
+                        .try_write()
+                        .map(|mut w| *w = LoadState::Loaded);
                 }
                 None => {
                     // None can mean: no encounters directory, file not found, or other backend issues
@@ -686,7 +694,9 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
 
         // Set content loading state for Overview tab
         if is_overview {
-            let _ = content_state.try_write().map(|mut w| *w = LoadState::Loading);
+            let _ = content_state
+                .try_write()
+                .map(|mut w| *w = LoadState::Loading);
         }
 
         spawn(async move {
@@ -708,12 +718,18 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
             // None typically means no data available (no encounters dir, etc.) - not an error
             if let Some(data) = api::query_raid_overview(idx, tr_opt.as_ref(), duration).await {
                 let _ = overview_data.try_write().map(|mut w| *w = data);
-                let _ = last_overview_fetch.try_write().map(|mut w| *w = Some((idx, tr)));
+                let _ = last_overview_fetch
+                    .try_write()
+                    .map(|mut w| *w = Some((idx, tr)));
             } else {
                 // No data available - just mark as loaded with empty data
-                let _ = last_overview_fetch.try_write().map(|mut w| *w = Some((idx, tr)));
+                let _ = last_overview_fetch
+                    .try_write()
+                    .map(|mut w| *w = Some((idx, tr)));
                 if is_overview {
-                    let _ = content_state.try_write().map(|mut w| *w = LoadState::Loaded);
+                    let _ = content_state
+                        .try_write()
+                        .map(|mut w| *w = LoadState::Loaded);
                 }
                 return;
             }
@@ -723,7 +739,9 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
                 if let Some(deaths) = api::query_player_deaths(idx).await {
                     let _ = player_deaths.try_write().map(|mut w| *w = deaths);
                 }
-                let _ = content_state.try_write().map(|mut w| *w = LoadState::Loaded);
+                let _ = content_state
+                    .try_write()
+                    .map(|mut w| *w = LoadState::Loaded);
             }
         });
     });
@@ -749,7 +767,9 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
             return;
         }
 
-        let _ = content_state.try_write().map(|mut w| *w = LoadState::Loading);
+        let _ = content_state
+            .try_write()
+            .map(|mut w| *w = LoadState::Loading);
 
         spawn(async move {
             let tr_opt = if tr.start == 0.0 && tr.end == 0.0 {
@@ -764,7 +784,9 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
                 Some(data) => data,
                 None => {
                     // No data available - just mark as loaded with empty data
-                    let _ = content_state.try_write().map(|mut w| *w = LoadState::Loaded);
+                    let _ = content_state
+                        .try_write()
+                        .map(|mut w| *w = LoadState::Loaded);
                     return;
                 }
             };
@@ -802,7 +824,9 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
                 let _ = selected_source.try_write().map(|mut w| *w = auto_selected);
             }
 
-            let _ = content_state.try_write().map(|mut w| *w = LoadState::Loaded);
+            let _ = content_state
+                .try_write()
+                .map(|mut w| *w = LoadState::Loaded);
         });
     });
 

@@ -119,10 +119,12 @@ impl Reader {
     //tailing live log file always write to session cache
     pub async fn tail_log_file(self) -> std::result::Result<(), ReaderError> {
         const CRLF: &[u8] = b"\r\n";
-        let file = File::open(&self.path).await.map_err(|source| ReaderError::OpenFile {
-            path: self.path.clone(),
-            source,
-        })?;
+        let file = File::open(&self.path)
+            .await
+            .map_err(|source| ReaderError::OpenFile {
+                path: self.path.clone(),
+                source,
+            })?;
         let mut reader = BufReader::new(file);
         let mut line_number = 0u64;
         let pos = self.state.read().await.current_byte.unwrap_or(0);
@@ -134,10 +136,13 @@ impl Reader {
             .game_session_date
             .ok_or(ReaderError::SessionDateMissing)?;
 
-        reader.seek(SeekFrom::Start(pos)).await.map_err(|source| ReaderError::Seek {
-            path: self.path.clone(),
-            source,
-        })?;
+        reader
+            .seek(SeekFrom::Start(pos))
+            .await
+            .map_err(|source| ReaderError::Seek {
+                path: self.path.clone(),
+                source,
+            })?;
 
         let parser = LogParser::new(session_date);
         let mut buf = Vec::new();

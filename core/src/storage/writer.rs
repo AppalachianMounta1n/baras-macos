@@ -2,8 +2,8 @@
 
 use arrow::array::{
     ArrayBuilder, ArrayRef, BooleanBuilder, Float32Builder, Int32Builder, Int64Builder, ListArray,
-    StringBuilder, StructArray, TimestampMillisecondBuilder, UInt32Builder, UInt64Builder,
-    UInt8Builder,
+    StringBuilder, StructArray, TimestampMillisecondBuilder, UInt8Builder, UInt32Builder,
+    UInt64Builder,
 };
 use arrow::buffer::{NullBuffer, OffsetBuffer};
 use arrow::datatypes::{DataType, Field, Fields, Schema, TimeUnit};
@@ -553,11 +553,7 @@ impl EncounterWriter {
                 }
             }
 
-            let list_field = Field::new(
-                "item",
-                DataType::Struct(struct_fields),
-                true,
-            );
+            let list_field = Field::new("item", DataType::Struct(struct_fields), true);
             ListArray::try_new(
                 Arc::new(list_field),
                 OffsetBuffer::new(offsets.into()),

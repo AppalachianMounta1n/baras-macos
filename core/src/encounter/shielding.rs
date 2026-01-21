@@ -55,7 +55,11 @@ impl CombatEncounter {
     }
 
     /// Get the first (oldest) active shield for a target
-    fn get_first_active_shield(&self, target_id: i64, timestamp: NaiveDateTime) -> Option<ActiveShield> {
+    fn get_first_active_shield(
+        &self,
+        target_id: i64,
+        timestamp: NaiveDateTime,
+    ) -> Option<ActiveShield> {
         let effects = self.effects.get(&target_id)?;
 
         effects
@@ -118,7 +122,11 @@ impl CombatEncounter {
     ///
     /// Grace window shields are ALWAYS included (not just when 0 active shields),
     /// because they may have contributed to absorption due to log timing.
-    pub fn get_shield_context(&self, target_id: i64, timestamp: NaiveDateTime) -> Vec<ShieldContext> {
+    pub fn get_shield_context(
+        &self,
+        target_id: i64,
+        timestamp: NaiveDateTime,
+    ) -> Vec<ShieldContext> {
         let Some(effects) = self.effects.get(&target_id) else {
             return Vec::new();
         };

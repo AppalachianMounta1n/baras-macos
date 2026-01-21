@@ -235,9 +235,7 @@ impl ServiceHandle {
                     path.metadata()
                         .ok()
                         .and_then(|m| m.modified().ok())
-                        .map(|st| {
-                            chrono::DateTime::<chrono::Local>::from(st).naive_local()
-                        })
+                        .map(|st| chrono::DateTime::<chrono::Local>::from(st).naive_local())
                 })
             });
 
@@ -518,8 +516,7 @@ impl ServiceHandle {
                     .find(|s| s.encounter_id == idx as u64)
                 {
                     for pm in &summary.player_metrics {
-                        if let (Some(class_icon), Some(role_icon)) =
-                            (&pm.class_icon, &pm.role_icon)
+                        if let (Some(class_icon), Some(role_icon)) = (&pm.class_icon, &pm.role_icon)
                         {
                             player_discipline_map.insert(
                                 pm.name.clone(),
@@ -637,8 +634,9 @@ impl ServiceHandle {
             for entry in entries.flatten() {
                 if let Some(name) = entry.file_name().to_str()
                     && name.ends_with(".parquet")
-                        && let Ok(idx) = name.trim_end_matches(".parquet").parse::<u32>() {
-                            indices.push(idx);
+                    && let Ok(idx) = name.trim_end_matches(".parquet").parse::<u32>()
+                {
+                    indices.push(idx);
                 }
             }
         }
@@ -670,7 +668,13 @@ impl ServiceHandle {
             self.shared.query_context.register_batch(batch).await?;
         }
 
-        self.shared.query_context.query().await.query().encounter_timeline().await
+        self.shared
+            .query_context
+            .query()
+            .await
+            .query()
+            .encounter_timeline()
+            .await
     }
 
     /// Query HPS over time for a specific encounter.
@@ -935,7 +939,13 @@ impl ServiceHandle {
             self.shared.query_context.register_batch(batch).await?;
         }
 
-        self.shared.query_context.query().await.query().query_source_names().await
+        self.shared
+            .query_context
+            .query()
+            .await
+            .query()
+            .query_source_names()
+            .await
     }
 
     /// Get distinct target names for combat log filter dropdown.
@@ -962,7 +972,13 @@ impl ServiceHandle {
             self.shared.query_context.register_batch(batch).await?;
         }
 
-        self.shared.query_context.query().await.query().query_target_names().await
+        self.shared
+            .query_context
+            .query()
+            .await
+            .query()
+            .query_target_names()
+            .await
     }
 
     /// Query player deaths in an encounter.

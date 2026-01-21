@@ -15,8 +15,12 @@ use super::{TimerManager, TimerTrigger};
 /// Get the entity roster from the current encounter, or empty slice if none.
 fn get_entities(encounter: Option<&CombatEncounter>) -> &[EntityDefinition] {
     static EMPTY: &[EntityDefinition] = &[];
-    let Some(enc) = encounter else { return EMPTY; };
-    let Some(idx) = enc.active_boss_idx() else { return EMPTY; };
+    let Some(enc) = encounter else {
+        return EMPTY;
+    };
+    let Some(idx) = enc.active_boss_idx() else {
+        return EMPTY;
+    };
     enc.boss_definitions()[idx].entities.as_slice()
 }
 
@@ -218,9 +222,7 @@ pub(super) fn handle_boss_hp_change(
     let npc_name_owned = npc_name.to_string();
     manager.cancel_timers_matching_with_entities(
         entities,
-        |t, ents| {
-            t.matches_boss_hp_below(ents, npc_id, &npc_name_owned, previous_hp, current_hp)
-        },
+        |t, ents| t.matches_boss_hp_below(ents, npc_id, &npc_name_owned, previous_hp, current_hp),
         &format!("boss HP below threshold for {}", npc_name),
     );
 }

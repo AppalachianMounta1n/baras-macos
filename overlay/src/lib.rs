@@ -39,6 +39,9 @@ pub mod utils;
 pub mod widgets;
 
 // Re-export commonly used types
+pub use class_icons::{
+    ClassIcon, Role, get_class_icon, get_tinted_class_icon, get_white_class_icon,
+};
 pub use frame::OverlayFrame;
 pub use manager::OverlayWindow;
 pub use overlays::{
@@ -68,15 +71,15 @@ pub use overlays::{
     EFFECT_SIZE_DEFAULT,
     EFFECT_SIZE_MAX,
     EFFECT_SIZE_MIN,
-    EffectEntry,
-    EffectsData,
-    EffectsOverlay,
     // Effects A/B overlay (consolidated personal effects)
     EffectABEntry,
+    EffectEntry,
     EffectsABConfig,
     EffectsABData,
     EffectsABOverlay,
+    EffectsData,
     EffectsLayout,
+    EffectsOverlay,
     InteractionMode,
     MetricEntry,
     MetricOverlay,
@@ -108,7 +111,6 @@ pub use platform::{
 pub use renderer::Renderer;
 pub use utils::{color_from_rgba, format_number, format_time, truncate_name};
 pub use widgets::{Footer, Header, LabeledValue, ProgressBar, colors};
-pub use class_icons::{ClassIcon, Role, get_class_icon, get_tinted_class_icon, get_white_class_icon};
 
 // Re-export tiny_skia Color for external use
 pub use tiny_skia::Color;

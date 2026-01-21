@@ -127,7 +127,10 @@ impl TimerManager {
         path: &std::path::Path,
     ) -> Result<(), super::PreferencesError> {
         self.preferences = TimerPreferences::load(path)?;
-        tracing::debug!(count = self.preferences.timers.len(), "Loaded timer preferences");
+        tracing::debug!(
+            count = self.preferences.timers.len(),
+            "Loaded timer preferences"
+        );
         Ok(())
     }
 
@@ -182,7 +185,10 @@ impl TimerManager {
                 "Loaded enabled timer definitions"
             );
         } else {
-            tracing::info!(count = self.definitions.len(), "Loaded enabled timer definitions");
+            tracing::info!(
+                count = self.definitions.len(),
+                "Loaded enabled timer definitions"
+            );
         }
 
         // Validate timer chain references
@@ -623,10 +629,18 @@ impl TimerManager {
                     // Move fields from timer since we own it and are done with it (unless chaining)
                     let (id, name, audio_file) = if has_chain {
                         // Need to clone since timer is still used for chain
-                        (timer.definition_id.clone(), timer.name.clone(), timer.audio_file.clone())
+                        (
+                            timer.definition_id.clone(),
+                            timer.name.clone(),
+                            timer.audio_file.clone(),
+                        )
                     } else {
                         // Can move since timer is not used after this
-                        (std::mem::take(&mut timer.definition_id), std::mem::take(&mut timer.name), timer.audio_file.take())
+                        (
+                            std::mem::take(&mut timer.definition_id),
+                            std::mem::take(&mut timer.name),
+                            timer.audio_file.take(),
+                        )
                     };
                     self.fired_alerts.push(FiredAlert {
                         id,
@@ -916,7 +930,6 @@ impl SignalHandler for TimerManager {
             }
 
             // CombatEnded handled in early context-setting section above
-
             GameSignal::EntityDeath {
                 npc_id,
                 entity_name,
@@ -1024,7 +1037,6 @@ impl SignalHandler for TimerManager {
 
             // ─── Boss Encounter Signals (from EventProcessor) ─────────────────────
             // BossEncounterDetected handled in early context-setting section above
-
             GameSignal::BossHpChanged {
                 npc_id,
                 entity_name,

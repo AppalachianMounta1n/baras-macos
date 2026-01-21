@@ -10,8 +10,8 @@ use super::{Overlay, OverlayConfigUpdate, OverlayData};
 use crate::frame::OverlayFrame;
 use crate::platform::{OverlayConfig, PlatformError};
 use crate::utils::color_from_rgba;
-use crate::widgets::colors;
 use crate::widgets::Header;
+use crate::widgets::colors;
 
 /// Cache for pre-scaled icons
 type ScaledIconCache = HashMap<(u64, u32), Vec<u8>>;
@@ -237,9 +237,14 @@ impl CooldownOverlay {
         // Render header if enabled
         if self.config.show_header {
             let content_width = self.frame.width() as f32 - 2.0 * padding;
-            Header::new("Cooldowns")
-                .with_color(colors::white())
-                .render(&mut self.frame, padding, padding, content_width, header_font_size, row_spacing);
+            Header::new("Cooldowns").with_color(colors::white()).render(
+                &mut self.frame,
+                padding,
+                padding,
+                content_width,
+                header_font_size,
+                row_spacing,
+            );
         }
 
         if self.data.entries.is_empty() {
@@ -272,15 +277,8 @@ impl CooldownOverlay {
                 } else if let Some(ref icon_arc) = entry.icon {
                     // Fallback if cache miss
                     let (img_w, img_h, ref rgba) = **icon_arc;
-                    self.frame.draw_image(
-                        rgba,
-                        img_w,
-                        img_h,
-                        x,
-                        y,
-                        icon_size,
-                        icon_size,
-                    );
+                    self.frame
+                        .draw_image(rgba, img_w, img_h, x, y, icon_size, icon_size);
                     true
                 } else {
                     false
@@ -292,14 +290,8 @@ impl CooldownOverlay {
             if !has_icon {
                 // Fallback: colored square
                 let bg_color = color_from_rgba(entry.color);
-                self.frame.fill_rounded_rect(
-                    x,
-                    y,
-                    icon_size,
-                    icon_size,
-                    3.0,
-                    bg_color,
-                );
+                self.frame
+                    .fill_rounded_rect(x, y, icon_size, icon_size, 3.0, bg_color);
             }
 
             // Decreasing clock wipe - overlay shrinks from top, revealing icon
@@ -323,21 +315,15 @@ impl CooldownOverlay {
             } else {
                 colors::white()
             };
-            self.frame.stroke_rounded_rect(
-                x,
-                y,
-                icon_size,
-                icon_size,
-                3.0,
-                1.0,
-                border_color,
-            );
+            self.frame
+                .stroke_rounded_rect(x, y, icon_size, icon_size, 3.0, 1.0, border_color);
 
             // Charge count in corner (if > 1 or showing max charges)
             if entry.charges > 1 || (entry.max_charges > 1 && entry.charges > 0) {
                 let charge_text = format!("{}", entry.charges);
                 let charge_font_size = font_size * 0.9;
-                let charge_x = x + icon_size - self.frame.measure_text(&charge_text, charge_font_size).0 - 2.0;
+                let charge_x =
+                    x + icon_size - self.frame.measure_text(&charge_text, charge_font_size).0 - 2.0;
                 let charge_y = y + charge_font_size + 2.0;
 
                 self.frame.draw_text(
@@ -370,13 +356,8 @@ impl CooldownOverlay {
             if self.config.show_ability_names {
                 // Ability name on top
                 let name_y = text_y - font_size * 0.3;
-                self.frame.draw_text(
-                    &entry.name,
-                    text_x,
-                    name_y,
-                    font_size,
-                    colors::white(),
-                );
+                self.frame
+                    .draw_text(&entry.name, text_x, name_y, font_size, colors::white());
 
                 // Countdown below
                 let time_text = entry.format_time();
@@ -457,9 +438,14 @@ impl CooldownOverlay {
         // Render header if enabled
         if self.config.show_header {
             let content_width = self.frame.width() as f32 - 2.0 * padding;
-            Header::new("Cooldowns")
-                .with_color(colors::white())
-                .render(&mut self.frame, padding, padding, content_width, header_font_size, row_spacing);
+            Header::new("Cooldowns").with_color(colors::white()).render(
+                &mut self.frame,
+                padding,
+                padding,
+                content_width,
+                header_font_size,
+                row_spacing,
+            );
         }
 
         let mut y = padding + header_space;
@@ -475,14 +461,8 @@ impl CooldownOverlay {
             let x = padding;
 
             // Placeholder icon background
-            self.frame.fill_rounded_rect(
-                x,
-                y,
-                icon_size,
-                icon_size,
-                3.0,
-                colors::effect_icon_bg(),
-            );
+            self.frame
+                .fill_rounded_rect(x, y, icon_size, icon_size, 3.0, colors::effect_icon_bg());
 
             // Dashed border to indicate preview
             self.frame.stroke_rounded_rect_dashed(
@@ -533,8 +513,13 @@ impl CooldownOverlay {
 
                 // Countdown below
                 let time_y = name_y + font_size + 2.0;
-                self.frame
-                    .draw_text(time_text, text_x, time_y, font_size * 0.9, colors::label_dim());
+                self.frame.draw_text(
+                    time_text,
+                    text_x,
+                    time_y,
+                    font_size * 0.9,
+                    colors::label_dim(),
+                );
             } else {
                 // Just countdown centered
                 self.frame.draw_text(

@@ -312,7 +312,11 @@ fn build_time_series_option(
             for window in merged {
                 let region = js_sys::Array::new();
                 let start = js_sys::Object::new();
-                js_set(&start, "xAxis", &JsValue::from_f64(window.start_secs as f64));
+                js_set(
+                    &start,
+                    "xAxis",
+                    &JsValue::from_f64(window.start_secs as f64),
+                );
                 // Use yAxis values to bound within chart grid (index 0 = left/burst axis)
                 js_set(&start, "yAxis", &JsValue::from_f64(y_top));
                 // Set per-region itemStyle for individual colors
@@ -466,7 +470,9 @@ pub fn ChartsPanel(props: ChartsPanelProps) -> Element {
                             let icons: HashMap<String, String> = players
                                 .iter()
                                 .filter_map(|r| {
-                                    r.class_icon.as_ref().map(|icon| (r.name.clone(), icon.clone()))
+                                    r.class_icon
+                                        .as_ref()
+                                        .map(|icon| (r.name.clone(), icon.clone()))
                                 })
                                 .collect();
                             class_icons.set(icons);

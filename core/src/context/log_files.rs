@@ -267,7 +267,8 @@ impl DirectoryIndex {
                         entry.file_size = current_size;
                         entry.is_empty = false;
                         // Try to extract character name now that file has content
-                        if let Ok(Some(name)) = extract_character_name(&entry.path, entry.created_at)
+                        if let Ok(Some(name)) =
+                            extract_character_name(&entry.path, entry.created_at)
                         {
                             tracing::debug!(
                                 path = %entry.path.display(),

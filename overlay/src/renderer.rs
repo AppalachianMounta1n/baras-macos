@@ -450,8 +450,7 @@ impl Renderer {
                     (src_g as f32 * alpha + buffer[dest_idx + 1] as f32 * inv_alpha) as u8;
                 buffer[dest_idx + 2] =
                     (src_b as f32 * alpha + buffer[dest_idx + 2] as f32 * inv_alpha) as u8;
-                buffer[dest_idx + 3] =
-                    (src_a.max(buffer[dest_idx + 3])) as u8;
+                buffer[dest_idx + 3] = (src_a.max(buffer[dest_idx + 3])) as u8;
             }
         }
     }

@@ -75,12 +75,8 @@ pub trait EntityFilterMatching {
     /// * `entities` - Entity roster for name resolution
     /// * `npc_id` - NPC class/template ID
     /// * `name` - Entity's display name (may be localized)
-    fn matches_source_target(
-        &self,
-        entities: &[EntityDefinition],
-        npc_id: i64,
-        name: &str,
-    ) -> bool;
+    fn matches_source_target(&self, entities: &[EntityDefinition], npc_id: i64, name: &str)
+    -> bool;
 }
 
 impl EntityFilterMatching for EntityFilter {

@@ -799,7 +799,11 @@ pub async fn query_effect_uptime(
     } else {
         js_set(&obj, "timeRange", &JsValue::NULL);
     }
-    js_set(&obj, "durationSecs", &JsValue::from_f64(duration_secs as f64));
+    js_set(
+        &obj,
+        "durationSecs",
+        &JsValue::from_f64(duration_secs as f64),
+    );
     let result = invoke("query_effect_uptime", obj.into()).await;
     from_js(result)
 }
@@ -830,7 +834,11 @@ pub async fn query_effect_windows(
     } else {
         js_set(&obj, "timeRange", &JsValue::NULL);
     }
-    js_set(&obj, "durationSecs", &JsValue::from_f64(duration_secs as f64));
+    js_set(
+        &obj,
+        "durationSecs",
+        &JsValue::from_f64(duration_secs as f64),
+    );
     let result = invoke("query_effect_windows", obj.into()).await;
     from_js(result)
 }

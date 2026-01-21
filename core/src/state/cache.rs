@@ -1,7 +1,7 @@
 use crate::dsl::BossEncounterDefinition;
 use crate::encounter::entity_info::PlayerInfo;
 use crate::encounter::summary::{EncounterHistory, create_encounter_summary};
-use crate::encounter::{OverlayHealthEntry, CombatEncounter, EncounterState, ProcessingMode};
+use crate::encounter::{CombatEncounter, EncounterState, OverlayHealthEntry, ProcessingMode};
 use crate::game_data::{Difficulty, clear_boss_registry, register_hp_overlay_entity};
 use crate::state::info::AreaInfo;
 use hashbrown::HashMap;

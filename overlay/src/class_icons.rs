@@ -24,9 +24,9 @@ impl Role {
     /// Get the tint color for this role as (r, g, b)
     pub fn tint_color(&self) -> (u8, u8, u8) {
         match self {
-            Role::Tank => (100, 149, 237),  // Cornflower blue
-            Role::Healer => (50, 205, 50),  // Lime green
-            Role::Damage => (220, 80, 80),  // Soft red
+            Role::Tank => (100, 149, 237), // Cornflower blue
+            Role::Healer => (50, 205, 50), // Lime green
+            Role::Damage => (220, 80, 80), // Soft red
         }
     }
 }
@@ -34,13 +34,28 @@ impl Role {
 // Embed all class icons at compile time
 static ICON_DATA: &[(&str, &[u8])] = &[
     ("assassin", include_bytes!("../assets/class/assassin.png")),
-    ("bountyhunter", include_bytes!("../assets/class/bountyhunter.png")),
+    (
+        "bountyhunter",
+        include_bytes!("../assets/class/bountyhunter.png"),
+    ),
     ("commando", include_bytes!("../assets/class/commando.png")),
     ("guardian", include_bytes!("../assets/class/guardian.png")),
-    ("gunslinger", include_bytes!("../assets/class/gunslinger.png")),
-    ("jediconsular", include_bytes!("../assets/class/jediconsular.png")),
-    ("jediknight", include_bytes!("../assets/class/jediknight.png")),
-    ("juggernaut", include_bytes!("../assets/class/juggernaut.png")),
+    (
+        "gunslinger",
+        include_bytes!("../assets/class/gunslinger.png"),
+    ),
+    (
+        "jediconsular",
+        include_bytes!("../assets/class/jediconsular.png"),
+    ),
+    (
+        "jediknight",
+        include_bytes!("../assets/class/jediknight.png"),
+    ),
+    (
+        "juggernaut",
+        include_bytes!("../assets/class/juggernaut.png"),
+    ),
     ("marauder", include_bytes!("../assets/class/marauder.png")),
     ("mercenary", include_bytes!("../assets/class/mercenary.png")),
     ("operative", include_bytes!("../assets/class/operative.png")),
@@ -49,8 +64,14 @@ static ICON_DATA: &[(&str, &[u8])] = &[
     ("scoundrel", include_bytes!("../assets/class/scoundrel.png")),
     ("sentinel", include_bytes!("../assets/class/sentinel.png")),
     ("shadow", include_bytes!("../assets/class/shadow.png")),
-    ("sithsorcerer", include_bytes!("../assets/class/sithsorcerer.png")),
-    ("sithwarrior", include_bytes!("../assets/class/sithwarrior.png")),
+    (
+        "sithsorcerer",
+        include_bytes!("../assets/class/sithsorcerer.png"),
+    ),
+    (
+        "sithwarrior",
+        include_bytes!("../assets/class/sithwarrior.png"),
+    ),
     ("smuggler", include_bytes!("../assets/class/smuggler.png")),
     ("sniper", include_bytes!("../assets/class/sniper.png")),
     ("sorcerer", include_bytes!("../assets/class/sorcerer.png")),
@@ -224,5 +245,9 @@ fn decode_png(data: &[u8]) -> Option<ClassIcon> {
         png::ColorType::Indexed => return None,
     };
 
-    Some(ClassIcon { rgba, width, height })
+    Some(ClassIcon {
+        rgba,
+        width,
+        height,
+    })
 }

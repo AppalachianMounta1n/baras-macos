@@ -342,7 +342,9 @@ impl EventProcessor {
             if let Some(idx) = cache.detect_boss_encounter(entity.class_id) {
                 // Get the encounter mutably and extract data from definition
                 let Some(enc) = cache.current_encounter_mut() else {
-                    tracing::error!("BUG: encounter missing after detect_boss_encounter in handle_boss_detection");
+                    tracing::error!(
+                        "BUG: encounter missing after detect_boss_encounter in handle_boss_detection"
+                    );
                     continue;
                 };
                 let def = &enc.boss_definitions()[idx];

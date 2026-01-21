@@ -6,10 +6,10 @@
 
 use rolling_file::{BasicRollingFileAppender, RollingConditionBasic};
 use tracing_subscriber::{
+    EnvFilter,
     fmt::{self, format::FmtSpan},
     layer::SubscriberExt,
     util::SubscriberInitExt,
-    EnvFilter,
 };
 
 /// Initialize logging with dual-output (file + stdout).

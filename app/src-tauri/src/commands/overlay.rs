@@ -5,9 +5,9 @@
 use serde::Serialize;
 use tauri::State;
 
-use baras_core::context::OverlaySettings;
 use crate::overlay::{MetricType, OverlayCommand, OverlayManager, OverlayType, SharedOverlayState};
 use crate::service::ServiceHandle;
+use baras_core::context::OverlaySettings;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Response Types

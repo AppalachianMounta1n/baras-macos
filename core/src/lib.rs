@@ -28,15 +28,15 @@ pub use dsl::{
     PhaseDefinition, PhaseTrigger, load_bosses_from_dir,
 };
 pub use effects::{
-    ActiveEffect, DefinitionConfig, DefinitionSet, DisplayTarget, EffectDefinition, EffectTracker,
-    NewTargetInfo, EFFECTS_DSL_VERSION,
+    ActiveEffect, DefinitionConfig, DefinitionSet, DisplayTarget, EFFECTS_DSL_VERSION,
+    EffectDefinition, EffectTracker, NewTargetInfo,
 };
 pub use encounter::metrics::PlayerMetrics;
 pub use encounter::summary::{EncounterHistory, EncounterSummary};
-pub use encounter::{ActiveBoss, OverlayHealthEntry, CombatEncounter, PhaseType, ProcessingMode};
+pub use encounter::{ActiveBoss, CombatEncounter, OverlayHealthEntry, PhaseType, ProcessingMode};
 pub use game_data::*;
+pub use icons::{IconRegistry, TICK_BIAS_SECS, calculate_effect_duration};
 pub use query::{AbilityBreakdown, EncounterQuery, EntityBreakdown, TimeSeriesPoint};
 pub use signal_processor::{EventProcessor, GameSignal, SignalHandler};
 pub use state::SessionCache;
 pub use timers::{ActiveTimer, TimerDefinition, TimerKey, TimerManager, TimerTrigger};
-pub use icons::{IconRegistry, calculate_effect_duration, TICK_BIAS_SECS};

@@ -494,10 +494,7 @@ impl CliOutput {
     fn print_boss_hp_table(&self) {
         println!();
         println!("BOSS HP:");
-        println!(
-            "  {:30} {:>15} {:>10}",
-            "Name", "HP", "%"
-        );
+        println!("  {:30} {:>15} {:>10}", "Name", "HP", "%");
         println!("  {}", "─".repeat(58));
 
         for state in self.boss_hp.values() {

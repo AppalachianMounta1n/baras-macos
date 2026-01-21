@@ -11,7 +11,7 @@ use super::encounter_editor::InlineNameCreator;
 use super::encounter_editor::triggers::{
     AbilitySelectorEditor, EffectSelectorEditor, EntityFilterDropdown,
 };
-use super::{use_toast, ToastSeverity};
+use super::{ToastSeverity, use_toast};
 use crate::api;
 use crate::types::{
     AbilitySelector, AlertTrigger, AudioConfig, DisplayTarget, EffectListItem, EffectSelector,

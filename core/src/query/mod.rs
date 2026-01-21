@@ -5,8 +5,8 @@
 //! - Historical parquet files (completed encounters)
 
 mod breakdown;
-mod combat_log;
 mod column_helpers;
+mod combat_log;
 mod effects;
 pub mod error;
 mod overview;

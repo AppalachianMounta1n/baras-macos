@@ -43,7 +43,10 @@ impl IconCache {
     /// * `max_cache_size` - Maximum number of icons to cache
     pub fn new(csv_path: &Path, zip_path: &Path, max_cache_size: usize) -> Result<Self, String> {
         let ability_to_icon = load_icon_csv(csv_path)?;
-        tracing::debug!(count = ability_to_icon.len(), "Loaded ability->icon mappings from CSV");
+        tracing::debug!(
+            count = ability_to_icon.len(),
+            "Loaded ability->icon mappings from CSV"
+        );
 
         // Build list of ZIP paths to check
         let mut zip_paths = vec![zip_path.to_string_lossy().to_string()];

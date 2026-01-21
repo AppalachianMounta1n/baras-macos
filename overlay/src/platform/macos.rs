@@ -8,7 +8,7 @@ use std::ffi::c_void;
 
 // objc2 core
 use objc2::rc::Retained;
-use objc2::{define_class, msg_send, DeclaredClass, MainThreadMarker, MainThreadOnly};
+use objc2::{DeclaredClass, MainThreadMarker, MainThreadOnly, define_class, msg_send};
 
 // objc2-foundation types
 use objc2_foundation::{NSPoint, NSRect, NSSize};
@@ -24,8 +24,8 @@ use core_graphics::base::{kCGBitmapByteOrder32Little, kCGImageAlphaPremultiplied
 use core_graphics::color_space::CGColorSpace;
 use core_graphics::context::CGContext;
 
-use super::{MonitorInfo, OverlayConfig, OverlayPlatform, PlatformError};
 use super::{MAX_OVERLAY_HEIGHT, MAX_OVERLAY_WIDTH, MIN_OVERLAY_SIZE, RESIZE_CORNER_SIZE};
+use super::{MonitorInfo, OverlayConfig, OverlayPlatform, PlatformError};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Standalone Monitor Enumeration
@@ -300,7 +300,7 @@ pub struct MacOSOverlay {
     height: u32,
     x: i32,
     y: i32,
-    pixel_data: Vec<u8>, // RGBA from renderer
+    pixel_data: Vec<u8>,  // RGBA from renderer
     bgra_buffer: Vec<u8>, // BGRA for Core Graphics
 
     // Interaction state

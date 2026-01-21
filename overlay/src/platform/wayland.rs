@@ -904,7 +904,10 @@ impl OverlayPlatform for WaylandOverlay {
                 (Some(output.clone()), clamped_x, clamped_y, bounds)
             } else {
                 // Saved monitor not found, let compositor decide
-                tracing::warn!(target_id, "Saved monitor not found, letting compositor choose");
+                tracing::warn!(
+                    target_id,
+                    "Saved monitor not found, letting compositor choose"
+                );
                 (None, config.x.max(0), config.y.max(0), None)
             }
         } else {

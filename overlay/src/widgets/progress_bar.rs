@@ -229,11 +229,8 @@ impl ProgressBar {
         // Draw label on the left (truncated to fit, with optional offset for icon)
         let label_start = x + text_padding + self.label_offset;
         let available_for_label = name_width - text_padding * 2.0 - self.label_offset;
-        let display_label = self.truncate_label_to_width(
-            frame,
-            available_for_label.max(0.0),
-            effective_font_size,
-        );
+        let display_label =
+            self.truncate_label_to_width(frame, available_for_label.max(0.0), effective_font_size);
         frame.draw_text(
             &display_label,
             label_start,

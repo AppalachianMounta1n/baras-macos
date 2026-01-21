@@ -14,8 +14,8 @@ use super::metrics::create_entries_for_type;
 use super::spawn::{
     create_alerts_overlay, create_boss_health_overlay, create_challenges_overlay,
     create_cooldowns_overlay, create_dot_tracker_overlay, create_effects_a_overlay,
-    create_effects_b_overlay, create_metric_overlay, create_personal_overlay,
-    create_raid_overlay, create_timer_overlay,
+    create_effects_b_overlay, create_metric_overlay, create_personal_overlay, create_raid_overlay,
+    create_timer_overlay,
 };
 use super::state::{OverlayCommand, OverlayHandle, PositionEvent};
 use super::types::{MetricType, OverlayType};
@@ -84,19 +84,11 @@ impl OverlayManager {
             }
             OverlayType::EffectsA => {
                 let buffs_config = settings.effects_a.clone();
-                create_effects_a_overlay(
-                    position,
-                    buffs_config,
-                    settings.effects_a_opacity,
-                )?
+                create_effects_a_overlay(position, buffs_config, settings.effects_a_opacity)?
             }
             OverlayType::EffectsB => {
                 let debuffs_config = settings.effects_b.clone();
-                create_effects_b_overlay(
-                    position,
-                    debuffs_config,
-                    settings.effects_b_opacity,
-                )?
+                create_effects_b_overlay(position, debuffs_config, settings.effects_b_opacity)?
             }
             OverlayType::Cooldowns => {
                 let cooldowns_config = settings.cooldown_tracker.clone();
@@ -316,10 +308,7 @@ impl OverlayManager {
                     show_header: cfg.show_header,
                     header_title: "Effects B".to_string(),
                 };
-                OverlayConfigUpdate::EffectsB(
-                    debuffs_config,
-                    settings.effects_b_opacity,
-                )
+                OverlayConfigUpdate::EffectsB(debuffs_config, settings.effects_b_opacity)
             }
             OverlayType::Cooldowns => {
                 let cfg = &settings.cooldown_tracker;

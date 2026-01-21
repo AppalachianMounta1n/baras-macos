@@ -63,8 +63,8 @@ use baras_core::context::{
 };
 use baras_overlay::{
     AlertsOverlay, BossHealthOverlay, ChallengeOverlay, CooldownConfig, CooldownOverlay,
-    DotTrackerConfig, DotTrackerOverlay, EffectsABConfig, EffectsABOverlay, MetricOverlay,
-    Overlay, OverlayConfig, PersonalOverlay, RaidGridLayout, RaidOverlay, RaidOverlayConfig,
+    DotTrackerConfig, DotTrackerOverlay, EffectsABConfig, EffectsABOverlay, MetricOverlay, Overlay,
+    OverlayConfig, PersonalOverlay, RaidGridLayout, RaidOverlay, RaidOverlayConfig,
     RaidRegistryAction, TimerOverlay,
 };
 use baras_types::{
@@ -255,8 +255,8 @@ where
     let handle = thread::spawn(move || {
         // Create the overlay on the main thread via GCD
         // Returns a raw pointer wrapped in SendPtr since we can't move the overlay between threads
-        let overlay_ptr: SendPtr<O> = dispatch::Queue::main().exec_sync(move || {
-            match create_overlay() {
+        let overlay_ptr: SendPtr<O> =
+            dispatch::Queue::main().exec_sync(move || match create_overlay() {
                 Ok(o) => {
                     let _ = confirm_tx.send(Ok(()));
                     SendPtr(Box::into_raw(Box::new(o)))
@@ -265,8 +265,7 @@ where
                     let _ = confirm_tx.send(Err(e));
                     SendPtr(ptr::null_mut())
                 }
-            }
-        });
+            });
 
         if overlay_ptr.is_null() {
             return;

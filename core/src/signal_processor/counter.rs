@@ -34,7 +34,9 @@ pub fn check_counter_increments(
         // Check increment_on trigger
         if check_counter_trigger(&counter.increment_on, event, current_signals, &def.entities) {
             let Some(enc) = cache.current_encounter_mut() else {
-                tracing::error!("BUG: encounter missing in check_counter_increments (increment_on)");
+                tracing::error!(
+                    "BUG: encounter missing in check_counter_increments (increment_on)"
+                );
                 continue;
             };
             let (old_value, new_value) = enc.modify_counter(
@@ -56,7 +58,9 @@ pub fn check_counter_increments(
             && check_counter_trigger(decrement_trigger, event, current_signals, &def.entities)
         {
             let Some(enc) = cache.current_encounter_mut() else {
-                tracing::error!("BUG: encounter missing in check_counter_increments (decrement_on)");
+                tracing::error!(
+                    "BUG: encounter missing in check_counter_increments (decrement_on)"
+                );
                 continue;
             };
             let (old_value, new_value) = enc.modify_counter(
@@ -128,7 +132,9 @@ pub fn check_counter_timer_triggers(
         // Check increment_on for timer triggers
         if matches_timer_trigger(&counter.increment_on, expired_timer_ids, started_timer_ids) {
             let Some(enc) = cache.current_encounter_mut() else {
-                tracing::error!("BUG: encounter missing in check_counter_timer_triggers (increment_on)");
+                tracing::error!(
+                    "BUG: encounter missing in check_counter_timer_triggers (increment_on)"
+                );
                 continue;
             };
             let (old_value, new_value) =
@@ -145,7 +151,9 @@ pub fn check_counter_timer_triggers(
         if let Some(ref trigger) = counter.decrement_on {
             if matches_timer_trigger(trigger, expired_timer_ids, started_timer_ids) {
                 let Some(enc) = cache.current_encounter_mut() else {
-                    tracing::error!("BUG: encounter missing in check_counter_timer_triggers (decrement_on)");
+                    tracing::error!(
+                        "BUG: encounter missing in check_counter_timer_triggers (decrement_on)"
+                    );
                     continue;
                 };
                 let (old_value, new_value) = enc.modify_counter(
@@ -165,7 +173,9 @@ pub fn check_counter_timer_triggers(
         // Check reset_on for timer triggers
         if matches_timer_trigger(&counter.reset_on, expired_timer_ids, started_timer_ids) {
             let Some(enc) = cache.current_encounter_mut() else {
-                tracing::error!("BUG: encounter missing in check_counter_timer_triggers (reset_on)");
+                tracing::error!(
+                    "BUG: encounter missing in check_counter_timer_triggers (reset_on)"
+                );
                 continue;
             };
             let old_value = enc.get_counter(&counter.id);
@@ -216,7 +226,9 @@ pub fn check_counter_trigger(
         Trigger::CombatEnd => current_signals
             .iter()
             .any(|s| matches!(s, GameSignal::CombatEnded { .. })),
-        Trigger::AbilityCast { abilities, source, .. } => {
+        Trigger::AbilityCast {
+            abilities, source, ..
+        } => {
             if event.effect.effect_id != effect_id::ABILITYACTIVATE {
                 return false;
             }
@@ -410,11 +422,8 @@ pub fn check_counter_trigger(
                     // Use roster-based matching for localization support
                     if !source.is_any() {
                         let source_name_str = crate::context::resolve(*source_name);
-                        if !source.matches_source_target(
-                            entities,
-                            *source_npc_id,
-                            source_name_str,
-                        ) {
+                        if !source.matches_source_target(entities, *source_npc_id, source_name_str)
+                        {
                             return false;
                         }
                     }

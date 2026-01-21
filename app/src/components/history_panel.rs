@@ -10,7 +10,7 @@ use wasm_bindgen_futures::spawn_local as spawn;
 
 use crate::api;
 use crate::components::class_icons::{get_class_icon, get_role_icon};
-use crate::components::{use_toast, ToastSeverity};
+use crate::components::{ToastSeverity, use_toast};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data Types (mirrors backend)

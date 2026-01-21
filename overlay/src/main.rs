@@ -17,6 +17,8 @@ use std::time::{Duration, Instant};
 
 mod examples {
     use super::*;
+    use baras_core::OverlayHealthEntry;
+    use baras_core::context::BossHealthConfig;
     use baras_core::context::{
         ChallengeColumns, ChallengeLayout, ChallengeOverlayConfig, OverlayAppearanceConfig,
         TimerOverlayConfig,
@@ -27,8 +29,6 @@ mod examples {
         PlayerRole, RaidEffect, RaidFrame, RaidGridLayout, RaidOverlay, RaidOverlayConfig,
         TimerData, TimerEntry, TimerOverlay, colors,
     };
-    use baras_core::context::BossHealthConfig;
-    use baras_core::OverlayHealthEntry;
 
     pub fn run_metric_overlay() {
         let config = OverlayConfig {
@@ -42,7 +42,16 @@ mod examples {
         };
 
         let appearance = OverlayAppearanceConfig::default();
-        let mut metric = match MetricOverlay::new(config, "DPS Meter", appearance, 180, true, false, 1.0, true) {
+        let mut metric = match MetricOverlay::new(
+            config,
+            "DPS Meter",
+            appearance,
+            180,
+            true,
+            false,
+            1.0,
+            true,
+        ) {
             Ok(m) => m,
             Err(e) => {
                 tracing::error!(error = %e, "Failed to create metric overlay");
@@ -145,8 +154,16 @@ mod examples {
             ..Default::default()
         };
 
-        let mut metric = match MetricOverlay::new(config, "DPS Meter (8 Players)", appearance, 180, true, false, 1.0, true)
-        {
+        let mut metric = match MetricOverlay::new(
+            config,
+            "DPS Meter (8 Players)",
+            appearance,
+            180,
+            true,
+            false,
+            1.0,
+            true,
+        ) {
             Ok(m) => m,
             Err(e) => {
                 tracing::error!(error = %e, "Failed to create metric overlay");
@@ -237,8 +254,16 @@ mod examples {
             ..Default::default()
         };
 
-        let mut metric = match MetricOverlay::new(config, "DPS Meter (16 Players)", appearance, 180, true, false, 1.0, true)
-        {
+        let mut metric = match MetricOverlay::new(
+            config,
+            "DPS Meter (16 Players)",
+            appearance,
+            180,
+            true,
+            false,
+            1.0,
+            true,
+        ) {
             Ok(m) => m,
             Err(e) => {
                 tracing::error!(error = %e, "Failed to create metric overlay");
@@ -1269,21 +1294,23 @@ mod examples {
             target_monitor_id: None,
         };
 
-        let mut overlay_single = match BossHealthOverlay::new(config_single, boss_config.clone(), 180) {
-            Ok(o) => o,
-            Err(e) => {
-                tracing::error!(error = %e, "Failed to create single boss overlay");
-                return;
-            }
-        };
+        let mut overlay_single =
+            match BossHealthOverlay::new(config_single, boss_config.clone(), 180) {
+                Ok(o) => o,
+                Err(e) => {
+                    tracing::error!(error = %e, "Failed to create single boss overlay");
+                    return;
+                }
+            };
 
-        let mut overlay_triple = match BossHealthOverlay::new(config_triple, boss_config.clone(), 180) {
-            Ok(o) => o,
-            Err(e) => {
-                tracing::error!(error = %e, "Failed to create triple boss overlay");
-                return;
-            }
-        };
+        let mut overlay_triple =
+            match BossHealthOverlay::new(config_triple, boss_config.clone(), 180) {
+                Ok(o) => o,
+                Err(e) => {
+                    tracing::error!(error = %e, "Failed to create triple boss overlay");
+                    return;
+                }
+            };
 
         let mut overlay_multi = match BossHealthOverlay::new(config_multi, boss_config, 180) {
             Ok(o) => o,
@@ -1458,11 +1485,11 @@ mod examples {
 
         // Sample alert messages with colors
         let sample_alerts = [
-            ("Adds Incoming!", [255, 100, 100, 255]),      // Red
-            ("Tank Swap Now!", [100, 200, 255, 255]),      // Blue
-            ("Spread Out!", [255, 200, 100, 255]),         // Orange
-            ("Stack on Boss!", [100, 255, 100, 255]),      // Green
-            ("Interrupt!", [255, 100, 255, 255]),          // Purple
+            ("Adds Incoming!", [255, 100, 100, 255]), // Red
+            ("Tank Swap Now!", [100, 200, 255, 255]), // Blue
+            ("Spread Out!", [255, 200, 100, 255]),    // Orange
+            ("Stack on Boss!", [100, 255, 100, 255]), // Green
+            ("Interrupt!", [255, 100, 255, 255]),     // Purple
         ];
 
         let mut last_frame = Instant::now();
@@ -1493,11 +1520,8 @@ mod examples {
             if now.duration_since(last_alert) >= alert_interval {
                 let (text, color) = sample_alerts[alert_index % sample_alerts.len()];
 
-                let entry = AlertEntry::new(
-                    text.to_string(),
-                    color,
-                    alerts_config.default_duration,
-                );
+                let entry =
+                    AlertEntry::new(text.to_string(), color, alerts_config.default_duration);
                 overlay.add_alerts(vec![entry]);
 
                 alert_index += 1;

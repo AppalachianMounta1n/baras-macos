@@ -81,7 +81,9 @@ pub fn check_hp_phase_transitions(
     // Second pass: mutate if we found a match
     if let Some((old_phase, new_phase_id, boss_id, resets, counter_defs)) = match_data {
         let Some(enc) = cache.current_encounter_mut() else {
-            tracing::error!("BUG: encounter disappeared mid-function in check_hp_phase_transitions");
+            tracing::error!(
+                "BUG: encounter disappeared mid-function in check_hp_phase_transitions"
+            );
             return Vec::new();
         };
         enc.set_phase(&new_phase_id, timestamp);
@@ -156,7 +158,9 @@ pub fn check_ability_phase_transitions(
     // Second pass: mutate if we found a match
     if let Some((old_phase, new_phase_id, boss_id, resets, counter_defs)) = match_data {
         let Some(enc) = cache.current_encounter_mut() else {
-            tracing::error!("BUG: encounter disappeared mid-function in check_ability_phase_transitions");
+            tracing::error!(
+                "BUG: encounter disappeared mid-function in check_ability_phase_transitions"
+            );
             return Vec::new();
         };
         enc.set_phase(&new_phase_id, event.timestamp);
@@ -229,7 +233,9 @@ pub fn check_entity_phase_transitions(
     // Second pass: mutate if we found a match
     if let Some((old_phase, new_phase_id, boss_id, resets, counter_defs)) = match_data {
         let Some(enc) = cache.current_encounter_mut() else {
-            tracing::error!("BUG: encounter disappeared mid-function in check_entity_phase_transitions");
+            tracing::error!(
+                "BUG: encounter disappeared mid-function in check_entity_phase_transitions"
+            );
             return Vec::new();
         };
         enc.set_phase(&new_phase_id, timestamp);
@@ -270,11 +276,15 @@ pub fn check_time_phase_transitions(
     // Second pass: find matching phase using immutable borrow
     let match_data = {
         let Some(enc) = cache.current_encounter() else {
-            tracing::error!("BUG: encounter disappeared after update_combat_time in check_time_phase_transitions");
+            tracing::error!(
+                "BUG: encounter disappeared after update_combat_time in check_time_phase_transitions"
+            );
             return Vec::new();
         };
         let Some(def_idx) = enc.active_boss_idx() else {
-            tracing::error!("BUG: no active boss after update_combat_time in check_time_phase_transitions");
+            tracing::error!(
+                "BUG: no active boss after update_combat_time in check_time_phase_transitions"
+            );
             return Vec::new();
         };
 
@@ -317,7 +327,9 @@ pub fn check_time_phase_transitions(
     // Third pass: mutate if we found a match
     if let Some((old_phase, new_phase_id, boss_id, resets, counter_defs)) = match_data {
         let Some(enc) = cache.current_encounter_mut() else {
-            tracing::error!("BUG: encounter disappeared mid-function in check_time_phase_transitions");
+            tracing::error!(
+                "BUG: encounter disappeared mid-function in check_time_phase_transitions"
+            );
             return Vec::new();
         };
         enc.set_phase(&new_phase_id, timestamp);

@@ -89,7 +89,8 @@ impl RaidSlotRegistry {
             }
         } else {
             // Player not registered yet - store both class_id and discipline_id for later
-            self.pending_disciplines.insert(entity_id, (class_id, discipline_id));
+            self.pending_disciplines
+                .insert(entity_id, (class_id, discipline_id));
         }
     }
 

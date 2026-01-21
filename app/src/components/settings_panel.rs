@@ -8,7 +8,7 @@ use gloo_timers::future::TimeoutFuture;
 use std::collections::HashMap;
 
 use crate::api;
-use crate::components::{use_toast, ToastSeverity};
+use crate::components::{ToastSeverity, use_toast};
 use crate::types::{
     AlertsOverlayConfig, BossHealthConfig, ChallengeLayout, CooldownTrackerConfig,
     DotTrackerConfig, EffectsAConfig, EffectsBConfig, MAX_PROFILES, MetricType,
@@ -79,8 +79,10 @@ pub fn SettingsPanel(
                 config.overlay_settings.appearances = new_settings.appearances.clone();
                 config.overlay_settings.personal_overlay = new_settings.personal_overlay.clone();
                 config.overlay_settings.metric_opacity = new_settings.metric_opacity;
-                config.overlay_settings.metric_show_empty_bars = new_settings.metric_show_empty_bars;
-                config.overlay_settings.metric_stack_from_bottom = new_settings.metric_stack_from_bottom;
+                config.overlay_settings.metric_show_empty_bars =
+                    new_settings.metric_show_empty_bars;
+                config.overlay_settings.metric_stack_from_bottom =
+                    new_settings.metric_stack_from_bottom;
                 config.overlay_settings.metric_scaling_factor = new_settings.metric_scaling_factor;
                 config.overlay_settings.class_icons_enabled = new_settings.class_icons_enabled;
                 config.overlay_settings.personal_opacity = new_settings.personal_opacity;
@@ -101,7 +103,8 @@ pub fn SettingsPanel(
                 config.overlay_settings.effects_b = new_settings.effects_b.clone();
                 config.overlay_settings.effects_b_opacity = new_settings.effects_b_opacity;
                 config.overlay_settings.cooldown_tracker = new_settings.cooldown_tracker.clone();
-                config.overlay_settings.cooldown_tracker_opacity = new_settings.cooldown_tracker_opacity;
+                config.overlay_settings.cooldown_tracker_opacity =
+                    new_settings.cooldown_tracker_opacity;
                 config.overlay_settings.dot_tracker = new_settings.dot_tracker.clone();
                 config.overlay_settings.dot_tracker_opacity = new_settings.dot_tracker_opacity;
                 config.overlay_settings.positions = existing_positions;

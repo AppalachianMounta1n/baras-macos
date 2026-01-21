@@ -454,8 +454,14 @@ impl Overlay for MetricOverlay {
     }
 
     fn update_config(&mut self, config: OverlayConfigUpdate) {
-        if let OverlayConfigUpdate::Metric(appearance, alpha, show_empty, stack_bottom, scale, show_icons) =
-            config
+        if let OverlayConfigUpdate::Metric(
+            appearance,
+            alpha,
+            show_empty,
+            stack_bottom,
+            scale,
+            show_icons,
+        ) = config
         {
             self.set_appearance(appearance);
             self.set_background_alpha(alpha);
