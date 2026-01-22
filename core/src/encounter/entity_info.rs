@@ -13,6 +13,8 @@ pub struct PlayerInfo {
     pub is_dead: bool,
     pub death_time: Option<NaiveDateTime>,
     pub current_target_id: i64,
+    /// Last time this player was seen in an event (for filtering stale players)
+    pub last_seen_at: Option<NaiveDateTime>,
 }
 
 impl Default for PlayerInfo {
@@ -27,6 +29,7 @@ impl Default for PlayerInfo {
             is_dead: false,
             death_time: None,
             current_target_id: 0,
+            last_seen_at: None,
         }
     }
 }

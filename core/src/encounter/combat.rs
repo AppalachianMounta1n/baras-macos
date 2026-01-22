@@ -104,8 +104,10 @@ pub struct CombatEncounter {
     pub players: HashMap<i64, PlayerInfo>,
     /// NPCs in this encounter
     pub npcs: HashMap<i64, NpcInfo>,
-    /// Whether all players are dead
+    /// Whether all players are dead (sticky - once true, stays true)
     pub all_players_dead: bool,
+    /// Whether the local player died during this encounter (sticky)
+    pub local_player_died: bool,
 
     // ─── Effect Instances (for shield attribution) ──────────────────────────
     /// Active effects by target ID
@@ -151,6 +153,7 @@ impl CombatEncounter {
             players: HashMap::new(),
             npcs: HashMap::new(),
             all_players_dead: false,
+            local_player_died: false,
 
             // Effects
             effects: HashMap::new(),
@@ -512,8 +515,23 @@ impl CombatEncounter {
     }
 
     pub fn check_all_players_dead(&mut self) {
+        if self.all_players_dead {
+            return;
+        }
+        // Only consider players seen during actual combat (after enter_combat_time)
+        // This filters out players who were tracked pre-combat but left/switched characters
+        let dominated_players: Vec<_> = self
+            .players
+            .values()
+            .filter(|p| {
+                self.enter_combat_time.is_none_or(|combat_start| {
+                    p.last_seen_at.is_some_and(|seen| seen >= combat_start)
+                })
+            })
+            .collect();
+
         self.all_players_dead =
-            !self.players.is_empty() && self.players.values().all(|p| p.is_dead);
+            !dominated_players.is_empty() && dominated_players.iter().all(|p| p.is_dead);
     }
 
     pub fn track_event_entities(&mut self, event: &CombatEvent) {
@@ -545,9 +563,11 @@ impl CombatEncounter {
             EntityType::Player => {
                 self.players
                     .entry(entity.log_id)
+                    .and_modify(|p| p.last_seen_at = Some(timestamp))
                     .or_insert_with(|| PlayerInfo {
                         id: entity.log_id,
                         name: entity.name,
+                        last_seen_at: Some(timestamp),
                         ..Default::default()
                     });
             }

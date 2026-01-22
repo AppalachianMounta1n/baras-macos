@@ -1123,6 +1123,7 @@ impl CombatService {
                                         is_dead: false,
                                         death_time: None,
                                         current_target_id: 0,
+                                        last_seen_at: None,
                                     },
                                 );
                             }

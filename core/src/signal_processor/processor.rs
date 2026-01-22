@@ -130,6 +130,7 @@ impl EventProcessor {
             is_dead: false,
             death_time: None,
             current_target_id: 0,
+            last_seen_at: Some(event.timestamp),
         };
 
         // Upsert into session-level player discipline registry (source of truth)
@@ -201,6 +202,10 @@ impl EventProcessor {
         let mut signals = Vec::new();
 
         if event.effect.effect_id == effect_id::DEATH {
+            // Check if local player died (before getting mutable ref)
+            let is_local_player_death = cache.player_initialized
+                && event.target_entity.log_id == cache.player.id;
+
             if let Some(enc) = cache.current_encounter_mut() {
                 enc.set_entity_death(
                     event.target_entity.log_id,
@@ -208,6 +213,11 @@ impl EventProcessor {
                     event.timestamp,
                 );
                 enc.check_all_players_dead();
+
+                // Mark local player death (sticky flag for wipe detection)
+                if is_local_player_death {
+                    enc.local_player_died = true;
+                }
             }
 
             signals.push(GameSignal::EntityDeath {
@@ -219,8 +229,15 @@ impl EventProcessor {
             });
         } else if event.effect.effect_id == effect_id::REVIVED {
             if let Some(enc) = cache.current_encounter_mut() {
-                enc.set_entity_alive(event.source_entity.log_id, &event.source_entity.entity_type);
-                enc.check_all_players_dead();
+                // Don't process revives after a wipe has been detected
+                // This prevents post-wipe UI revives from resetting is_dead flags
+                if !enc.all_players_dead && !enc.local_player_died {
+                    enc.set_entity_alive(
+                        event.source_entity.log_id,
+                        &event.source_entity.entity_type,
+                    );
+                    enc.check_all_players_dead();
+                }
             }
             signals.push(GameSignal::EntityRevived {
                 entity_id: event.source_entity.log_id,

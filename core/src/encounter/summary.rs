@@ -12,6 +12,7 @@ use super::entity_info::PlayerInfo;
 use super::metrics::PlayerMetrics;
 use crate::combat_log::EntityType;
 use crate::context::resolve;
+use crate::debug_log;
 use crate::game_data::{BossInfo, ContentType, Difficulty, is_pvp_area, lookup_boss};
 use crate::state::info::AreaInfo;
 
@@ -163,9 +164,10 @@ pub fn classify_encounter(
     (phase, boss_info)
 }
 
-/// Determine if an encounter was successful (clean exit, not a wipe)
+/// Determine if an encounter was successful (not a wipe)
+/// Returns false (wipe) if either all players died OR the local player died
 pub fn determine_success(encounter: &CombatEncounter) -> bool {
-    !encounter.all_players_dead && encounter.exit_combat_time.is_some()
+    !encounter.all_players_dead && !encounter.local_player_died
 }
 
 /// Create an EncounterSummary from a completed CombatEncounter
@@ -180,6 +182,26 @@ pub fn create_encounter_summary(
     if encounter.enter_combat_time.is_none() {
         return None;
     }
+
+    // DEBUG: Log wipe detection state with player details
+    let combat_start = encounter.enter_combat_time;
+    let player_states: Vec<String> = encounter
+        .players
+        .values()
+        .map(|p| {
+            let in_combat = combat_start.is_none_or(|start| {
+                p.last_seen_at.is_some_and(|seen| seen >= start)
+            });
+            format!("{}:dead={},in_combat={}", resolve(p.name), p.is_dead, in_combat)
+        })
+        .collect();
+    debug_log!(
+        "create_encounter_summary: all_dead={}, local_died={}, players={}, states=[{}]",
+        encounter.all_players_dead,
+        encounter.local_player_died,
+        encounter.players.len(),
+        player_states.join(", ")
+    );
 
     // Check if this is a new phase (area change)
     let is_phase_start = history.check_area_change(&area.area_name);
@@ -199,12 +221,24 @@ pub fn create_encounter_summary(
 
     let display_name = history.generate_name(encounter_type, boss_name.as_deref());
 
-    // Calculate metrics and filter to players only
+    // Calculate metrics and filter to players seen during actual combat
+    let combat_start = encounter.enter_combat_time;
     let player_metrics: Vec<PlayerMetrics> = encounter
         .calculate_entity_metrics(player_disciplines)
         .unwrap_or_default()
         .into_iter()
-        .filter(|m| m.entity_type != EntityType::Npc)
+        .filter(|m| {
+            // Filter out NPCs
+            if m.entity_type == EntityType::Npc {
+                return false;
+            }
+            // Filter out players not seen during combat (e.g., character switches)
+            encounter.players.get(&m.entity_id).is_some_and(|p| {
+                combat_start.is_none_or(|start| {
+                    p.last_seen_at.is_some_and(|seen| seen >= start)
+                })
+            })
+        })
         .map(|m| m.to_player_metrics())
         .collect();
 
