@@ -1049,6 +1049,11 @@ impl CombatService {
             debug!(definitions_path = ?def_dir, "Using definitions directory");
         }
 
+        // Pass log path so subprocess writes to same log file
+        if let Some(log_path) = dirs::config_dir().map(|p| p.join("baras").join("baras.log")) {
+            cmd.env("BARAS_LOG_PATH", &log_path);
+        }
+
         let output = cmd.output();
 
         match output {

@@ -35,7 +35,7 @@ use rayon::prelude::*;
 use serde::Serialize;
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use tracing_subscriber::filter::EnvFilter;
 
 /// Player session info for main process.
@@ -268,7 +268,8 @@ impl FastEncounterWriter {
         // Encounter metadata - computed inline, no intermediate struct
         let enc = cache.current_encounter();
         let boss_def = enc.and_then(|e| e.active_boss_definition());
-        let current_phase = enc.and_then(|e| e.current_phase.clone());
+        // Borrow phase reference to avoid cloning on every event
+        let current_phase = enc.and_then(|e| e.current_phase.as_deref());
 
         let combat_time = enc.and_then(|e| {
             e.enter_combat_time.map(|start| {
@@ -279,16 +280,15 @@ impl FastEncounterWriter {
 
         self.encounter_idx.append_value(encounter_idx);
         self.combat_time_secs.append_option(combat_time);
-        self.phase_id.append_option(current_phase.as_deref());
-        self.phase_name
-            .append_option(current_phase.as_ref().and_then(|phase_id| {
-                boss_def.and_then(|def| {
-                    def.phases
-                        .iter()
-                        .find(|p| &p.id == phase_id)
-                        .map(|p| p.name.as_str())
-                })
-            }));
+        self.phase_id.append_option(current_phase);
+        self.phase_name.append_option(current_phase.and_then(|phase_id| {
+            boss_def.and_then(|def| {
+                def.phases
+                    .iter()
+                    .find(|p| p.id == phase_id)
+                    .map(|p| p.name.as_str())
+            })
+        }));
         self.area_name.append_value(&cache.current_area.area_name);
         self.boss_name
             .append_option(boss_def.map(|d| d.name.as_str()));
@@ -339,7 +339,7 @@ impl FastEncounterWriter {
             return None;
         }
 
-        let schema = Self::schema();
+        let schema = ENCOUNTER_SCHEMA.clone();
 
         // Build the active_shields List<Struct> array
         let active_shields_array = {
@@ -453,7 +453,7 @@ impl FastEncounterWriter {
         Ok(())
     }
 
-    fn schema() -> Arc<Schema> {
+    fn build_schema() -> Arc<Schema> {
         Arc::new(Schema::new(vec![
             Field::new(
                 "timestamp",
@@ -517,7 +517,7 @@ impl FastEncounterWriter {
     }
 }
 
-fn entity_type_str(entity_type: &EntityType) -> &'static str {
+const fn entity_type_str(entity_type: &EntityType) -> &'static str {
     match entity_type {
         EntityType::Player => "Player",
         EntityType::Npc => "Npc",
@@ -527,17 +527,43 @@ fn entity_type_str(entity_type: &EntityType) -> &'static str {
     }
 }
 
-fn main() {
-    // Initialize tracing subscriber (parse-worker is separate process, needs its own)
+/// Static schema to avoid recreation on every batch write.
+static ENCOUNTER_SCHEMA: LazyLock<Arc<Schema>> = LazyLock::new(FastEncounterWriter::build_schema);
+
+/// Initialize logging, writing to BARAS_LOG_PATH if set, otherwise stderr.
+fn init_logging() {
     let filter = EnvFilter::builder()
         .with_default_directive(tracing::Level::INFO.into())
         .from_env_lossy();
 
+    // If BARAS_LOG_PATH is set, append to that file (shared with main app)
+    if let Ok(path) = std::env::var("BARAS_LOG_PATH") {
+        if let Ok(file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&path)
+        {
+            tracing_subscriber::fmt()
+                .with_env_filter(filter)
+                .with_target(true)
+                .with_ansi(false)
+                .with_writer(file)
+                .init();
+            return;
+        }
+    }
+
+    // Fallback to stderr
     tracing_subscriber::fmt()
         .with_env_filter(filter)
         .with_target(true)
         .with_writer(std::io::stderr)
         .init();
+}
+
+fn main() {
+    // Initialize tracing subscriber (parse-worker is separate process, needs its own)
+    init_logging();
 
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 4 {
@@ -609,7 +635,7 @@ fn main() {
 
     let timer = std::time::Instant::now();
 
-    match parse_file(&file_path, session_id, &output_dir, &boss_definitions) {
+    match parse_file(&file_path, session_id, &output_dir, boss_definitions) {
         Ok(output) => {
             let mut output = output;
             output.elapsed_ms = timer.elapsed().as_millis();
@@ -630,7 +656,7 @@ fn parse_file(
     file_path: &Path,
     _session_id: &str,
     output_dir: &Path,
-    boss_definitions: &[BossEncounterDefinition],
+    boss_definitions: Vec<BossEncounterDefinition>,
 ) -> Result<ParseOutput, String> {
     // Extract session date from filename
     let date_stamp = file_path
@@ -691,7 +717,7 @@ fn parse_file(
 fn process_and_write_encounters(
     events: Vec<CombatEvent>,
     output_dir: &Path,
-    boss_definitions: &[BossEncounterDefinition],
+    boss_definitions: Vec<BossEncounterDefinition>,
 ) -> Result<
     (
         Vec<EncounterSummary>,
@@ -718,9 +744,7 @@ fn process_and_write_encounters(
     let mut pending_write = false;
     let output_dir = output_dir.to_path_buf();
 
-    if !boss_definitions.is_empty() {
-        cache.load_boss_definitions(boss_definitions.to_vec());
-    }
+    cache.load_boss_definitions(boss_definitions);
 
     for event in events {
         let (signals, event) = processor.process_event(event, &mut cache);
