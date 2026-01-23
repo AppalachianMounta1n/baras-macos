@@ -78,6 +78,137 @@ ids = [3273954785492992]
 is_boss = true
 is_kill_target = true
 
+[[boss.timer]]
+id = "tyrans_simplification"
+name = "Simplification"
+duration_secs = 43.0
+color = [99, 99, 99, 255]
+difficulties = ["story", "veteran", "master"]
+enabled = true
+can_be_refreshed = true
+
+[boss.timer.trigger]
+type = "ability_cast"
+abilities = [3349606339444736]
+source = "boss"
+target = "any"
+
+[boss.timer.audio]
+enabled = false
+offset = 0
+countdown_start = 0
+
+[[boss.timer]]
+id = "tyrans_1st_simplification"
+name = "1st Simplification"
+display_text = "Simplification"
+duration_secs = 15.0
+color = [99, 99, 99, 255]
+difficulties = ["story", "veteran", "master"]
+enabled = true
+
+[boss.timer.trigger]
+type = "combat_start"
+
+[boss.timer.audio]
+enabled = false
+offset = 0
+countdown_start = 0
+
+[[boss.timer]]
+id = "tyrans_1st_inferno"
+name = "1st Inferno"
+duration_secs = 34.0
+color = [255, 0, 0, 255]
+difficulties = ["story", "veteran", "master"]
+enabled = true
+
+[boss.timer.trigger]
+type = "combat_start"
+
+[boss.timer.audio]
+enabled = false
+offset = 0
+countdown_start = 0
+
+[[boss.timer]]
+id = "tyrans_inferno"
+name = "Inferno"
+duration_secs = 43.0
+color = [255, 0, 0, 255]
+difficulties = ["story", "veteran", "master"]
+enabled = true
+
+[boss.timer.trigger]
+type = "ability_cast"
+abilities = [3298934315286528]
+source = "boss"
+target = "any"
+
+[boss.timer.audio]
+enabled = false
+offset = 0
+countdown_start = 0
+
+[[boss.timer]]
+id = "tyrans_1st_thundering_blast"
+name = "1st Thundering Blast"
+display_text = "Thundering Blast"
+duration_secs = 18.0
+color = [122, 0, 204, 255]
+difficulties = ["story", "veteran", "master"]
+enabled = true
+
+[boss.timer.trigger]
+type = "combat_start"
+
+[boss.timer.audio]
+enabled = false
+offset = 0
+countdown_start = 0
+
+[[boss.timer]]
+id = "tyrans_thundering_blast"
+name = "Thundering Blast"
+duration_secs = 8.0
+color = [123, 0, 189, 255]
+difficulties = ["story", "veteran", "master"]
+enabled = true
+can_be_refreshed = true
+
+[boss.timer.trigger]
+type = "ability_cast"
+abilities = [3279619847356416]
+source = "boss"
+target = "any"
+
+[boss.timer.audio]
+enabled = false
+offset = 0
+countdown_start = 0
+
+[[boss.timer]]
+id = "tyrans_simp_alert"
+name = "Simp alert"
+duration_secs = 0
+is_alert = true
+alert_text = "You have simplification"
+color = [255, 174, 0, 255]
+difficulties = ["story", "veteran", "master"]
+enabled = true
+
+[boss.timer.trigger]
+type = "effect_applied"
+effects = [3349606339444736]
+source = "local_player"
+target = "local_player"
+
+[boss.timer.audio]
+enabled = false
+offset = 0
+countdown_start = 0
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Boss 3: Dread Master Calphayus
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -94,10 +225,83 @@ is_boss = true
 is_kill_target = true
 
 [[boss.entities]]
-name = "Dread Master Calphayus (Vision)"
-ids = [3284949901770752, 3284954196738048]
+name = "Dread Master Calphayus (Past)"
+ids = [3284949901770752]
 is_boss = true
 is_kill_target = false
+
+[[boss.entities]]
+name = "Dread Master Calphayus (Future)"
+ids = [3284954196738048]
+is_boss = true
+triggers_encounter = false
+is_kill_target = false
+
+[[boss.entities]]
+name = "Future Calphy"
+ids = [3284954196738048]
+is_boss = true
+triggers_encounter = false
+is_kill_target = false
+
+[[boss.phases]]
+id = "calphayus_present"
+name = "Present"
+resets_counters = []
+
+[boss.phases.start_trigger]
+type = "any_of"
+
+[[boss.phases.start_trigger.conditions]]
+type = "combat_start"
+
+[[boss.phases.start_trigger.conditions]]
+type = "effect_removed"
+effects = [3292324360617984]
+source = "any"
+target = "any"
+
+[[boss.phases.start_trigger.conditions]]
+type = "boss_hp_below"
+hp_percent = 18.0
+selector = ["Dread Master Calphayus (Future)"]
+
+[[boss.phases]]
+id = "calphayus_portals"
+name = "Portals"
+resets_counters = []
+
+[boss.phases.start_trigger]
+type = "ability_cast"
+abilities = [3288699408220160]
+source = "any"
+target = "any"
+
+[[boss.phases]]
+id = "calphayus_holocrons_burns"
+name = "Holocrons+Burns"
+resets_counters = []
+
+[boss.phases.start_trigger]
+type = "ability_cast"
+abilities = [3305260802113536]
+source = "boss"
+target = "boss"
+
+[[boss.counters]]
+id = "calphayus_future_pushed"
+name = "future pushed"
+initial_value = 0
+decrement = false
+
+[boss.counters.increment_on]
+type = "boss_hp_below"
+hp_percent = 25.0
+selector = ["Future Calphy"]
+
+[boss.counters.reset_on]
+type = "combat_end"
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Boss 4: Dread Master Raptus
@@ -113,6 +317,76 @@ name = "Dread Master Raptus"
 ids = [3303555700097024, 3273950490525696, 3303559995064320, 3302902865068032]
 is_boss = true
 is_kill_target = true
+
+[[boss.phases]]
+id = "raptus_raptus"
+name = "Raptus"
+resets_counters = []
+
+[boss.phases.start_trigger]
+type = "any_of"
+
+[[boss.phases.start_trigger.conditions]]
+type = "combat_start"
+
+[[boss.phases.start_trigger.conditions]]
+type = "effect_removed"
+effects = [3301008784490496]
+source = "boss"
+target = "boss"
+
+[[boss.phases]]
+id = "raptus_challenges"
+name = "Challenges"
+resets_counters = []
+
+[boss.phases.start_trigger]
+type = "effect_applied"
+effects = [3301008784490496]
+source = "boss"
+target = "boss"
+
+[boss.phases.counter_condition]
+counter_id = "raptus_spinning"
+operator = "lte"
+value = 2
+
+[[boss.counters]]
+id = "raptus_spinning"
+name = "spinning"
+initial_value = 0
+decrement = false
+
+[boss.counters.increment_on]
+type = "effect_applied"
+effects = [3301008784490496]
+source = "boss"
+target = "boss"
+
+[boss.counters.reset_on]
+type = "combat_end"
+
+[[boss.timer]]
+id = "raptus_void_alert"
+name = "Void alert"
+duration_secs = 30.0
+is_alert = true
+alert_text = "Get out of group"
+color = [0, 153, 150, 255]
+difficulties = ["veteran", "master"]
+enabled = true
+
+[boss.timer.trigger]
+type = "effect_applied"
+effects = [3300673777041408]
+source = "boss"
+target = "local_player"
+
+[boss.timer.audio]
+enabled = false
+offset = 0
+countdown_start = 0
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Boss 5: The Dread Council
@@ -147,3 +421,220 @@ name = "Dread Master Raptus"
 ids = [3273993440198656]
 is_boss = true
 is_kill_target = true
+
+[[boss.entities]]
+name = "Dread Master Brontes"
+ids = [3274019210002432]
+is_boss = true
+is_kill_target = false
+
+[[boss.entities]]
+name = "Dread Master Styrak"
+ids = [3303830578003968]
+is_boss = true
+is_kill_target = false
+
+[[boss.challenge]]
+id = "dread_council_burn_dps"
+name = "Burn DPS"
+metric = "damage"
+
+[[boss.challenge.conditions]]
+type = "phase"
+phase_ids = ["dread_council_burn"]
+
+
+[[boss.counters]]
+id = "dread_council_styrak_brontes"
+name = "styrak+brontes"
+initial_value = 0
+decrement = false
+
+[boss.counters.increment_on]
+type = "entity_death"
+selector = [3274019210002432, 3303830578003968]
+
+[boss.counters.reset_on]
+type = "combat_end"
+
+
+[[boss.phases]]
+id = "dread_council_p2_brontes_styrak"
+name = "P2 - Brontes & Styrak"
+display_text = "Brontes & Styrak"
+resets_counters = []
+
+[boss.phases.start_trigger]
+type = "any_of"
+
+[[boss.phases.start_trigger.conditions]]
+type = "boss_hp_below"
+hp_percent = 99.9
+selector = ["Dread Master Brontes"]
+
+[[boss.phases.start_trigger.conditions]]
+type = "boss_hp_below"
+hp_percent = 99.9
+selector = ["Dread Master Styrak"]
+
+[[boss.phases]]
+id = "dread_council_p1"
+name = "P1 Council"
+resets_counters = []
+
+[boss.phases.start_trigger]
+type = "combat_start"
+
+[[boss.phases]]
+id = "dread_council_p3_council"
+name = "P3 - Council Returns"
+resets_counters = []
+
+[boss.phases.start_trigger]
+type = "any_of"
+
+[[boss.phases.start_trigger.conditions]]
+type = "counter_reaches"
+counter_id = "dread_council_styrak_brontes"
+value = 2
+
+[[boss.phases.start_trigger.conditions]]
+type = "timer_expires"
+timer_id = "dread_council_bosses_coming_down"
+
+[[boss.phases]]
+id = "dread_council_burn"
+name = "Burn"
+resets_counters = []
+
+[boss.phases.start_trigger]
+type = "any_of"
+
+[[boss.phases.start_trigger.conditions]]
+type = "boss_hp_below"
+hp_percent = 15.0
+selector = ["Dread Master Bestia"]
+
+[[boss.phases.start_trigger.conditions]]
+type = "boss_hp_below"
+hp_percent = 15.0
+selector = ["Dread Master Raptus"]
+
+[[boss.phases.start_trigger.conditions]]
+type = "boss_hp_below"
+hp_percent = 15.0
+selector = ["Dread Master Tyrans"]
+
+[[boss.phases.start_trigger.conditions]]
+type = "boss_hp_below"
+hp_percent = 30.0
+selector = ["Dread Master Calphayus"]
+
+[[boss.timer]]
+id = "dread_council_1st_deathmark"
+name = "1st Deathmark"
+display_text = "Deathmark"
+duration_secs = 29.0
+color = [158, 0, 0, 255]
+difficulties = ["veteran", "master", "story"]
+enabled = true
+
+[boss.timer.trigger]
+type = "combat_start"
+
+[boss.timer.audio]
+enabled = false
+offset = 0
+countdown_start = 0
+
+[[boss.timer]]
+id = "dread_council_deathmarks"
+name = "Deathmark"
+duration_secs = 63.0
+color = [143, 0, 0, 255]
+phases = ["dread_council_p1"]
+difficulties = ["veteran", "story", "master"]
+enabled = true
+can_be_refreshed = true
+
+[boss.timer.trigger]
+type = "effect_applied"
+effects = [
+  3301957972263242,
+  3301957972263254,
+  3301957972263246,
+  3301957972263250,
+]
+target = "any"
+
+[boss.timer.trigger.source]
+selector = ["Dread Master Tyrans"]
+
+[boss.timer.cancel_trigger]
+type = "phase_ended"
+phase_id = "dread_council_p1"
+
+[boss.timer.audio]
+enabled = false
+offset = 0
+countdown_start = 0
+
+[[boss.timer]]
+id = "dread_council_1st_p3_deathmark"
+name = "1st P3 Deathmark"
+display_text = "Deathmark"
+duration_secs = 34.0
+color = [148, 0, 0, 255]
+difficulties = ["story", "veteran", "master"]
+enabled = true
+
+[boss.timer.trigger]
+type = "phase_entered"
+phase_id = "dread_council_p3_council"
+
+[boss.timer.cancel_trigger]
+type = "phase_ended"
+phase_id = ""
+
+[boss.timer.audio]
+enabled = false
+offset = 0
+countdown_start = 0
+
+[[boss.timer]]
+id = "dread_council_crystal_projection"
+name = "Crystal Projection"
+display_text = "Crystal Projection"
+duration_secs = 10.0
+color = [170, 66, 255, 255]
+difficulties = ["story", "veteran", "master"]
+enabled = true
+
+[boss.timer.trigger]
+type = "ability_cast"
+abilities = [3317217991065600]
+source = "boss"
+target = "any"
+
+[boss.timer.audio]
+enabled = false
+offset = 0
+countdown_start = 0
+
+[[boss.timer]]
+id = "dread_council_bosses_coming_down"
+name = "Bosses coming down"
+duration_secs = 150.0
+color = [255, 128, 0, 255]
+difficulties = ["story", "veteran", "master"]
+enabled = true
+show_at_secs = 15.0
+
+[boss.timer.trigger]
+type = "phase_entered"
+phase_id = "dread_council_p2_brontes_styrak"
+
+[boss.timer.audio]
+enabled = false
+offset = 0
+countdown_start = 0
