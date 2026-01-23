@@ -238,7 +238,7 @@ pub fn save_bosses_to_file(bosses: &[BossEncounterDefinition], path: &Path) -> R
         bosses: bosses.to_vec(),
     };
 
-    let content = toml::to_string_pretty(&config)
+    let content = toml::to_string(&config)
         .map_err(|e| format!("Failed to serialize boss config: {}", e))?;
 
     // Ensure parent directory exists
