@@ -3,7 +3,7 @@ name = "Colossal Monolith"
 id = 3541801830973440
 
 
-[[bosss]]
+[[boss]]
 id = "monolith"
 name = "Colossal Monolith"
 difficulties = ["story", "veteran"]
