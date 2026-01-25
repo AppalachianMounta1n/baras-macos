@@ -144,8 +144,8 @@ impl EncounterQuery<'_> {
                 COALESCE(defense_type_id, 0) as defense_type_id,
                 effect_id,
                 effect_type_id,
-                source_id,
-                target_id
+                source_class_id,
+                target_class_id
             FROM events
             WHERE {where_clause}
             ORDER BY combat_time_secs
@@ -177,8 +177,8 @@ impl EncounterQuery<'_> {
 
             let effect_ids = col_i64(batch, 17)?;
             let effect_type_ids = col_i64(batch, 18)?;
-            let source_ids = col_i64(batch, 19)?;
-            let target_ids = col_i64(batch, 20)?;
+            let source_class_ids = col_i64(batch, 19)?;
+            let target_class_ids = col_i64(batch, 20)?;
 
             for i in 0..num_rows {
                 results.push(CombatLogRow {
@@ -201,8 +201,8 @@ impl EncounterQuery<'_> {
                     defense_type_id: defense_type_ids[i],
                     effect_id: effect_ids[i],
                     effect_type_id: effect_type_ids[i],
-                    source_id: source_ids[i],
-                    target_id: target_ids[i],
+                    source_class_id: source_class_ids[i],
+                    target_class_id: target_class_ids[i],
                 });
             }
         }

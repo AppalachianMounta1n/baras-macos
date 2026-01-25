@@ -830,8 +830,8 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
                                 div { class: "log-cell log-time", style: "width: {col_time}px; min-width: {col_time}px;", "{format_time(row.time_secs)}" }
                                 div { class: "log-cell log-source", style: "width: {col_source}px; min-width: {col_source}px;",
                                     "{row.source_name}"
-                                    if show_ids_val && row.source_id != 0 {
-                                        span { class: "log-id-suffix", " [{row.source_id}]" }
+                                    if show_ids_val && row.source_class_id != 0 {
+                                        span { class: "log-id-suffix", " [{row.source_class_id}]" }
                                     }
                                 }
                                 div { class: "log-cell log-type {event_type_class(&row)}", style: "width: {col_type}px; min-width: {col_type}px;",
@@ -839,8 +839,8 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
                                 }
                                 div { class: "log-cell log-target", style: "width: {col_target}px; min-width: {col_target}px;",
                                     "{row.target_name}"
-                                    if show_ids_val && row.target_id != 0 {
-                                        span { class: "log-id-suffix", " [{row.target_id}]" }
+                                    if show_ids_val && row.target_class_id != 0 {
+                                        span { class: "log-id-suffix", " [{row.target_class_id}]" }
                                     }
                                 }
                                 div { class: "log-cell log-ability", style: "width: {col_ability}px; min-width: {col_ability}px;",

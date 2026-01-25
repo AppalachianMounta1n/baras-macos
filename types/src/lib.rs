@@ -245,10 +245,10 @@ pub struct CombatLogRow {
     pub effect_id: i64,
     /// Effect type ID for event type filtering
     pub effect_type_id: i64,
-    /// Source entity log_id for Show IDs feature
-    pub source_id: i64,
-    /// Target entity log_id for Show IDs feature
-    pub target_id: i64,
+    /// Source entity class_id for Show IDs feature (consistent across encounters)
+    pub source_class_id: i64,
+    /// Target entity class_id for Show IDs feature (consistent across encounters)
+    pub target_class_id: i64,
 }
 
 /// Filter options for combat log event types.
