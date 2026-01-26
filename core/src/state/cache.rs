@@ -220,7 +220,9 @@ impl SessionCache {
     }
 
     /// Try to detect which boss encounter is active based on an NPC class ID.
-    /// Delegates to the current encounter.
+    /// Only matches entities with `triggers_encounter=true` (defaults to `is_boss`).
+    /// This allows non-boss NPCs to trigger encounter detection for areas where
+    /// groups may wipe before reaching the actual boss.
     pub fn detect_boss_encounter(&mut self, npc_class_id: i64) -> Option<usize> {
         let enc = self.current_encounter_mut()?;
 
@@ -229,9 +231,9 @@ impl SessionCache {
             return enc.active_boss_idx();
         }
 
-        // Search definitions for matching NPC ID
+        // Search definitions for matching trigger entity
         for (idx, def) in enc.boss_definitions().iter().enumerate() {
-            if def.matches_npc_id(npc_class_id) {
+            if def.encounter_trigger_ids().any(|id| id == npc_class_id) {
                 enc.set_active_boss_idx(Some(idx));
                 return Some(idx);
             }

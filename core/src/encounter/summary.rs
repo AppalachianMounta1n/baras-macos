@@ -120,6 +120,18 @@ impl EncounterHistory {
             }
         }
     }
+
+    /// Peek the current pull count for a boss without incrementing.
+    /// Returns what the pull number would be for an in-progress encounter.
+    /// Used for live overlay display before the encounter is finalized.
+    pub fn peek_pull_count(&self, boss_name: &str) -> u32 {
+        self.boss_pull_counts.get(boss_name).copied().unwrap_or(0) + 1
+    }
+
+    /// Peek the current trash pull count without incrementing.
+    pub fn peek_trash_count(&self) -> u32 {
+        self.trash_pull_count + 1
+    }
 }
 
 /// Classify an encounter's phase type and find the primary boss (if any)
@@ -217,15 +229,19 @@ pub fn create_encounter_summary(
     // Classify using area info
     let (encounter_type, boss_info) = classify_encounter(encounter, area);
 
-    // Get boss name: prefer definition name, fall back to static data
-    let boss_name = if encounter.npcs.values().any(|v| v.is_boss) {
-        encounter
-            .active_boss_definition()
-            .map(|def| def.name.clone())
-            .or_else(|| boss_info.map(|b| b.boss.to_string()))
-    } else {
-        None
-    };
+    // Get boss name: prefer active definition, fall back to detected boss NPC
+    // This allows non-boss trigger entities to classify the encounter
+    let boss_name = encounter
+        .active_boss_definition()
+        .map(|def| def.name.clone())
+        .or_else(|| {
+            // Only fall back to hardcoded data if a boss NPC was actually seen
+            if encounter.npcs.values().any(|v| v.is_boss) {
+                boss_info.map(|b| b.boss.to_string())
+            } else {
+                None
+            }
+        });
 
     let display_name = history.generate_name(encounter_type, boss_name.as_deref());
 

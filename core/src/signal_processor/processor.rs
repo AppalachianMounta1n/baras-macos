@@ -339,29 +339,47 @@ impl EventProcessor {
         event: &CombatEvent,
         cache: &mut SessionCache,
     ) -> Vec<GameSignal> {
-        // Already tracking a boss encounter
-        let Some(enc) = cache.current_encounter() else {
-            return Vec::new();
+        // Gather state from immutable borrow first
+        let (has_active_boss, in_combat, has_definitions, registered_npcs) = {
+            let Some(enc) = cache.current_encounter() else {
+                return Vec::new();
+            };
+            (
+                enc.active_boss_idx().is_some(),
+                enc.state == EncounterState::InCombat,
+                !enc.boss_definitions().is_empty(),
+                // Collect registered NPC log_ids for the check below
+                enc.npcs.keys().copied().collect::<Vec<_>>(),
+            )
         };
-        if enc.active_boss_idx().is_some() {
+
+        // Already tracking a boss encounter
+        if has_active_boss {
             return Vec::new();
         }
 
         // Only detect bosses when actually in combat
-        if enc.state != EncounterState::InCombat {
+        if !in_combat {
             return Vec::new();
         }
 
         // No boss definitions loaded for this area
-        if enc.boss_definitions().is_empty() {
+        if !has_definitions {
             return Vec::new();
         }
 
         // Check source and target entities for boss NPC match
+        // Only consider NPCs that are actually registered in the encounter (engaged in combat),
+        // not just appearing in events (e.g., from targeting without engagement)
         let entities_to_check = [&event.source_entity, &event.target_entity];
 
         for entity in entities_to_check {
             if entity.entity_type != EntityType::Npc || entity.class_id == 0 {
+                continue;
+            }
+
+            // Skip NPCs not registered in the encounter (not actually engaged)
+            if !registered_npcs.contains(&entity.log_id) {
                 continue;
             }
 

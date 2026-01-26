@@ -1518,12 +1518,20 @@ async fn calculate_combat_data(shared: &Arc<SharedState>) -> Option<CombatData> 
         // Classify the encounter to get phase type and boss info
         let (encounter_type, boss_info) = classify_encounter(encounter, &cache.current_area);
 
-        // Generate encounter name - if there's a boss use that, otherwise use phase type
-        let encounter_name = if let Some(boss) = boss_info {
-            Some(boss.boss.to_string())
+        // Generate encounter name with pull count
+        // Priority: definition name > hardcoded boss name > phase type
+        let encounter_name = if let Some(def) = encounter.active_boss_definition() {
+            // Definition is active - use definition name with pull count
+            let pull_count = cache.encounter_history.peek_pull_count(&def.name);
+            Some(format!("{} - {}", def.name, pull_count))
+        } else if let Some(boss) = boss_info {
+            // Hardcoded boss detected (no definition) - use boss name with pull count
+            let pull_count = cache.encounter_history.peek_pull_count(boss.boss);
+            Some(format!("{} - {}", boss.boss, pull_count))
         } else {
-            // Use phase type for trash/non-boss encounters
-            Some(format!("{:?}", encounter_type))
+            // Trash encounter - use phase type with trash count
+            let trash_count = cache.encounter_history.peek_trash_count();
+            Some(format!("{:?} {}", encounter_type, trash_count))
         };
 
         // Get difficulty from area info, fallback to phase type name for non-instanced content
