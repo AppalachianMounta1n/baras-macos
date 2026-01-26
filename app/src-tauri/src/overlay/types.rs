@@ -130,8 +130,10 @@ pub enum OverlayType {
     Raid,
     /// The boss health bar overlay
     BossHealth,
-    /// Timer countdown bars
-    Timers,
+    /// Timer A countdown bars (default)
+    TimersA,
+    /// Timer B countdown bars
+    TimersB,
     /// Challenge metrics overlay
     Challenges,
     /// Alert text notifications
@@ -154,7 +156,8 @@ impl OverlayType {
             OverlayType::Personal => "personal",
             OverlayType::Raid => "raid",
             OverlayType::BossHealth => "boss_health",
-            OverlayType::Timers => "timers",
+            OverlayType::TimersA => "timers_a",
+            OverlayType::TimersB => "timers_b",
             OverlayType::Challenges => "challenges",
             OverlayType::Alerts => "alerts",
             OverlayType::EffectsA => "effects_a",
@@ -171,7 +174,8 @@ impl OverlayType {
             OverlayType::Personal => "baras-personal".to_string(),
             OverlayType::Raid => "baras-raid".to_string(),
             OverlayType::BossHealth => "baras-boss-health".to_string(),
-            OverlayType::Timers => "baras-timers".to_string(),
+            OverlayType::TimersA => "baras-timers".to_string(), // Keep "baras-timers" for backward compat
+            OverlayType::TimersB => "baras-timers-b".to_string(),
             OverlayType::Challenges => "baras-challenges".to_string(),
             OverlayType::Alerts => "baras-alerts".to_string(),
             OverlayType::EffectsA => "baras-effects-a".to_string(),
@@ -188,7 +192,8 @@ impl OverlayType {
             OverlayType::Personal => (350, 510),
             OverlayType::Raid => (650, 50),
             OverlayType::BossHealth => (650, 400),
-            OverlayType::Timers => (650, 550),
+            OverlayType::TimersA => (650, 550),
+            OverlayType::TimersB => (650, 700),
             OverlayType::Challenges => (950, 50),
             OverlayType::Alerts => (950, 400),
             OverlayType::EffectsA => (350, 200),

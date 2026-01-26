@@ -493,6 +493,7 @@ impl TimerManager {
             def.show_on_raid_frames,
             def.show_at_secs,
             &audio_with_prefs,
+            def.display_target,
         );
 
         self.active_timers.insert(key, timer);

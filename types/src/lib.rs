@@ -1448,10 +1448,14 @@ pub struct OverlaySettings {
     pub boss_health: BossHealthConfig,
     #[serde(default = "default_opacity")]
     pub boss_health_opacity: u8,
+    #[serde(default, alias = "timer_overlay")]
+    pub timers_a_overlay: TimerOverlayConfig,
+    #[serde(default = "default_opacity", alias = "timer_opacity")]
+    pub timers_a_opacity: u8,
     #[serde(default)]
-    pub timer_overlay: TimerOverlayConfig,
+    pub timers_b_overlay: TimerOverlayConfig,
     #[serde(default = "default_opacity")]
-    pub timer_opacity: u8,
+    pub timers_b_opacity: u8,
     #[serde(default)]
     pub effects_overlay: TimerOverlayConfig,
     #[serde(default = "default_opacity")]
@@ -1504,8 +1508,10 @@ impl Default for OverlaySettings {
             raid_opacity: 180,
             boss_health: BossHealthConfig::default(),
             boss_health_opacity: 180,
-            timer_overlay: TimerOverlayConfig::default(),
-            timer_opacity: 180,
+            timers_a_overlay: TimerOverlayConfig::default(),
+            timers_a_opacity: 180,
+            timers_b_overlay: TimerOverlayConfig::default(),
+            timers_b_opacity: 180,
             effects_overlay: TimerOverlayConfig::default(),
             effects_opacity: 180,
             challenge_overlay: ChallengeOverlayConfig::default(),

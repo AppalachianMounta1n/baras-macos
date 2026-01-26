@@ -616,8 +616,8 @@ pub fn create_boss_health_overlay(
     })
 }
 
-/// Create and spawn the timer countdown overlay
-pub fn create_timer_overlay(
+/// Create and spawn the Timers A countdown overlay
+pub fn create_timers_a_overlay(
     position: OverlayPositionConfig,
     timer_config: TimerOverlayConfig,
     background_alpha: u8,
@@ -627,16 +627,49 @@ pub fn create_timer_overlay(
         y: position.y,
         width: position.width,
         height: position.height,
-        namespace: "baras-timers".to_string(),
+        namespace: "baras-timers".to_string(), // Keep original namespace for backward compat
         click_through: true,
         target_monitor_id: position.monitor_id.clone(),
     };
 
-    let kind = OverlayType::Timers;
+    let kind = OverlayType::TimersA;
 
     let factory = move || {
         TimerOverlay::new(config, timer_config, background_alpha)
-            .map_err(|e| format!("Failed to create timer overlay: {}", e))
+            .map_err(|e| format!("Failed to create Timers A overlay: {}", e))
+    };
+
+    let (tx, handle) = spawn_overlay_with_factory(factory, kind, None)?;
+
+    Ok(OverlayHandle {
+        tx,
+        handle,
+        kind,
+        registry_action_rx: None,
+    })
+}
+
+/// Create and spawn the Timers B countdown overlay
+pub fn create_timers_b_overlay(
+    position: OverlayPositionConfig,
+    timer_config: TimerOverlayConfig,
+    background_alpha: u8,
+) -> Result<OverlayHandle, String> {
+    let config = OverlayConfig {
+        x: position.x,
+        y: position.y,
+        width: position.width,
+        height: position.height,
+        namespace: "baras-timers-b".to_string(),
+        click_through: true,
+        target_monitor_id: position.monitor_id.clone(),
+    };
+
+    let kind = OverlayType::TimersB;
+
+    let factory = move || {
+        TimerOverlay::new(config, timer_config, background_alpha)
+            .map_err(|e| format!("Failed to create Timers B overlay: {}", e))
     };
 
     let (tx, handle) = spawn_overlay_with_factory(factory, kind, None)?;

@@ -87,8 +87,10 @@ pub enum OverlayData {
     Raid(RaidFrameData),
     /// Boss health bar data
     BossHealth(BossHealthData),
-    /// Timer countdown bars
-    Timers(TimerData),
+    /// Timer A countdown bars (default)
+    TimersA(TimerData),
+    /// Timer B countdown bars
+    TimersB(TimerData),
     /// Effects countdown bars (legacy)
     Effects(EffectsData),
     /// Challenge metrics during boss encounters
@@ -116,8 +118,10 @@ pub enum OverlayConfigUpdate {
     Raid(RaidOverlayConfig, u8),
     /// Config for boss health overlay (+ background alpha)
     BossHealth(BossHealthConfig, u8),
-    /// Config for timer overlay (+ background alpha)
-    Timers(TimerOverlayConfig, u8),
+    /// Config for timer A overlay (+ background alpha)
+    TimersA(TimerOverlayConfig, u8),
+    /// Config for timer B overlay (+ background alpha)
+    TimersB(TimerOverlayConfig, u8),
     /// Config for effects overlay (+ background alpha) - legacy
     Effects(TimerOverlayConfig, u8),
     /// Config for challenge overlay (+ background alpha)

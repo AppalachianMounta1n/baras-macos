@@ -201,19 +201,35 @@ async fn process_overlay_update(
                     .await;
             }
         }
-        OverlayUpdate::TimersUpdated(timer_data) => {
-            // Send timer data to timer overlay
+        OverlayUpdate::TimersAUpdated(timer_data) => {
+            // Send timer A data to Timers A overlay
             let timer_tx = {
                 let state = match overlay_state.lock() {
                     Ok(s) => s,
                     Err(_) => return,
                 };
-                state.get_timers_tx().cloned()
+                state.get_timers_a_tx().cloned()
             };
 
             if let Some(tx) = timer_tx {
                 let _ = tx
-                    .send(OverlayCommand::UpdateData(OverlayData::Timers(timer_data)))
+                    .send(OverlayCommand::UpdateData(OverlayData::TimersA(timer_data)))
+                    .await;
+            }
+        }
+        OverlayUpdate::TimersBUpdated(timer_data) => {
+            // Send timer B data to Timers B overlay
+            let timer_tx = {
+                let state = match overlay_state.lock() {
+                    Ok(s) => s,
+                    Err(_) => return,
+                };
+                state.get_timers_b_tx().cloned()
+            };
+
+            if let Some(tx) = timer_tx {
+                let _ = tx
+                    .send(OverlayCommand::UpdateData(OverlayData::TimersB(timer_data)))
                     .await;
             }
         }
@@ -334,9 +350,14 @@ async fn process_overlay_update(
                     channels.push((tx.clone(), OverlayData::BossHealth(Default::default())));
                 }
 
-                // Timer overlay
-                if let Some(tx) = state.get_timers_tx() {
-                    channels.push((tx.clone(), OverlayData::Timers(Default::default())));
+                // Timers A overlay
+                if let Some(tx) = state.get_timers_a_tx() {
+                    channels.push((tx.clone(), OverlayData::TimersA(Default::default())));
+                }
+
+                // Timers B overlay
+                if let Some(tx) = state.get_timers_b_tx() {
+                    channels.push((tx.clone(), OverlayData::TimersB(Default::default())));
                 }
 
                 // Challenges overlay
@@ -389,9 +410,14 @@ async fn process_overlay_update(
                     channels.push((tx.clone(), OverlayData::BossHealth(Default::default())));
                 }
 
-                // Timer overlay
-                if let Some(tx) = state.get_timers_tx() {
-                    channels.push((tx.clone(), OverlayData::Timers(Default::default())));
+                // Timers A overlay
+                if let Some(tx) = state.get_timers_a_tx() {
+                    channels.push((tx.clone(), OverlayData::TimersA(Default::default())));
+                }
+
+                // Timers B overlay
+                if let Some(tx) = state.get_timers_b_tx() {
+                    channels.push((tx.clone(), OverlayData::TimersB(Default::default())));
                 }
 
                 // Challenges overlay

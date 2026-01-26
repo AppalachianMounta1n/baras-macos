@@ -90,6 +90,9 @@ pub struct ActiveTimer {
 
     /// Whether the offset audio has been fired
     audio_offset_fired: bool,
+
+    /// Which overlay should display this timer
+    pub display_target: crate::timers::TimerDisplayTarget,
 }
 
 impl ActiveTimer {
@@ -106,6 +109,7 @@ impl ActiveTimer {
         show_on_raid_frames: bool,
         show_at_secs: f32,
         audio: &AudioConfig,
+        display_target: crate::timers::TimerDisplayTarget,
     ) -> Self {
         // Calculate lag compensation: how far behind was the game event from system time?
         // This accounts for file I/O delay, processing time, etc.
@@ -147,6 +151,7 @@ impl ActiveTimer {
             audio_file: audio.file.clone(),
             audio_offset: audio.offset,
             audio_offset_fired: false,
+            display_target,
         }
     }
 

@@ -152,9 +152,14 @@ impl OverlayState {
         self.get_tx(OverlayType::BossHealth)
     }
 
-    /// Get the channel for timer overlay (convenience)
-    pub fn get_timers_tx(&self) -> Option<&Sender<OverlayCommand>> {
-        self.get_tx(OverlayType::Timers)
+    /// Get the channel for Timers A overlay (convenience)
+    pub fn get_timers_a_tx(&self) -> Option<&Sender<OverlayCommand>> {
+        self.get_tx(OverlayType::TimersA)
+    }
+
+    /// Get the channel for Timers B overlay (convenience)
+    pub fn get_timers_b_tx(&self) -> Option<&Sender<OverlayCommand>> {
+        self.get_tx(OverlayType::TimersB)
     }
 
     /// Check if boss health overlay is running

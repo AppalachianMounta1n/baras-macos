@@ -175,23 +175,27 @@ impl TimerOverlay {
 
 impl Overlay for TimerOverlay {
     fn update_data(&mut self, data: OverlayData) -> bool {
-        if let OverlayData::Timers(timer_data) = data {
-            // Skip render only when transitioning empty → empty
-            // Active timers need every frame for smooth bar animation
-            let was_empty = self.data.entries.is_empty();
-            let is_empty = timer_data.entries.is_empty();
-            self.set_data(timer_data);
-            !(was_empty && is_empty)
-        } else {
-            false
-        }
+        // Handle both TimersA and TimersB data (same data structure)
+        let timer_data = match data {
+            OverlayData::TimersA(d) | OverlayData::TimersB(d) => d,
+            _ => return false,
+        };
+        // Skip render only when transitioning empty → empty
+        // Active timers need every frame for smooth bar animation
+        let was_empty = self.data.entries.is_empty();
+        let is_empty = timer_data.entries.is_empty();
+        self.set_data(timer_data);
+        !(was_empty && is_empty)
     }
 
     fn update_config(&mut self, config: OverlayConfigUpdate) {
-        if let OverlayConfigUpdate::Timers(timer_config, alpha) = config {
-            self.set_config(timer_config);
-            self.set_background_alpha(alpha);
-        }
+        // Handle both TimersA and TimersB config (same config structure)
+        let (timer_config, alpha) = match config {
+            OverlayConfigUpdate::TimersA(c, a) | OverlayConfigUpdate::TimersB(c, a) => (c, a),
+            _ => return,
+        };
+        self.set_config(timer_config);
+        self.set_background_alpha(alpha);
     }
 
     fn render(&mut self) {

@@ -130,7 +130,7 @@ pub async fn get_overlay_status(
             s.is_personal_running(),
             s.is_raid_running(),
             s.is_boss_health_running(),
-            s.is_running(OverlayType::Timers),
+            s.is_running(OverlayType::TimersA),
             s.is_challenges_running(),
             s.is_running(OverlayType::Alerts),
             s.is_running(OverlayType::EffectsA),

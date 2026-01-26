@@ -15,7 +15,7 @@ use super::spawn::{
     create_alerts_overlay, create_boss_health_overlay, create_challenges_overlay,
     create_cooldowns_overlay, create_dot_tracker_overlay, create_effects_a_overlay,
     create_effects_b_overlay, create_metric_overlay, create_personal_overlay, create_raid_overlay,
-    create_timer_overlay,
+    create_timers_a_overlay, create_timers_b_overlay,
 };
 use super::state::{OverlayCommand, OverlayHandle, PositionEvent};
 use super::types::{MetricType, OverlayType};
@@ -70,9 +70,13 @@ impl OverlayManager {
                 let boss_config = settings.boss_health.clone();
                 create_boss_health_overlay(position, boss_config, settings.boss_health_opacity)?
             }
-            OverlayType::Timers => {
-                let timer_config = settings.timer_overlay.clone();
-                create_timer_overlay(position, timer_config, settings.timer_opacity)?
+            OverlayType::TimersA => {
+                let timer_config = settings.timers_a_overlay.clone();
+                create_timers_a_overlay(position, timer_config, settings.timers_a_opacity)?
+            }
+            OverlayType::TimersB => {
+                let timer_config = settings.timers_b_overlay.clone();
+                create_timers_b_overlay(position, timer_config, settings.timers_b_opacity)?
             }
             OverlayType::Challenges => {
                 let challenge_config = settings.challenge_overlay.clone();
@@ -170,7 +174,8 @@ impl OverlayManager {
             }
             OverlayType::Raid
             | OverlayType::BossHealth
-            | OverlayType::Timers
+            | OverlayType::TimersA
+            | OverlayType::TimersB
             | OverlayType::Alerts
             | OverlayType::EffectsA
             | OverlayType::EffectsB
@@ -268,9 +273,13 @@ impl OverlayManager {
                 let boss_config = settings.boss_health.clone();
                 OverlayConfigUpdate::BossHealth(boss_config, settings.boss_health_opacity)
             }
-            OverlayType::Timers => {
-                let timer_config = settings.timer_overlay.clone();
-                OverlayConfigUpdate::Timers(timer_config, settings.timer_opacity)
+            OverlayType::TimersA => {
+                let timer_config = settings.timers_a_overlay.clone();
+                OverlayConfigUpdate::TimersA(timer_config, settings.timers_a_opacity)
+            }
+            OverlayType::TimersB => {
+                let timer_config = settings.timers_b_overlay.clone();
+                OverlayConfigUpdate::TimersB(timer_config, settings.timers_b_opacity)
             }
             OverlayType::Challenges => {
                 let challenge_config = settings.challenge_overlay.clone();
@@ -464,7 +473,9 @@ impl OverlayManager {
                 "personal" => OverlayType::Personal,
                 "raid" => OverlayType::Raid,
                 "boss_health" => OverlayType::BossHealth,
-                "timers" => OverlayType::Timers,
+                // Support both old "timers" and new "timers_a" keys
+                "timers" | "timers_a" => OverlayType::TimersA,
+                "timers_b" => OverlayType::TimersB,
                 "challenges" => OverlayType::Challenges,
                 "alerts" => OverlayType::Alerts,
                 "effects_a" => OverlayType::EffectsA,
@@ -602,7 +613,9 @@ impl OverlayManager {
                 "personal" => OverlayType::Personal,
                 "raid" => OverlayType::Raid,
                 "boss_health" => OverlayType::BossHealth,
-                "timers" => OverlayType::Timers,
+                // Support both old "timers" and new "timers_a" keys
+                "timers" | "timers_a" => OverlayType::TimersA,
+                "timers_b" => OverlayType::TimersB,
                 "challenges" => OverlayType::Challenges,
                 "alerts" => OverlayType::Alerts,
                 "effects_a" => OverlayType::EffectsA,
@@ -815,7 +828,8 @@ impl OverlayManager {
             OverlayType::Personal,
             OverlayType::Raid,
             OverlayType::BossHealth,
-            OverlayType::Timers,
+            OverlayType::TimersA,
+            OverlayType::TimersB,
             OverlayType::Challenges,
             OverlayType::Alerts,
             OverlayType::EffectsA,

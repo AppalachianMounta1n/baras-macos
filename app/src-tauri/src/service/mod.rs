@@ -154,8 +154,10 @@ pub enum OverlayUpdate {
     EffectsUpdated(RaidFrameData),
     /// Boss health data for boss health overlay
     BossHealthUpdated(BossHealthData),
-    /// Timer data for timer overlay
-    TimersUpdated(TimerData),
+    /// Timer A data for Timers A overlay
+    TimersAUpdated(TimerData),
+    /// Timer B data for Timers B overlay
+    TimersBUpdated(TimerData),
     /// Alert text for alerts overlay
     AlertsFired(Vec<FiredAlert>),
     /// Effects A overlay data
@@ -1405,13 +1407,14 @@ impl CombatService {
 
                 // Timers + Audio: always poll when in live mode (alerts can fire at combat end)
                 if shared.is_live_tailing.load(Ordering::SeqCst) {
-                    // Process timer audio and get timer data
-                    if let Some((data, countdowns, alerts)) =
+                    // Process timer audio and get timer data (returns (TimersA data, TimersB data, countdowns, alerts))
+                    if let Some((timers_a, timers_b, countdowns, alerts)) =
                         build_timer_data_with_audio(&shared).await
                     {
                         // Send timer overlay data (only when in combat)
                         if in_combat && timer_active {
-                            let _ = overlay_tx.try_send(OverlayUpdate::TimersUpdated(data));
+                            let _ = overlay_tx.try_send(OverlayUpdate::TimersAUpdated(timers_a));
+                            let _ = overlay_tx.try_send(OverlayUpdate::TimersBUpdated(timers_b));
                         }
 
                         // Send countdown audio events (only when in combat)
@@ -1822,11 +1825,14 @@ async fn build_boss_health_data(shared: &Arc<SharedState>) -> Option<BossHealthD
 
 /// Build timer data with audio events (countdowns and alerts)
 ///
-/// Returns (TimerData, countdowns_to_announce, fired_alerts)
+/// Returns (TimersA data, TimersB data, countdowns_to_announce, fired_alerts)
+/// Timers are routed to A or B based on their display_target field.
 /// Countdowns are (timer_name, seconds, voice_pack)
 async fn build_timer_data_with_audio(
     shared: &Arc<SharedState>,
-) -> Option<(TimerData, Vec<(String, u8, String)>, Vec<FiredAlert>)> {
+) -> Option<(TimerData, TimerData, Vec<(String, u8, String)>, Vec<FiredAlert>)> {
+    use baras_core::timers::TimerDisplayTarget;
+
     let session_guard = shared.session.read().await;
     let session = session_guard.as_ref()?;
     let session = session.read().await;
@@ -1851,31 +1857,45 @@ async fn build_timer_data_with_audio(
     // If not in combat, return only alerts (no countdown checks)
     let in_combat = shared.in_combat.load(Ordering::SeqCst);
     if !in_combat {
-        return Some((TimerData::default(), Vec::new(), alerts));
+        return Some((
+            TimerData::default(),
+            TimerData::default(),
+            Vec::new(),
+            alerts,
+        ));
     }
 
     // Check for countdowns to announce (uses realtime internally)
     let countdowns = timer_mgr.check_all_countdowns();
 
-    // Convert active timers to TimerEntry format (using realtime for display consistency)
-    let entries: Vec<TimerEntry> = timer_mgr
-        .active_timers()
-        .iter()
-        .filter_map(|timer| {
-            let remaining = timer.remaining_secs_realtime();
-            if remaining <= 0.0 {
-                return None;
-            }
-            Some(TimerEntry {
-                name: timer.name.clone(),
-                remaining_secs: remaining,
-                total_secs: timer.duration.as_secs_f32(),
-                color: timer.color,
-            })
-        })
-        .collect();
+    // Convert active timers to TimerEntry format, routing to A or B based on display_target
+    let mut entries_a = Vec::new();
+    let mut entries_b = Vec::new();
 
-    Some((TimerData { entries }, countdowns, alerts))
+    for timer in timer_mgr.active_timers() {
+        let remaining = timer.remaining_secs_realtime();
+        if remaining <= 0.0 {
+            continue;
+        }
+        let entry = TimerEntry {
+            name: timer.name.clone(),
+            remaining_secs: remaining,
+            total_secs: timer.duration.as_secs_f32(),
+            color: timer.color,
+        };
+        match timer.display_target {
+            TimerDisplayTarget::TimersA => entries_a.push(entry),
+            TimerDisplayTarget::TimersB => entries_b.push(entry),
+            TimerDisplayTarget::None => {} // Don't show on any timer overlay
+        }
+    }
+
+    Some((
+        TimerData { entries: entries_a },
+        TimerData { entries: entries_b },
+        countdowns,
+        alerts,
+    ))
 }
 
 /// Result of processing effect audio
