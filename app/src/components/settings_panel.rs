@@ -332,10 +332,16 @@ pub fn SettingsPanel(
                     div { class: "tab-group-buttons",
                         TabButton { label: "Personal Stats", tab_key: "personal", selected_tab: selected_tab }
                         TabButton { label: "Raid Frames", tab_key: "raid", selected_tab: selected_tab }
-                        TabButton { label: "Boss Health", tab_key: "boss_health", selected_tab: selected_tab }
-                        TabButton { label: "Timers", tab_key: "timers", selected_tab: selected_tab }
-                        TabButton { label: "Challenges", tab_key: "challenges", selected_tab: selected_tab }
                         TabButton { label: "Alerts", tab_key: "alerts", selected_tab: selected_tab }
+                    }
+                }
+                div { class: "tab-group",
+                    span { class: "tab-group-label", "Encounters" }
+                    div { class: "tab-group-buttons",
+                        TabButton { label: "Boss Health", tab_key: "boss_health", selected_tab: selected_tab }
+                        TabButton { label: "Timers A", tab_key: "timers_a", selected_tab: selected_tab }
+                        TabButton { label: "Timers B", tab_key: "timers_b", selected_tab: selected_tab }
+                        TabButton { label: "Challenges", tab_key: "challenges", selected_tab: selected_tab }
                     }
                 }
                 div { class: "tab-group",
@@ -505,7 +511,7 @@ pub fn SettingsPanel(
                         }
                     }
                 }
-            } else if tab == "timers" {
+            } else if tab == "timers_a" {
                 // Timers A Settings
                 div { class: "settings-section",
                     h4 { "Timers A Appearance" }
@@ -550,7 +556,7 @@ pub fn SettingsPanel(
                         }
                     }
                 }
-
+            } else if tab == "timers_b" {
                 // Timers B Settings
                 div { class: "settings-section",
                     h4 { "Timers B Appearance" }
