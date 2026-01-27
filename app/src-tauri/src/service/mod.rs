@@ -19,7 +19,7 @@ use tokio::sync::{RwLock, mpsc};
 
 use baras_core::context::{AppConfig, AppConfigExt, DirectoryIndex, ParsingSession, resolve};
 use baras_core::directory_watcher::DirectoryWatcher;
-use baras_core::encounter::EncounterState;
+use baras_core::encounter::{EncounterState, PhaseType};
 use baras_core::encounter::summary::classify_encounter;
 use baras_core::game_data::{Discipline, Role};
 use baras_core::timers::FiredAlert;
@@ -1542,14 +1542,21 @@ async fn calculate_combat_data(shared: &Arc<SharedState>) -> Option<CombatData> 
         } else {
             // Trash encounter - use phase type with trash count
             let trash_count = cache.encounter_history.peek_trash_count();
-            Some(format!("{:?} {}", encounter_type, trash_count))
+            let label = match encounter_type {
+                PhaseType::Raid => "Raid Trash",
+                PhaseType::Flashpoint => "Flashpoint Trash",
+                PhaseType::DummyParse => "Dummy Parse",
+                PhaseType::PvP => "PvP Match",
+                PhaseType::OpenWorld => "Open World",
+            };
+            Some(format!("{} {}", label, trash_count))
         };
 
-        // Get difficulty from area info, fallback to phase type name for non-instanced content
+        // Get difficulty from area info (blank for non-instanced content)
         let difficulty = if !cache.current_area.difficulty_name.is_empty() {
             Some(cache.current_area.difficulty_name.clone())
         } else {
-            Some(format!("{:?}", encounter_type))
+            None
         };
 
         // Calculate metrics for all players (use session-level discipline registry)

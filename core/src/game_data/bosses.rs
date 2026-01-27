@@ -118,29 +118,6 @@ impl Difficulty {
         }
     }
 
-    /// Returns the difficulty tier (Story, Veteran, Master)
-    pub fn tier(&self) -> &'static str {
-        match self {
-            Difficulty::Story8 | Difficulty::Story16 => "Story",
-            Difficulty::Veteran4 | Difficulty::Veteran8 | Difficulty::Veteran16 => "Veteran",
-            Difficulty::Master4 | Difficulty::Master8 | Difficulty::Master16 => "Master",
-        }
-    }
-
-    /// Short display name (e.g., "SM 8", "HM 16", "NiM 8")
-    pub fn short_name(&self) -> &'static str {
-        match self {
-            Difficulty::Veteran4 => "Vet",
-            Difficulty::Master4 => "MM",
-            Difficulty::Story8 => "SM 8",
-            Difficulty::Story16 => "SM 16",
-            Difficulty::Veteran8 => "HM 8",
-            Difficulty::Veteran16 => "HM 16",
-            Difficulty::Master8 => "NiM 8",
-            Difficulty::Master16 => "NiM 16",
-        }
-    }
-
     /// Parse from game difficulty ID (language-independent, preferred method)
     pub fn from_difficulty_id(id: i64) -> Option<Self> {
         match id {
@@ -152,40 +129,6 @@ impl Difficulty {
             difficulty_id::MASTER_16 => Some(Difficulty::Master16),
             difficulty_id::VETERAN_4 => Some(Difficulty::Veteran4),
             difficulty_id::MASTER_4 => Some(Difficulty::Master4),
-            _ => None,
-        }
-    }
-
-    /// Parse from game difficulty string (e.g., "4 Player Veteran", "8 Player Story Mode")
-    pub fn from_game_string(s: &str) -> Option<Self> {
-        let s_lower = s.to_ascii_lowercase();
-
-        // Determine group size from string
-        let size = if s_lower.contains("16") {
-            16
-        } else if s_lower.contains("8") {
-            8
-        } else if s_lower.contains("4") {
-            4
-        } else {
-            return None;
-        };
-
-        // Determine tier from string
-        let is_master = s_lower.contains("master") || s_lower.contains("nightmare");
-        let is_veteran = s_lower.contains("veteran") || s_lower.contains("hard");
-        let is_story = s_lower.contains("story");
-
-        match (size, is_master, is_veteran, is_story) {
-            (4, true, _, _) => Some(Difficulty::Master4),
-            (4, _, true, _) => Some(Difficulty::Veteran4),
-            (4, _, _, _) => Some(Difficulty::Veteran4), // Default 4-man to Veteran
-            (8, true, _, _) => Some(Difficulty::Master8),
-            (8, _, true, _) => Some(Difficulty::Veteran8),
-            (8, _, _, _) => Some(Difficulty::Story8), // Default 8-man to Story
-            (16, true, _, _) => Some(Difficulty::Master16),
-            (16, _, true, _) => Some(Difficulty::Veteran16),
-            (16, _, _, _) => Some(Difficulty::Story16), // Default 16-man to Story
             _ => None,
         }
     }
@@ -216,27 +159,6 @@ pub struct BossInfo {
     pub difficulty: Option<Difficulty>,
     /// True if this entity's death marks the encounter as complete
     pub is_kill_target: bool,
-}
-
-impl BossInfo {
-    /// Format as encounter name (e.g., "Eternity Vault: Soa (HM 8)")
-    pub fn encounter_name(&self) -> String {
-        if self.content_type == ContentType::TrainingDummy {
-            return self.boss.to_string();
-        }
-        match self.difficulty {
-            Some(d) => format!("{}: {} ({})", self.operation, self.boss, d.short_name()),
-            None => format!("{}: {}", self.operation, self.boss),
-        }
-    }
-
-    /// Format as short name (e.g., "Soa HM 8")
-    pub fn short_name(&self) -> String {
-        match self.difficulty {
-            Some(d) => format!("{} {}", self.boss, d.short_name()),
-            None => self.boss.to_string(),
-        }
-    }
 }
 
 /// Lookup boss info by entity ID

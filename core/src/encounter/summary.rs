@@ -80,8 +80,9 @@ impl EncounterHistory {
         let changed = previous_area.is_none_or(|prev| prev != area_name);
         if changed {
             self.current_area_name = Some(area_name.to_string());
-            // Reset trash count on area change
+            // Reset pull counts on area change
             self.trash_pull_count = 0;
+            self.boss_pull_counts.clear();
         } else if self.current_area_name.is_none() {
             // Restore in-memory state from history
             self.current_area_name = Some(area_name.to_string());

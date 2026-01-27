@@ -140,12 +140,19 @@ impl EventProcessor {
     }
 
     fn update_area_from_event(&self, event: &CombatEvent, cache: &mut SessionCache) {
+        let area_changed = event.effect.effect_id != cache.current_area.area_id;
         cache.current_area.area_name = resolve(event.effect.effect_name).to_string();
         cache.current_area.area_id = event.effect.effect_id;
-        // Only update difficulty if we get a valid ID (game sends 0 first, then real value)
+        // Update difficulty: game sends 0 for non-instanced areas and as an initial
+        // placeholder before the real value arrives. Only skip the update when staying
+        // in the same area (placeholder case); on area change, 0 means open world.
         if event.effect.difficulty_id != 0 {
             cache.current_area.difficulty_id = event.effect.difficulty_id;
             cache.current_area.difficulty_name = resolve(event.effect.difficulty_name).to_string();
+        } else if area_changed {
+            // New area with no difficulty = open world, clear stale instance difficulty
+            cache.current_area.difficulty_id = 0;
+            cache.current_area.difficulty_name.clear();
         }
         cache.current_area.entered_at = Some(event.timestamp);
     }
