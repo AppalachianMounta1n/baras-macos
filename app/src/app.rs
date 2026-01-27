@@ -7,7 +7,7 @@ use wasm_bindgen_futures::spawn_local;
 
 use crate::api;
 use crate::components::{
-    DataExplorerPanel, EffectEditorPanel, EncounterEditorPanel, HistoryPanel, HotkeyInput,
+    DataExplorerPanel, EffectEditorPanel, EncounterEditorPanel, HistoryPanel, HotkeyInput, ViewMode,
     SettingsPanel, ToastFrame, ToastSeverity, use_toast, use_toast_provider,
 };
 use crate::types::{
@@ -70,6 +70,8 @@ pub fn App() -> Element {
     let mut overlay_settings = use_signal(OverlaySettings::default);
     let selected_overlay_tab = use_signal(|| "dps".to_string());
     let mut show_only_bosses = use_signal(|| false);
+    let explorer_selected_encounter = use_signal(|| None::<u32>);
+    let explorer_view_mode = use_signal(ViewMode::default);
 
     // Hotkey state
     let mut hotkey_visibility = use_signal(String::new);
@@ -1198,7 +1200,11 @@ pub fn App() -> Element {
                 // Data Explorer Tab
                 // ─────────────────────────────────────────────────────────────
                 if active_tab() == "explorer" {
-                    DataExplorerPanel { show_only_bosses }
+                    DataExplorerPanel {
+                        show_only_bosses,
+                        selected_encounter: explorer_selected_encounter,
+                        view_mode: explorer_view_mode,
+                    }
                 }
             }
 

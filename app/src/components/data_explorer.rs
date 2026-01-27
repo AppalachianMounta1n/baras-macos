@@ -51,7 +51,7 @@ enum SortDirection {
 
 /// Which view is currently active in the data explorer
 #[derive(Clone, Copy, PartialEq, Default)]
-enum ViewMode {
+pub enum ViewMode {
     #[default]
     Overview,
     Charts,
@@ -366,13 +366,17 @@ pub struct DataExplorerProps {
     pub encounter_idx: Option<u32>,
     /// Shared bosses-only filter signal
     pub show_only_bosses: Signal<bool>,
+    /// Persisted selected encounter (survives tab switches)
+    pub selected_encounter: Signal<Option<u32>>,
+    /// Persisted view mode (survives tab switches)
+    pub view_mode: Signal<ViewMode>,
 }
 
 #[component]
 pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
     // Encounter selection state
     let mut encounters = use_signal(Vec::<EncounterSummary>::new);
-    let mut selected_encounter = use_signal(|| props.encounter_idx);
+    let mut selected_encounter = props.selected_encounter;
 
     // Sidebar state
     let mut show_only_bosses = props.show_only_bosses;
@@ -399,8 +403,8 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
     // Breakdown mode state (toggles for grouping)
     let mut breakdown_mode = use_signal(|| BreakdownMode::ability_only());
 
-    // View mode - which tab/view is active (replaces show_overview, show_charts, show_combat_log, selected_tab)
-    let mut view_mode = use_signal(ViewMode::default);
+    // View mode - which tab/view is active (persisted via props)
+    let mut view_mode = props.view_mode;
 
     // Ability table sort state
     let mut sort_column = use_signal(SortColumn::default);

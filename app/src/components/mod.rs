@@ -16,7 +16,7 @@ pub mod phase_timeline;
 pub mod settings_panel;
 pub mod toast;
 
-pub use data_explorer::DataExplorerPanel;
+pub use data_explorer::{DataExplorerPanel, ViewMode};
 pub use effect_editor::EffectEditorPanel;
 pub use encounter_editor::EncounterEditorPanel;
 pub use history_panel::HistoryPanel;
