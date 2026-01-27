@@ -929,6 +929,8 @@ pub struct RaidOverlaySettings {
     pub show_role_icons: bool,
     #[serde(default = "default_effect_fill_opacity")]
     pub effect_fill_opacity: u8,
+    #[serde(default)]
+    pub show_effect_icons: bool,
 }
 
 fn default_grid_columns() -> u8 {
@@ -964,6 +966,7 @@ impl Default for RaidOverlaySettings {
             frame_bg_color: overlay_colors::FRAME_BG,
             show_role_icons: true,
             effect_fill_opacity: 255,
+            show_effect_icons: false,
         }
     }
 }

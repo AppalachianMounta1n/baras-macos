@@ -79,6 +79,8 @@ pub struct RaidEffect {
     pub color: Color,
     /// Is this a beneficial effect?
     pub is_buff: bool,
+    /// Pre-loaded icon RGBA data (width, height, rgba_bytes) - Arc for cheap cloning
+    pub icon: Option<std::sync::Arc<(u32, u32, Vec<u8>)>>,
 }
 
 impl RaidEffect {
@@ -91,6 +93,7 @@ impl RaidEffect {
             duration: None,
             color: Color::from_rgba8(100, 180, 255, 255),
             is_buff: true,
+            icon: None,
         }
     }
 
@@ -384,6 +387,8 @@ pub struct RaidOverlayConfig {
     /// Opacity of the effect fill (0-255)
     /// Lower values useful when icons are displayed as background
     pub effect_fill_opacity: u8,
+    /// Whether to render effect icons (true) or colored squares (false)
+    pub show_effect_icons: bool,
 }
 
 impl Default for RaidOverlayConfig {
@@ -396,6 +401,7 @@ impl Default for RaidOverlayConfig {
             effect_size: EFFECT_SIZE_DEFAULT,
             effect_vertical_offset: EFFECT_OFFSET_DEFAULT,
             effect_fill_opacity: 255, // Fully opaque when no icons
+            show_effect_icons: false,
         }
     }
 }
@@ -423,6 +429,7 @@ impl From<baras_core::context::RaidOverlaySettings> for RaidOverlayConfig {
             effect_size: settings.effect_size,
             effect_vertical_offset: settings.effect_vertical_offset,
             effect_fill_opacity: settings.effect_fill_opacity,
+            show_effect_icons: settings.show_effect_icons,
         }
     }
 }
