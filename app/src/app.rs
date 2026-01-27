@@ -1005,6 +1005,21 @@ pub fn App() -> Element {
                                 "Raid Frames"
                             }
                             button {
+                                class: if alerts_on { "btn btn-overlay btn-active" } else { "btn btn-overlay" },
+                                title: "Shows combat alerts and notifications",
+                                onclick: move |_| { spawn(async move {
+                                    if api::toggle_overlay(OverlayType::Alerts, alerts_on).await {
+                                        alerts_enabled.set(!alerts_on);
+                                    }
+                                }); },
+                                "Alerts"
+                            }
+                        }
+
+                        // Encounter overlays
+                        h4 { class: "subsection-title", "Encounter" }
+                        div { class: "overlay-grid",
+                            button {
                                 class: if boss_health_on { "btn btn-overlay btn-active" } else { "btn btn-overlay" },
                                 title: "Shows boss health bars and cast timers",
                                 onclick: move |_| { spawn(async move {
@@ -1013,16 +1028,6 @@ pub fn App() -> Element {
                                     }
                                 }); },
                                 "Boss Health"
-                            }
-                            button {
-                                class: if timers_on { "btn btn-overlay btn-active" } else { "btn btn-overlay" },
-                                title: "Displays encounter-specific timers and phase markers",
-                                onclick: move |_| { spawn(async move {
-                                    if api::toggle_overlay(OverlayType::TimersA, timers_on).await {
-                                        timers_enabled.set(!timers_on);
-                                    }
-                                }); },
-                                "Encounter Timers"
                             }
                             button {
                                 class: if challenges_on { "btn btn-overlay btn-active" } else { "btn btn-overlay" },
@@ -1035,14 +1040,24 @@ pub fn App() -> Element {
                                 "Challenges"
                             }
                             button {
-                                class: if alerts_on { "btn btn-overlay btn-active" } else { "btn btn-overlay" },
-                                title: "Shows combat alerts and notifications",
+                                class: if timers_on { "btn btn-overlay btn-active" } else { "btn btn-overlay" },
+                                title: "Displays encounter-specific timers and phase markers (Group A)",
                                 onclick: move |_| { spawn(async move {
-                                    if api::toggle_overlay(OverlayType::Alerts, alerts_on).await {
-                                        alerts_enabled.set(!alerts_on);
+                                    if api::toggle_overlay(OverlayType::TimersA, timers_on).await {
+                                        timers_enabled.set(!timers_on);
                                     }
                                 }); },
-                                "Alerts"
+                                "Timers A"
+                            }
+                            button {
+                                class: if timers_b_on { "btn btn-overlay btn-active" } else { "btn btn-overlay" },
+                                title: "Displays encounter-specific timers and phase markers (Group B)",
+                                onclick: move |_| { spawn(async move {
+                                    if api::toggle_overlay(OverlayType::TimersB, timers_b_on).await {
+                                        timers_b_enabled.set(!timers_b_on);
+                                    }
+                                }); },
+                                "Timers B"
                             }
                         }
 
