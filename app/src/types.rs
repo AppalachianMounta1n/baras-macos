@@ -76,6 +76,8 @@ pub struct OverlayStatus {
     pub boss_health_enabled: bool,
     pub timers_running: bool,
     pub timers_enabled: bool,
+    pub timers_b_running: bool,
+    pub timers_b_enabled: bool,
     pub challenges_running: bool,
     pub challenges_enabled: bool,
     pub alerts_running: bool,

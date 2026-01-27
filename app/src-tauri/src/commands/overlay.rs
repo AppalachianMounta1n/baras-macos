@@ -25,6 +25,8 @@ pub struct OverlayStatusResponse {
     pub boss_health_enabled: bool,
     pub timers_running: bool,
     pub timers_enabled: bool,
+    pub timers_b_running: bool,
+    pub timers_b_enabled: bool,
     pub challenges_running: bool,
     pub challenges_enabled: bool,
     pub alerts_running: bool,
@@ -115,6 +117,7 @@ pub async fn get_overlay_status(
         raid_running,
         boss_health_running,
         timers_running,
+        timers_b_running,
         challenges_running,
         alerts_running,
         effects_a_running,
@@ -131,6 +134,7 @@ pub async fn get_overlay_status(
             s.is_raid_running(),
             s.is_boss_health_running(),
             s.is_running(OverlayType::TimersA),
+            s.is_running(OverlayType::TimersB),
             s.is_challenges_running(),
             s.is_running(OverlayType::Alerts),
             s.is_running(OverlayType::EffectsA),
@@ -154,6 +158,7 @@ pub async fn get_overlay_status(
     let raid_enabled = config.overlay_settings.is_enabled("raid");
     let boss_health_enabled = config.overlay_settings.is_enabled("boss_health");
     let timers_enabled = config.overlay_settings.is_enabled("timers");
+    let timers_b_enabled = config.overlay_settings.is_enabled("timers_b");
     let challenges_enabled = config.overlay_settings.is_enabled("challenges");
     let alerts_enabled = config.overlay_settings.is_enabled("alerts");
     let effects_a_enabled = config.overlay_settings.is_enabled("effects_a");
@@ -172,6 +177,8 @@ pub async fn get_overlay_status(
         boss_health_enabled,
         timers_running,
         timers_enabled,
+        timers_b_running,
+        timers_b_enabled,
         challenges_running,
         challenges_enabled,
         alerts_running,
