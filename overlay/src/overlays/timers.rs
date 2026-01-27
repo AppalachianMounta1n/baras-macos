@@ -81,10 +81,11 @@ impl TimerOverlay {
         window_config: OverlayConfig,
         config: TimerOverlayConfig,
         background_alpha: u8,
+        label: &str,
     ) -> Result<Self, PlatformError> {
         let mut frame = OverlayFrame::new(window_config, BASE_WIDTH, BASE_HEIGHT)?;
         frame.set_background_alpha(background_alpha);
-        frame.set_label("Timers");
+        frame.set_label(label);
 
         Ok(Self {
             frame,

@@ -772,7 +772,7 @@ mod examples {
 
         let timer_config = TimerOverlayConfig::default();
 
-        let mut overlay = match TimerOverlay::new(config, timer_config, 180) {
+        let mut overlay = match TimerOverlay::new(config, timer_config, 180, "Timers") {
             Ok(o) => o,
             Err(e) => {
                 tracing::error!(error = %e, "Failed to create timer overlay");

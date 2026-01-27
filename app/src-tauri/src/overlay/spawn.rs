@@ -635,7 +635,7 @@ pub fn create_timers_a_overlay(
     let kind = OverlayType::TimersA;
 
     let factory = move || {
-        TimerOverlay::new(config, timer_config, background_alpha)
+        TimerOverlay::new(config, timer_config, background_alpha, "Timers A")
             .map_err(|e| format!("Failed to create Timers A overlay: {}", e))
     };
 
@@ -668,7 +668,7 @@ pub fn create_timers_b_overlay(
     let kind = OverlayType::TimersB;
 
     let factory = move || {
-        TimerOverlay::new(config, timer_config, background_alpha)
+        TimerOverlay::new(config, timer_config, background_alpha, "Timers B")
             .map_err(|e| format!("Failed to create Timers B overlay: {}", e))
     };
 
