@@ -1,31 +1,21 @@
-# v2026.1.2700
+# v2026.2.1
 
 ## What's New
 
 ### General
 
-- Improvements to encounter success/wipe classification
-- Improvements to encounter naming
-- World Bosses should now be detected as named encounters
+- Individual combats can now be uploaded to parsely.io via the session page
+- UI positions and open elements are now preserved across tab-navigation; including the combat log scroll position
+- Tweaked combat log formatting
+- Improved handling of SWTOR combat log rotation upon character login/logout
 
-### UI
+### Encounter Classification
 
-- Combat Log in data explorer has been significantly improved with filters and IDs
-- Data Explorer now remembers position if navigating to another tab
-- Added visual indicator if changes are unsaved for timers or effects
-
-## Overlays
-
-- Added ability to set encounter timers on specific A/B timer overlay
-- Added icon support to raid frames (enable in customization)
+- Fake combat encounters that occur shortly after fights (e.g. Dread Master Holocrons) are now automatically ignored
+- Fixed several edge cases causing encounter to split if mechanics are pushed too fast or player was revived at a specific time
+- Fixed issue causing encounter to be classified as wipe if the local player used area start revive
 
 ### Timers and Bosses
 
-- Added Colossal Monolith definition to encounter builder
-- Fixed Brontes Reaches active timer appearing after only 1 hand was pushed
-- Fixed Firebrand and Stormcaller DD and incinerate armor timers not firing on start of a new phase
-- Fixed Firebrand and Stormcaller defensive systems timer
-- Set Revan 3rd floor Push/Pull timers to proper 15 second interval
-- Added Apex Vanguard timers (thanks @zazeg)
-- Added Dread Palace timers and phases (thanks @wolfy)
-- Added Sparky timers and phases
+- Fixed typo causing ravagers default definitions failing to appear
+- Fixed several text alerts on ToS firing on non-local player
