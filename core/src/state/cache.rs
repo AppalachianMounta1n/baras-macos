@@ -1,8 +1,10 @@
+use chrono::NaiveDateTime;
+
 use crate::dsl::BossEncounterDefinition;
 use crate::encounter::entity_info::PlayerInfo;
-use crate::encounter::summary::{EncounterHistory, create_encounter_summary};
+use crate::encounter::summary::{create_encounter_summary, EncounterHistory};
 use crate::encounter::{CombatEncounter, EncounterState, OverlayHealthEntry, ProcessingMode};
-use crate::game_data::{Difficulty, clear_boss_registry, register_hp_overlay_entity};
+use crate::game_data::{clear_boss_registry, register_hp_overlay_entity, Difficulty};
 use crate::state::info::AreaInfo;
 use hashbrown::HashMap;
 use std::collections::{HashSet, VecDeque};
@@ -40,6 +42,11 @@ pub struct SessionCache {
     /// Maps player entity_id -> PlayerInfo with discipline data
     /// This is the source of truth for player disciplines, updated on every DisciplineChanged event
     pub player_disciplines: HashMap<i64, PlayerInfo>,
+
+    // Combat exit grace window tracking
+    /// Timestamp of last combat exit - used to detect fake combat splits
+    /// (e.g., loot chest "enemies" or Kephess SM walker phase)
+    pub last_combat_exit_time: Option<NaiveDateTime>,
 }
 
 impl Default for SessionCache {
@@ -60,6 +67,7 @@ impl SessionCache {
             boss_definitions: Arc::new(Vec::new()),
             seen_npc_instances: HashSet::new(),
             player_disciplines: HashMap::new(),
+            last_combat_exit_time: None,
         };
         cache.push_new_encounter();
         cache

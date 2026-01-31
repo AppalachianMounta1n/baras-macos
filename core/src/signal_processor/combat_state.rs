@@ -19,6 +19,32 @@ use super::GameSignal;
 /// Timeout in seconds before combat ends due to inactivity.
 pub const COMBAT_TIMEOUT_SECONDS: i64 = 60;
 
+/// Grace period for boss encounters before finalizing combat end (seconds).
+/// Allows merging fake combat splits (e.g., loot chest "enemies", Kephess SM walker).
+const BOSS_COMBAT_EXIT_GRACE_SECS: i64 = 3;
+
+/// Grace period for non-boss encounters before finalizing combat end (seconds).
+const TRASH_COMBAT_EXIT_GRACE_SECS: i64 = 1;
+
+/// Check if we're within the grace window after a combat exit.
+/// Returns the grace duration if within window, None otherwise.
+fn within_grace_window(cache: &SessionCache, timestamp: NaiveDateTime) -> bool {
+    let Some(exit_time) = cache.last_combat_exit_time else {
+        return false;
+    };
+
+    let grace_secs = if cache
+        .current_encounter()
+        .map_or(false, |e| e.active_boss_idx().is_some())
+    {
+        BOSS_COMBAT_EXIT_GRACE_SECS
+    } else {
+        TRASH_COMBAT_EXIT_GRACE_SECS
+    };
+
+    timestamp.signed_duration_since(exit_time).num_seconds() <= grace_secs
+}
+
 /// Advance the combat state machine and emit CombatStarted/CombatEnded signals.
 pub fn advance_combat_state(event: &CombatEvent, cache: &mut SessionCache) -> Vec<GameSignal> {
     // Track effect applications/removals for shield absorption
@@ -212,22 +238,42 @@ fn handle_in_combat(
         || all_kill_targets_dead
         || should_end_on_local_revive
     {
-        let encounter_id = cache.current_encounter().map(|e| e.id).unwrap_or(0);
-        if let Some(enc) = cache.current_encounter_mut() {
-            enc.exit_combat_time = Some(timestamp);
-            enc.state = EncounterState::PostCombat {
-                exit_time: timestamp,
-            };
-            let duration = enc.duration_seconds().unwrap_or(0) as f32;
-            enc.challenge_tracker.finalize(timestamp, duration);
+        // Check if we're within a grace window from a previous exit
+        // If so, this is the "real" exit after a fake enter (holocron case)
+        if within_grace_window(cache, timestamp) {
+            let exit_time = cache.last_combat_exit_time.unwrap();
+            let encounter_id = cache.current_encounter().map(|e| e.id).unwrap_or(0);
+
+            if let Some(enc) = cache.current_encounter_mut() {
+                enc.exit_combat_time = Some(exit_time);
+                enc.state = EncounterState::PostCombat {
+                    exit_time,
+                };
+                let duration = enc.duration_seconds().unwrap_or(0) as f32;
+                enc.challenge_tracker.finalize(exit_time, duration);
+            }
+
+            signals.push(GameSignal::CombatEnded {
+                timestamp: exit_time,
+                encounter_id,
+            });
+
+            cache.last_combat_exit_time = None;
+            cache.push_new_encounter();
+        } else {
+            // Start grace window - don't emit CombatEnded yet
+            cache.last_combat_exit_time = Some(timestamp);
+
+            if let Some(enc) = cache.current_encounter_mut() {
+                enc.exit_combat_time = Some(timestamp);
+                enc.state = EncounterState::PostCombat {
+                    exit_time: timestamp,
+                };
+                let duration = enc.duration_seconds().unwrap_or(0) as f32;
+                enc.challenge_tracker.finalize(timestamp, duration);
+            }
+            // Note: Don't emit CombatEnded or push_new_encounter yet
         }
-
-        signals.push(GameSignal::CombatEnded {
-            timestamp,
-            encounter_id,
-        });
-
-        cache.push_new_encounter();
     } else if effect_type_id == effect_type_id::AREAENTERED {
         let encounter_id = cache.current_encounter().map(|e| e.id).unwrap_or(0);
         if let Some(enc) = cache.current_encounter_mut() {
@@ -267,24 +313,45 @@ fn handle_post_combat(
 ) -> Vec<GameSignal> {
     let mut signals = Vec::new();
 
-    if effect_id == effect_id::ENTERCOMBAT {
-        // New combat starting
-        let new_encounter_id = cache.push_new_encounter();
-        if let Some(enc) = cache.current_encounter_mut() {
-            enc.state = EncounterState::InCombat;
-            enc.enter_combat_time = Some(timestamp);
-            enc.accumulate_data(event);
-        }
+    // During grace window, only respond to ENTERCOMBAT (to restore combat)
+    // All other events are buffered/ignored until grace expires
+    let in_grace_window = within_grace_window(cache, timestamp);
 
-        signals.push(GameSignal::CombatStarted {
-            timestamp,
-            encounter_id: new_encounter_id,
-        });
+    if effect_id == effect_id::ENTERCOMBAT {
+        if in_grace_window {
+            // Restore encounter to InCombat - this "corrects" the fake exit
+            if let Some(enc) = cache.current_encounter_mut() {
+                enc.state = EncounterState::InCombat;
+                enc.exit_combat_time = None;
+            }
+            // Keep last_combat_exit_time set - we'll use it if another exit comes quickly
+            // Don't emit any signals - combat "continues"
+        } else {
+            // Outside grace window - finalize previous encounter and start new
+            finalize_pending_combat_exit(cache, &mut signals);
+
+            let new_encounter_id = cache.push_new_encounter();
+            if let Some(enc) = cache.current_encounter_mut() {
+                enc.state = EncounterState::InCombat;
+                enc.enter_combat_time = Some(timestamp);
+                enc.accumulate_data(event);
+            }
+
+            signals.push(GameSignal::CombatStarted {
+                timestamp,
+                encounter_id: new_encounter_id,
+            });
+        }
+    } else if in_grace_window {
+        // During grace window, ignore all other events (EXITCOMBAT, damage, buffs, etc.)
+        // They'll be discarded - we're waiting to see if combat restarts
     } else if effect_id == effect_id::DAMAGE {
         // Discard post-combat damage - start fresh encounter
+        finalize_pending_combat_exit(cache, &mut signals);
         cache.push_new_encounter();
     } else {
         // Non-damage event - goes to next encounter
+        finalize_pending_combat_exit(cache, &mut signals);
         cache.push_new_encounter();
         if let Some(enc) = cache.current_encounter_mut() {
             enc.accumulate_data(event);
@@ -294,27 +361,76 @@ fn handle_post_combat(
     signals
 }
 
+/// Finalize any pending combat exit (emit CombatEnded if grace window was active).
+fn finalize_pending_combat_exit(cache: &mut SessionCache, signals: &mut Vec<GameSignal>) {
+    if let Some(exit_time) = cache.last_combat_exit_time.take() {
+        let encounter_id = cache.current_encounter().map(|e| e.id).unwrap_or(0);
+        signals.push(GameSignal::CombatEnded {
+            timestamp: exit_time,
+            encounter_id,
+        });
+    }
+}
+
 /// Tick the combat state machine using wall-clock time.
 ///
 /// This provides a fallback timeout when the event stream stops (e.g., player dies
 /// and revives but no new combat events arrive). Called periodically from the tail loop.
 ///
 /// Returns CombatEnded signal if combat times out due to inactivity.
-/// Only affects InCombat state - other states are no-ops.
+/// Also handles grace window expiration for combat exit.
 pub fn tick_combat_state(cache: &mut SessionCache) -> Vec<GameSignal> {
+    let mut signals = Vec::new();
+    let now = chrono::Local::now().naive_local();
+
     let current_state = cache
         .current_encounter()
         .map(|e| e.state.clone())
         .unwrap_or_default();
 
-    // Only tick during active combat
+    // Check for grace window expiration
+    if let Some(exit_time) = cache.last_combat_exit_time {
+        let grace_secs = if cache
+            .current_encounter()
+            .map_or(false, |e| e.active_boss_idx().is_some())
+        {
+            BOSS_COMBAT_EXIT_GRACE_SECS
+        } else {
+            TRASH_COMBAT_EXIT_GRACE_SECS
+        };
+
+        let elapsed = now.signed_duration_since(exit_time).num_seconds();
+        if elapsed > grace_secs {
+            match current_state {
+                EncounterState::PostCombat { .. } => {
+                    // Grace expired while in PostCombat - finalize the encounter
+                    let encounter_id = cache.current_encounter().map(|e| e.id).unwrap_or(0);
+                    signals.push(GameSignal::CombatEnded {
+                        timestamp: exit_time,
+                        encounter_id,
+                    });
+                    cache.last_combat_exit_time = None;
+                    cache.push_new_encounter();
+                }
+                EncounterState::InCombat => {
+                    // Grace expired while back in InCombat - Kephess case
+                    // The fake exit was corrected, just clear the grace window
+                    cache.last_combat_exit_time = None;
+                }
+                _ => {
+                    cache.last_combat_exit_time = None;
+                }
+            }
+            return signals;
+        }
+    }
+
+    // Only check combat timeout during active combat
     if !matches!(current_state, EncounterState::InCombat) {
-        return Vec::new();
+        return signals;
     }
 
     // Check wall-clock timeout
-    let now = chrono::Local::now().naive_local();
-
     if let Some(enc) = cache.current_encounter()
         && let Some(last_activity) = enc.last_combat_activity_time
     {
@@ -332,6 +448,7 @@ pub fn tick_combat_state(cache: &mut SessionCache) -> Vec<GameSignal> {
                 enc.challenge_tracker.finalize(last_activity, duration);
             }
 
+            cache.last_combat_exit_time = None;
             cache.push_new_encounter();
 
             return vec![GameSignal::CombatEnded {
@@ -341,5 +458,5 @@ pub fn tick_combat_state(cache: &mut SessionCache) -> Vec<GameSignal> {
         }
     }
 
-    Vec::new()
+    signals
 }
