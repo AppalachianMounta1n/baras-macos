@@ -8,9 +8,9 @@ use dioxus::prelude::*;
 use crate::api;
 use crate::types::{BossWithPath, CounterDefinition, EncounterItem, EntityFilter, Trigger};
 
-use super::InlineNameCreator;
 use super::tabs::EncounterData;
 use super::triggers::ComposableTriggerEditor;
+use super::InlineNameCreator;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Counters Tab
@@ -39,11 +39,10 @@ fn default_counter(name: String) -> CounterDefinition {
 pub fn CountersTab(
     boss_with_path: BossWithPath,
     encounter_data: EncounterData,
+    expanded_counter: Signal<Option<String>>,
     on_change: EventHandler<Vec<CounterDefinition>>,
     on_status: EventHandler<(String, bool)>,
 ) -> Element {
-    let mut expanded_counter = use_signal(|| None::<String>);
-
     // Extract counters from BossWithPath
     let counters = boss_with_path.boss.counters.clone();
 

@@ -44,6 +44,11 @@ pub struct EncounterSummary {
     pub event_start_line: Option<u64>,
     /// Last line of events for this encounter (includes grace period)
     pub event_end_line: Option<u64>,
+
+    // ─── Parsely Integration ─────────────────────────────────────────────────
+    /// Link to the uploaded encounter on Parsely (set after successful upload)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parsely_link: Option<String>,
 }
 
 /// Tracks encounter history for the current log file session
@@ -68,6 +73,16 @@ impl EncounterHistory {
 
     pub fn summaries(&self) -> &[EncounterSummary] {
         &self.summaries
+    }
+
+    /// Update the parsely_link for an encounter by its ID
+    pub fn set_parsely_link(&mut self, encounter_id: u64, link: String) -> bool {
+        if let Some(summary) = self.summaries.iter_mut().find(|s| s.encounter_id == encounter_id) {
+            summary.parsely_link = Some(link);
+            true
+        } else {
+            false
+        }
     }
 
     pub fn clear(&mut self) {
@@ -318,5 +333,7 @@ pub fn create_encounter_summary(
         area_entered_line: area.entered_at_line,
         event_start_line: encounter.first_event_line,
         event_end_line: encounter.last_event_line,
+        // Parsely link (set after successful upload)
+        parsely_link: None,
     })
 }

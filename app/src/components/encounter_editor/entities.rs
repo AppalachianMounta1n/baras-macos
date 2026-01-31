@@ -30,11 +30,10 @@ fn default_entity(name: String) -> EntityDefinition {
 #[component]
 pub fn EntitiesTab(
     boss_with_path: BossWithPath,
+    expanded_entity: Signal<Option<String>>,
     on_change: EventHandler<Vec<EntityDefinition>>,
     on_status: EventHandler<(String, bool)>,
 ) -> Element {
-    let mut expanded_entity = use_signal(|| None::<String>);
-
     // Extract entities from BossWithPath
     let entities = boss_with_path.boss.entities.clone();
 

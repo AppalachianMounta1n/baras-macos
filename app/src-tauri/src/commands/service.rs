@@ -185,6 +185,15 @@ pub async fn get_encounter_history(
     Ok(handle.encounter_history().await)
 }
 
+#[tauri::command]
+pub async fn set_encounter_parsely_link(
+    encounter_id: u64,
+    link: String,
+    handle: State<'_, ServiceHandle>,
+) -> Result<bool, String> {
+    Ok(handle.set_encounter_parsely_link(encounter_id, link).await)
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Profile Commands
 // ─────────────────────────────────────────────────────────────────────────────

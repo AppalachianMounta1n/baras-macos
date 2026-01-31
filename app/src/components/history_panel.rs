@@ -89,6 +89,9 @@ pub struct EncounterSummary {
     pub event_start_line: Option<u64>,
     #[serde(default)]
     pub event_end_line: Option<u64>,
+    // Parsely link (set after successful upload)
+    #[serde(default)]
+    pub parsely_link: Option<String>,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -326,7 +329,10 @@ pub fn HistoryPanel(props: HistoryPanelProps) -> Element {
                                                     let success_class = if enc.success { "success" } else { "wipe" };
                                                     let npc_list = enc.npc_names.join(", ");
                                                     
-                                                    // Get upload state for this encounter
+                                                    // Check if already uploaded (persisted in backend)
+                                                    let persisted_link = enc.parsely_link.clone();
+                                                    
+                                                    // Get transient upload state (for uploading/error states)
                                                     let current_upload_state = upload_states()
                                                         .get(&enc_id)
                                                         .cloned()
@@ -369,81 +375,96 @@ pub fn HistoryPanel(props: HistoryPanelProps) -> Element {
                                                                 }
                                                             }
                                                             td { class: "col-upload",
-                                                                match current_upload_state {
-                                                                    UploadState::Idle => rsx! {
-                                                                        button {
-                                                                            class: "parsely-upload-btn",
-                                                                            title: "Upload to Parsely",
-                                                                            onclick: move |e| {
-                                                                                e.stop_propagation();
-                                                                                let area = area_line;
-                                                                                spawn(async move {
-                                                                                    // Set uploading state
-                                                                                    upload_states.with_mut(|states| {
-                                                                                        states.insert(enc_id, UploadState::Uploading);
-                                                                                    });
-                                                                                    
-                                                                                    match api::get_active_file().await {
-                                                                                        Some(path) => {
-                                                                                            match api::upload_encounter_to_parsely(&path, start_line, end_line, area).await {
-                                                                                                Ok(response) if response.success => {
-                                                                                                    let link = response.link.unwrap_or_default();
-                                                                                                    upload_states.with_mut(|states| {
-                                                                                                        states.insert(enc_id, UploadState::Success(link));
-                                                                                                    });
-                                                                                                }
-                                                                                                Ok(response) => {
-                                                                                                    let err = response.error.unwrap_or_else(|| "Unknown error".to_string());
-                                                                                                    upload_states.with_mut(|states| {
-                                                                                                        states.insert(enc_id, UploadState::Error(err));
-                                                                                                    });
-                                                                                                }
-                                                                                                Err(e) => {
-                                                                                                    upload_states.with_mut(|states| {
-                                                                                                        states.insert(enc_id, UploadState::Error(e));
-                                                                                                    });
+                                                                // If already uploaded (persisted), show link
+                                                                if let Some(link) = persisted_link {
+                                                                    a {
+                                                                        class: "parsely-upload-btn success",
+                                                                        href: "{link}",
+                                                                        target: "_blank",
+                                                                        title: "View on Parsely",
+                                                                        onclick: |e| e.stop_propagation(),
+                                                                        i { class: "fa-solid fa-external-link" }
+                                                                    }
+                                                                } else {
+                                                                    // Otherwise show upload button or transient state
+                                                                    match current_upload_state {
+                                                                        UploadState::Idle => rsx! {
+                                                                            button {
+                                                                                class: "parsely-upload-btn",
+                                                                                title: "Upload to Parsely",
+                                                                                onclick: move |e| {
+                                                                                    e.stop_propagation();
+                                                                                    let area = area_line;
+                                                                                    spawn(async move {
+                                                                                        // Set uploading state
+                                                                                        upload_states.with_mut(|states| {
+                                                                                            states.insert(enc_id, UploadState::Uploading);
+                                                                                        });
+                                                                                        
+                                                                                        match api::get_active_file().await {
+                                                                                            Some(path) => {
+                                                                                                match api::upload_encounter_to_parsely(&path, start_line, end_line, area).await {
+                                                                                                    Ok(response) if response.success => {
+                                                                                                        let link = response.link.unwrap_or_default();
+                                                                                                        // Save link to backend for persistence
+                                                                                                        let _ = api::set_encounter_parsely_link(enc_id, &link).await;
+                                                                                                        // Clear transient state and refresh encounters
+                                                                                                        upload_states.with_mut(|states| {
+                                                                                                            states.remove(&enc_id);
+                                                                                                        });
+                                                                                                        // Refresh encounter list to show persisted link
+                                                                                                        if let Some(history) = api::get_encounter_history().await {
+                                                                                                            encounters.set(history);
+                                                                                                        }
+                                                                                                    }
+                                                                                                    Ok(response) => {
+                                                                                                        let err = response.error.unwrap_or_else(|| "Unknown error".to_string());
+                                                                                                        upload_states.with_mut(|states| {
+                                                                                                            states.insert(enc_id, UploadState::Error(err));
+                                                                                                        });
+                                                                                                    }
+                                                                                                    Err(e) => {
+                                                                                                        upload_states.with_mut(|states| {
+                                                                                                            states.insert(enc_id, UploadState::Error(e));
+                                                                                                        });
+                                                                                                    }
                                                                                                 }
                                                                                             }
+                                                                                            None => {
+                                                                                                upload_states.with_mut(|states| {
+                                                                                                    states.insert(enc_id, UploadState::Error("No active log file".to_string()));
+                                                                                                });
+                                                                                            }
                                                                                         }
-                                                                                        None => {
-                                                                                            upload_states.with_mut(|states| {
-                                                                                                states.insert(enc_id, UploadState::Error("No active log file".to_string()));
-                                                                                            });
-                                                                                        }
-                                                                                    }
-                                                                                });
-                                                                            },
-                                                                            i { class: "fa-solid fa-upload" }
-                                                                        }
-                                                                    },
+                                                                                    });
+                                                                                },
+                                                                                i { class: "fa-solid fa-upload" }
+                                                                            }
+                                                                        },
                                                                         UploadState::Uploading => rsx! {
                                                                             span { class: "parsely-upload-btn uploading",
                                                                                 i { class: "fa-solid fa-spinner fa-spin" }
                                                                             }
                                                                         },
-                                                                        UploadState::Success(ref link) => rsx! {
-                                                                            a {
-                                                                                class: "parsely-upload-btn success",
-                                                                                href: "{link}",
-                                                                                target: "_blank",
-                                                                                title: "View on Parsely",
-                                                                                onclick: |e| e.stop_propagation(),
-                                                                                i { class: "fa-solid fa-external-link" }
+                                                                        UploadState::Success(_) => rsx! {
+                                                                            // This shouldn't happen - success saves to backend
+                                                                            // But handle it gracefully
+                                                                            i { class: "fa-solid fa-check" }
+                                                                        },
+                                                                        UploadState::Error(ref err) => rsx! {
+                                                                            button {
+                                                                                class: "parsely-upload-btn error",
+                                                                                title: "Error: {err}. Click to retry.",
+                                                                                onclick: move |e| {
+                                                                                    e.stop_propagation();
+                                                                                    upload_states.with_mut(|states| {
+                                                                                        states.insert(enc_id, UploadState::Idle);
+                                                                                    });
+                                                                                },
+                                                                                i { class: "fa-solid fa-triangle-exclamation" }
                                                                             }
                                                                         },
-                                                                    UploadState::Error(ref err) => rsx! {
-                                                                        button {
-                                                                            class: "parsely-upload-btn error",
-                                                                            title: "Error: {err}. Click to retry.",
-                                                                            onclick: move |e| {
-                                                                                e.stop_propagation();
-                                                                                upload_states.with_mut(|states| {
-                                                                                    states.insert(enc_id, UploadState::Idle);
-                                                                                });
-                                                                            },
-                                                                            i { class: "fa-solid fa-triangle-exclamation" }
-                                                                        }
-                                                                    },
+                                                                    }
                                                                 }
                                                             }
                                                         }

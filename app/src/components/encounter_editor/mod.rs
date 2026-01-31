@@ -162,7 +162,7 @@ pub fn NpcIdChipEditor(ids: Vec<i64>, on_change: EventHandler<Vec<i64>>) -> Elem
 }
 
 use crate::api;
-use crate::types::{AreaListItem, BossWithPath};
+use crate::types::{AreaListItem, BossWithPath, UiSessionState};
 
 pub use tabs::BossTabs;
 
@@ -170,20 +170,55 @@ pub use tabs::BossTabs;
 // Main Panel
 // ─────────────────────────────────────────────────────────────────────────────
 
+#[derive(Props, Clone, PartialEq)]
+pub struct EncounterEditorProps {
+    /// Unified UI session state (includes persisted state for this panel)
+    pub state: Signal<UiSessionState>,
+}
+
 #[component]
-pub fn EncounterEditorPanel() -> Element {
-    // Area index state
+pub fn EncounterEditorPanel(mut props: EncounterEditorProps) -> Element {
+    // Area index state (not persisted - loaded fresh each time)
     let mut areas = use_signal(Vec::<AreaListItem>::new);
-    let mut selected_area = use_signal(|| None::<AreaListItem>);
     let mut loading_areas = use_signal(|| true);
 
     // Boss state - unified: one signal holds all bosses with their items
     let mut bosses = use_signal(Vec::<BossWithPath>::new);
     let mut loading_bosses = use_signal(|| false);
 
-    // UI state
-    let mut area_filter = use_signal(String::new);
-    let mut expanded_boss = use_signal(|| None::<String>);
+    // Extract persisted state fields
+    let mut selected_area_path = use_signal(|| props.state.read().encounter_builder.selected_area_path.clone());
+    let mut selected_area_name = use_signal(|| props.state.read().encounter_builder.selected_area_name.clone());
+    let mut expanded_boss = use_signal(|| props.state.read().encounter_builder.expanded_boss.clone());
+    let mut area_filter = use_signal(|| props.state.read().encounter_builder.area_filter.clone());
+    let active_boss_tab = use_signal(|| props.state.read().encounter_builder.active_boss_tab.clone());
+    
+    // Expanded items within each tab
+    let expanded_timer = use_signal(|| props.state.read().encounter_builder.expanded_timer.clone());
+    let expanded_phase = use_signal(|| props.state.read().encounter_builder.expanded_phase.clone());
+    let expanded_counter = use_signal(|| props.state.read().encounter_builder.expanded_counter.clone());
+    let expanded_challenge = use_signal(|| props.state.read().encounter_builder.expanded_challenge.clone());
+    let expanded_entity = use_signal(|| props.state.read().encounter_builder.expanded_entity.clone());
+    
+    // Derived: selected_area AreaListItem (reconstructed from path/name when areas load)
+    let mut selected_area = use_signal(|| None::<AreaListItem>);
+    
+    // Sync persisted state back to unified state
+    use_effect(move || {
+        let mut state = props.state.write();
+        state.encounter_builder.selected_area_path = selected_area_path.read().clone();
+        state.encounter_builder.selected_area_name = selected_area_name.read().clone();
+        state.encounter_builder.expanded_boss = expanded_boss.read().clone();
+        state.encounter_builder.area_filter = area_filter.read().clone();
+        state.encounter_builder.active_boss_tab = active_boss_tab.read().clone();
+        state.encounter_builder.expanded_timer = expanded_timer.read().clone();
+        state.encounter_builder.expanded_phase = expanded_phase.read().clone();
+        state.encounter_builder.expanded_counter = expanded_counter.read().clone();
+        state.encounter_builder.expanded_challenge = expanded_challenge.read().clone();
+        state.encounter_builder.expanded_entity = expanded_entity.read().clone();
+    });
+    
+    // Non-persisted UI state
     let mut show_new_area = use_signal(|| false);
     let mut show_new_boss = use_signal(|| false);
     let mut status_message = use_signal(|| None::<(String, bool)>);
@@ -198,11 +233,22 @@ pub fn EncounterEditorPanel() -> Element {
         }
     });
 
-    // Load area index on mount
+    // Load area index on mount and restore selected area if persisted
     use_effect(move || {
         spawn(async move {
-            if let Some(a) = api::get_area_index().await {
-                areas.set(a);
+            if let Some(area_list) = api::get_area_index().await {
+                areas.set(area_list.clone());
+                
+                // Restore selected area from persisted path
+                if let Some(ref path) = *selected_area_path.read() {
+                    if let Some(area) = area_list.iter().find(|a| &a.file_path == path) {
+                        selected_area.set(Some(area.clone()));
+                        // Load bosses for the restored area
+                        if let Some(boss_list) = api::fetch_area_bosses(&area.file_path).await {
+                            bosses.set(boss_list);
+                        }
+                    }
+                }
             }
             loading_areas.set(false);
         });
@@ -211,7 +257,13 @@ pub fn EncounterEditorPanel() -> Element {
     // Load bosses when area is selected - single unified call
     let mut load_area_data = move |area: AreaListItem| {
         let file_path = area.file_path.clone();
+        let area_name = area.name.clone();
+        
+        // Update persisted state
+        selected_area_path.set(Some(file_path.clone()));
+        selected_area_name.set(Some(area_name));
         selected_area.set(Some(area));
+        
         loading_bosses.set(true);
         bosses.set(Vec::new());
         expanded_boss.set(None);
@@ -408,6 +460,12 @@ pub fn EncounterEditorPanel() -> Element {
                                             div { class: "list-item-body",
                                                 BossTabs {
                                                     boss_with_path: bwp.clone(),
+                                                    active_tab: active_boss_tab,
+                                                    expanded_timer: expanded_timer,
+                                                    expanded_phase: expanded_phase,
+                                                    expanded_counter: expanded_counter,
+                                                    expanded_challenge: expanded_challenge,
+                                                    expanded_entity: expanded_entity,
                                                     on_boss_change: move |updated: BossWithPath| {
                                                         let mut all = bosses();
                                                         if let Some(idx) = all.iter().position(|b| b.boss.id == updated.boss.id) {

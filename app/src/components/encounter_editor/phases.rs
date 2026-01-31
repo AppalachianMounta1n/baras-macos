@@ -8,10 +8,10 @@ use dioxus::prelude::*;
 use crate::api;
 use crate::types::{BossWithPath, EncounterItem, PhaseDefinition, Trigger};
 
-use super::InlineNameCreator;
 use super::conditions::CounterConditionEditor;
 use super::tabs::EncounterData;
 use super::triggers::ComposableTriggerEditor;
+use super::InlineNameCreator;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Phases Tab
@@ -35,11 +35,10 @@ fn default_phase(name: String) -> PhaseDefinition {
 pub fn PhasesTab(
     boss_with_path: BossWithPath,
     encounter_data: EncounterData,
+    expanded_phase: Signal<Option<String>>,
     on_change: EventHandler<Vec<PhaseDefinition>>,
     on_status: EventHandler<(String, bool)>,
 ) -> Element {
-    let mut expanded_phase = use_signal(|| None::<String>);
-
     // Extract phases from BossWithPath
     let phases = boss_with_path.boss.phases.clone();
 

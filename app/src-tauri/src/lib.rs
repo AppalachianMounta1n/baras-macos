@@ -184,6 +184,7 @@ pub fn run() {
             commands::get_active_file,
             commands::get_session_info,
             commands::get_encounter_history,
+            commands::set_encounter_parsely_link,
             // File browser commands
             commands::open_historical_file,
             commands::resume_live_tailing,

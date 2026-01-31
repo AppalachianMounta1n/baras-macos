@@ -6,6 +6,7 @@
 //! - Full CRUD operations
 
 use dioxus::prelude::*;
+use wasm_bindgen_futures::spawn_local as spawn;
 
 use super::encounter_editor::InlineNameCreator;
 use super::encounter_editor::triggers::{
@@ -15,7 +16,7 @@ use super::{ToastSeverity, use_toast};
 use crate::api;
 use crate::types::{
     AbilitySelector, AlertTrigger, AudioConfig, DisplayTarget, EffectListItem, EffectSelector,
-    EntityFilter, Trigger,
+    EntityFilter, Trigger, UiSessionState,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -233,17 +234,32 @@ impl EffectTriggerType {
 /// Marker ID for a draft effect that hasn't been saved yet
 const DRAFT_EFFECT_ID: &str = "__new_draft__";
 
+#[derive(Props, Clone, PartialEq)]
+pub struct EffectEditorProps {
+    /// Unified UI session state (includes persisted state for this panel)
+    pub state: Signal<UiSessionState>,
+}
+
 #[component]
-pub fn EffectEditorPanel() -> Element {
-    // State
+pub fn EffectEditorPanel(mut props: EffectEditorProps) -> Element {
+    // Data state (loaded fresh)
     let mut effects = use_signal(Vec::<EffectListItem>::new);
-    let mut search_query = use_signal(String::new);
-    let mut expanded_effect = use_signal(|| None::<String>);
     let mut loading = use_signal(|| true);
     let mut save_status = use_signal(String::new);
     let mut status_is_error = use_signal(|| false);
     // Draft for new effects - not yet saved to backend
     let mut draft_effect = use_signal(|| None::<EffectListItem>);
+    
+    // Extract persisted state fields
+    let mut search_query = use_signal(|| props.state.read().effects_editor.search_query.clone());
+    let mut expanded_effect = use_signal(|| props.state.read().effects_editor.expanded_effect.clone());
+    
+    // Sync persisted state back to unified state
+    use_effect(move || {
+        let mut state = props.state.write();
+        state.effects_editor.search_query = search_query.read().clone();
+        state.effects_editor.expanded_effect = expanded_effect.read().clone();
+    });
 
     // Load effects on mount
     use_future(move || async move {
@@ -251,6 +267,26 @@ pub fn EffectEditorPanel() -> Element {
             effects.set(e);
         }
         loading.set(false);
+    });
+    
+    // Scroll to expanded effect when effects finish loading
+    use_effect(move || {
+        if !loading() {
+            if let Some(effect_id) = expanded_effect.read().clone() {
+                // Small delay to ensure DOM is rendered
+                spawn(async move {
+                    gloo_timers::future::TimeoutFuture::new(100).await;
+                    if let Some(window) = web_sys::window() {
+                        if let Some(document) = window.document() {
+                            let element_id = format!("effect-{}", effect_id);
+                            if let Some(element) = document.get_element_by_id(&element_id) {
+                                element.scroll_into_view();
+                            }
+                        }
+                    }
+                });
+            }
+        }
     });
 
     // Filter effects based on search query
@@ -524,7 +560,9 @@ fn EffectRow(
     let effect_for_audio = effect.clone();
 
     rsx! {
-        div { class: if expanded { "effect-row expanded" } else { "effect-row" },
+        div {
+            id: "effect-{effect.id}",
+            class: if expanded { "effect-row expanded" } else { "effect-row" },
             div {
                 class: "effect-row-summary",
                 onclick: move |_| on_toggle.call(()),

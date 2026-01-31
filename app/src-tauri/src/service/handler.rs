@@ -317,6 +317,20 @@ impl ServiceHandle {
         cache.encounter_history.summaries().to_vec()
     }
 
+    /// Set the Parsely link for a specific encounter
+    pub async fn set_encounter_parsely_link(&self, encounter_id: u64, link: String) -> bool {
+        let session_guard = self.shared.session.read().await;
+        let Some(session) = session_guard.as_ref() else {
+            return false;
+        };
+        let mut session = session.write().await;
+        let Some(cache) = session.session_cache.as_mut() else {
+            return false;
+        };
+
+        cache.encounter_history.set_parsely_link(encounter_id, link)
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Raid Registry Operations
     // ─────────────────────────────────────────────────────────────────────────

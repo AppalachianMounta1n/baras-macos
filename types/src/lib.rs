@@ -1876,3 +1876,219 @@ impl EntityFilter {
         ]
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI Session State - persists across tab switches
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Global UI session state that persists across tab switches (in-memory only).
+/// Lives in the App component and flows down via props/signals.
+#[derive(Debug, Clone, PartialEq)]
+pub struct UiSessionState {
+    /// Currently active main tab
+    pub active_tab: MainTab,
+
+    /// Data Explorer state
+    pub data_explorer: DataExplorerState,
+
+    /// Combat Log state (within Data Explorer)
+    pub combat_log: CombatLogSessionState,
+
+    /// Encounter Builder state
+    pub encounter_builder: EncounterBuilderState,
+
+    /// Effects Editor state
+    pub effects_editor: EffectsEditorState,
+}
+
+impl Default for UiSessionState {
+    fn default() -> Self {
+        Self {
+            active_tab: MainTab::default(),
+            data_explorer: DataExplorerState::default(),
+            combat_log: CombatLogSessionState::default(),
+            encounter_builder: EncounterBuilderState::default(),
+            effects_editor: EffectsEditorState::default(),
+        }
+    }
+}
+
+/// Main application tabs
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MainTab {
+    #[default]
+    Session,
+    DataExplorer,
+    Overlays,
+    EncounterBuilder,
+    Effects,
+}
+
+impl MainTab {
+    /// Convert to string ID used in old code
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            MainTab::Session => "session",
+            MainTab::DataExplorer => "explorer",
+            MainTab::Overlays => "overlays",
+            MainTab::EncounterBuilder => "timers",
+            MainTab::Effects => "effects",
+        }
+    }
+
+    /// Parse from string ID used in old code
+    pub fn from_str(s: &str) -> Self {
+        match s {
+            "session" => MainTab::Session,
+            "explorer" => MainTab::DataExplorer,
+            "overlays" => MainTab::Overlays,
+            "timers" => MainTab::EncounterBuilder,
+            "effects" => MainTab::Effects,
+            _ => MainTab::Session,
+        }
+    }
+}
+
+/// Data Explorer view mode
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ViewMode {
+    #[default]
+    Overview,
+    Charts,
+    CombatLog,
+    Detailed(DataTab),
+}
+
+impl ViewMode {
+    /// Get the DataTab if in Detailed mode, otherwise None
+    pub fn tab(&self) -> Option<DataTab> {
+        match self {
+            ViewMode::Detailed(tab) => Some(*tab),
+            _ => None,
+        }
+    }
+}
+
+/// Sort column for ability breakdown table
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SortColumn {
+    Target,
+    Ability,
+    #[default]
+    Total,
+    Percent,
+    Rate,
+    Hits,
+    Avg,
+    CritPct,
+}
+
+/// Sort direction
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SortDirection {
+    #[default]
+    Desc,
+    Asc,
+}
+
+/// Data Explorer session state
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct DataExplorerState {
+    /// Selected encounter index
+    pub selected_encounter: Option<u32>,
+    /// Current view mode (Overview, Charts, CombatLog, Detailed)
+    pub view_mode: ViewMode,
+    /// Selected source entity for detailed breakdown
+    pub selected_source: Option<String>,
+    /// Breakdown mode toggles
+    pub breakdown_mode: BreakdownMode,
+    /// Players-only filter
+    pub show_players_only: bool,
+    /// Bosses-only filter in sidebar
+    pub show_only_bosses: bool,
+    /// Sort column for ability table
+    pub sort_column: SortColumn,
+    /// Sort direction
+    pub sort_direction: SortDirection,
+    /// Collapsed sections in sidebar (set of section names: "Operations", "Flashpoints", etc.)
+    pub collapsed_sections: std::collections::HashSet<String>,
+}
+
+/// Combat Log session state (filters, scroll position, etc.)
+#[derive(Debug, Clone, PartialEq)]
+pub struct CombatLogSessionState {
+    /// Current encounter index being viewed
+    pub encounter_idx: Option<u32>,
+    /// Source filter
+    pub source_filter: Option<String>,
+    /// Target filter  
+    pub target_filter: Option<String>,
+    /// Search text
+    pub search_text: String,
+    /// Event type filters
+    pub filter_damage: bool,
+    pub filter_healing: bool,
+    pub filter_actions: bool,
+    pub filter_effects: bool,
+    pub filter_simplified: bool,
+    /// Show IDs toggle (IMPORTANT: now persisted!)
+    pub show_ids: bool,
+    /// Scroll position
+    pub scroll_offset: f64,
+}
+
+impl Default for CombatLogSessionState {
+    fn default() -> Self {
+        Self {
+            encounter_idx: None,
+            source_filter: None,
+            target_filter: None,
+            search_text: String::new(),
+            filter_damage: true,
+            filter_healing: true,
+            filter_actions: true,
+            filter_effects: true,
+            filter_simplified: false,
+            show_ids: false,
+            scroll_offset: 0.0,
+        }
+    }
+}
+
+/// Encounter Builder session state
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct EncounterBuilderState {
+    /// Selected area file path
+    pub selected_area_path: Option<String>,
+    /// Selected area name (for display)
+    pub selected_area_name: Option<String>,
+    /// Expanded boss name
+    pub expanded_boss: Option<String>,
+    /// Active tab within boss editor (timers, phases, counters, etc.)
+    pub active_boss_tab: Option<String>,
+    /// Filter text in area sidebar
+    pub area_filter: String,
+    /// Expanded timer ID within Timers tab
+    pub expanded_timer: Option<String>,
+    /// Expanded phase ID within Phases tab
+    pub expanded_phase: Option<String>,
+    /// Expanded counter ID within Counters tab
+    pub expanded_counter: Option<String>,
+    /// Expanded challenge ID within Challenges tab
+    pub expanded_challenge: Option<String>,
+    /// Expanded entity ID within Entities tab
+    pub expanded_entity: Option<String>,
+}
+
+/// Effects Editor session state
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct EffectsEditorState {
+    /// Expanded effect ID
+    pub expanded_effect: Option<String>,
+    /// Search query
+    pub search_query: String,
+}

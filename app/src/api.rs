@@ -553,6 +553,15 @@ pub async fn upload_encounter_to_parsely(
     from_js(result).ok_or_else(|| "Failed to parse upload response".to_string())
 }
 
+/// Set the Parsely link for an encounter (persists in backend)
+pub async fn set_encounter_parsely_link(encounter_id: u64, link: &str) -> Result<bool, String> {
+    let obj = js_sys::Object::new();
+    js_set(&obj, "encounterId", &JsValue::from_f64(encounter_id as f64));
+    js_set(&obj, "link", &JsValue::from_str(link));
+    let result = try_invoke("set_encounter_parsely_link", obj.into()).await?;
+    from_js(result).ok_or_else(|| "Failed to parse response".to_string())
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Audio File Picker
 // ─────────────────────────────────────────────────────────────────────────────

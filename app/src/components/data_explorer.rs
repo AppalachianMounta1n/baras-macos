@@ -9,55 +9,22 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local as spawn;
 
 use crate::api::{
-    self, AbilityBreakdown, BreakdownMode, DataTab, EncounterTimeline, EntityBreakdown,
+    self, AbilityBreakdown, EncounterTimeline, EntityBreakdown,
     PlayerDeath, RaidOverviewRow, TimeRange,
 };
 use crate::components::ability_icon::AbilityIcon;
 use crate::components::charts_panel::ChartsPanel;
 use crate::components::class_icons::{get_class_icon, get_role_icon};
-use crate::components::combat_log::{CombatLog, CombatLogState};
+use crate::components::combat_log::CombatLog;
 use crate::components::history_panel::EncounterSummary;
 use crate::components::phase_timeline::PhaseTimelineFilter;
 use crate::components::{ToastSeverity, use_toast};
+use crate::types::{BreakdownMode, CombatLogSessionState, DataTab, SortColumn, SortDirection, UiSessionState, ViewMode};
 use crate::utils::js_set;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Sort Types for Ability Table
+// Local Types (not persisted)
 // ─────────────────────────────────────────────────────────────────────────────
-
-#[derive(Clone, Copy, PartialEq, Default)]
-enum SortColumn {
-    Target,
-    Ability,
-    #[default]
-    Total,
-    Percent,
-    Rate,
-    Hits,
-    Avg,
-    CritPct,
-}
-
-#[derive(Clone, Copy, PartialEq, Default)]
-enum SortDirection {
-    #[default]
-    Desc,
-    Asc,
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// View Mode and Load State
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Which view is currently active in the data explorer
-#[derive(Clone, Copy, PartialEq, Default)]
-pub enum ViewMode {
-    #[default]
-    Overview,
-    Charts,
-    CombatLog,
-    Detailed(DataTab),
-}
 
 /// Loading state for async operations
 #[derive(Clone, PartialEq, Default)]
@@ -85,16 +52,6 @@ struct OverviewTableData {
     total_healing: f64,
     total_hps: f64,
     total_ehps: f64,
-}
-
-impl ViewMode {
-    /// Get the DataTab if in Detailed mode, otherwise None
-    fn tab(&self) -> Option<DataTab> {
-        match self {
-            ViewMode::Detailed(tab) => Some(*tab),
-            _ => None,
-        }
-    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -361,56 +318,57 @@ fn group_by_area(
 
 #[derive(Props, Clone, PartialEq)]
 pub struct DataExplorerProps {
-    /// Initial encounter index (None = show selector)
-    #[props(default)]
-    pub encounter_idx: Option<u32>,
-    /// Shared bosses-only filter signal
-    pub show_only_bosses: Signal<bool>,
-    /// Persisted selected encounter (survives tab switches)
-    pub selected_encounter: Signal<Option<u32>>,
-    /// Persisted view mode (survives tab switches)
-    pub view_mode: Signal<ViewMode>,
-    /// Persisted combat log state (survives tab switches)
-    pub combat_log_state: Signal<CombatLogState>,
+    /// Unified UI session state (includes all persisted state for this panel)
+    pub state: Signal<UiSessionState>,
 }
 
 #[component]
-pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
+pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
     // Encounter selection state
     let mut encounters = use_signal(Vec::<EncounterSummary>::new);
-    let mut selected_encounter = props.selected_encounter;
+    
+    // Extract persisted state fields into local signals for easier access
+    let mut selected_encounter = use_signal(|| props.state.read().data_explorer.selected_encounter);
+    let mut view_mode = use_signal(|| props.state.read().data_explorer.view_mode);
+    let mut selected_source = use_signal(|| props.state.read().data_explorer.selected_source.clone());
+    let mut breakdown_mode = use_signal(|| props.state.read().data_explorer.breakdown_mode);
+    let mut show_players_only = use_signal(|| props.state.read().data_explorer.show_players_only);
+    let mut show_only_bosses = use_signal(|| props.state.read().data_explorer.show_only_bosses);
+    let mut sort_column = use_signal(|| props.state.read().data_explorer.sort_column);
+    let mut sort_direction = use_signal(|| props.state.read().data_explorer.sort_direction);
+    let mut collapsed_sections = use_signal(|| props.state.read().data_explorer.collapsed_sections.clone());
+    
+    // Combat log state is a separate signal that CombatLog component will modify
+    let mut combat_log_state = use_signal(|| props.state.read().combat_log.clone());
+    
+    // Sync local signals back to unified state when they change
+    use_effect(move || {
+        let mut state = props.state.write();
+        state.data_explorer.selected_encounter = *selected_encounter.read();
+        state.data_explorer.view_mode = *view_mode.read();
+        state.data_explorer.selected_source = selected_source.read().clone();
+        state.data_explorer.breakdown_mode = *breakdown_mode.read();
+        state.data_explorer.show_players_only = *show_players_only.read();
+        state.data_explorer.show_only_bosses = *show_only_bosses.read();
+        state.data_explorer.sort_column = *sort_column.read();
+        state.data_explorer.sort_direction = *sort_direction.read();
+        state.data_explorer.collapsed_sections = collapsed_sections.read().clone();
+        state.combat_log = combat_log_state.read().clone();
+    });
 
-    // Sidebar state
-    let mut show_only_bosses = props.show_only_bosses;
-    let mut collapsed_sections = use_signal(HashSet::<String>::new);
-
-    // Query result state
+    // Query result state (not persisted)
     let mut abilities = use_signal(Vec::<AbilityBreakdown>::new);
     let mut entities = use_signal(Vec::<EntityBreakdown>::new);
-    let mut selected_source = use_signal(|| None::<String>);
 
-    // Loading states (replaces loading + error_msg)
+    // Loading states (not persisted)
     let mut timeline_state = use_signal(LoadState::default);
     let mut content_state = use_signal(LoadState::default);
     // Generation counter to discard stale async results on rapid encounter switching
     let mut load_generation = use_signal(|| 0u32);
 
-    // Entity filter: true = players/companions only, false = show all (including NPCs)
-    let mut show_players_only = use_signal(|| true);
-
-    // Timeline state
+    // Timeline state (not persisted - resets per encounter as requested)
     let mut timeline = use_signal(|| None::<EncounterTimeline>);
     let mut time_range = use_signal(|| TimeRange::default());
-
-    // Breakdown mode state (toggles for grouping)
-    let mut breakdown_mode = use_signal(|| BreakdownMode::ability_only());
-
-    // View mode - which tab/view is active (persisted via props)
-    let mut view_mode = props.view_mode;
-
-    // Ability table sort state
-    let mut sort_column = use_signal(SortColumn::default);
-    let mut sort_direction = use_signal(SortDirection::default);
 
     // Overview data
     let mut overview_data = use_signal(Vec::<RaidOverviewRow>::new);
@@ -1342,7 +1300,7 @@ pub fn DataExplorerPanel(props: DataExplorerProps) -> Element {
                                 encounter_idx: enc_idx,
                                 time_range: time_range(),
                                 initial_search: death_search_text(),
-                                state: props.combat_log_state,
+                                state: combat_log_state,
                             }
                         }
                     } else if matches!(*view_mode.read(), ViewMode::Charts) {

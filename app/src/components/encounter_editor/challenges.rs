@@ -12,10 +12,10 @@ use crate::types::{
 };
 use crate::utils::parse_hex_color;
 
-use super::InlineNameCreator;
 use super::tabs::EncounterData;
 use super::timers::PhaseSelector;
 use super::triggers::EntityFilterDropdown;
+use super::InlineNameCreator;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Challenges Tab
@@ -40,11 +40,10 @@ fn default_challenge(name: String) -> ChallengeDefinition {
 pub fn ChallengesTab(
     boss_with_path: BossWithPath,
     encounter_data: EncounterData,
+    expanded_challenge: Signal<Option<String>>,
     on_change: EventHandler<Vec<ChallengeDefinition>>,
     on_status: EventHandler<(String, bool)>,
 ) -> Element {
-    let mut expanded_challenge = use_signal(|| None::<String>);
-
     // Extract challenges from BossWithPath
     let challenges = boss_with_path.boss.challenges.clone();
 

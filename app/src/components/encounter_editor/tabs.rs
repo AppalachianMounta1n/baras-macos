@@ -46,6 +46,23 @@ impl BossTab {
             Self::Entities,
         ]
     }
+
+    /// Convert to string for persistence
+    pub fn as_str(&self) -> &'static str {
+        self.label()
+    }
+
+    /// Parse from persisted string
+    pub fn from_str(s: &str) -> Self {
+        match s {
+            "Timers" => Self::Timers,
+            "Phases" => Self::Phases,
+            "Counters" => Self::Counters,
+            "Challenges" => Self::Challenges,
+            "Entities" => Self::Entities,
+            _ => Self::Timers, // Default
+        }
+    }
 }
 
 /// Encounter data for child components (references into BossWithPath)
@@ -99,10 +116,29 @@ impl EncounterData {
 #[component]
 pub fn BossTabs(
     boss_with_path: BossWithPath,
+    active_tab: Signal<Option<String>>,
+    expanded_timer: Signal<Option<String>>,
+    expanded_phase: Signal<Option<String>>,
+    expanded_counter: Signal<Option<String>>,
+    expanded_challenge: Signal<Option<String>>,
+    expanded_entity: Signal<Option<String>>,
     on_boss_change: EventHandler<BossWithPath>,
     on_status: EventHandler<(String, bool)>,
 ) -> Element {
-    let mut active_tab = use_signal(|| BossTab::Timers);
+    // Convert persisted string to BossTab enum, or default to Timers
+    let mut active_tab_enum = use_signal(|| {
+        active_tab
+            .read()
+            .as_ref()
+            .map(|s| BossTab::from_str(s))
+            .unwrap_or(BossTab::Timers)
+    });
+
+    // Sync back to persisted state when tab changes
+    use_effect(move || {
+        let tab_str = active_tab_enum.read().as_str().to_string();
+        active_tab.write().replace(tab_str);
+    });
 
     // Build encounter data from BossWithPath (no async loading needed!)
     let encounter_data = EncounterData::from_boss(&boss_with_path);
@@ -119,7 +155,7 @@ pub fn BossTabs(
             div { class: "tab-nav",
                 for tab in BossTab::all() {
                     {
-                        let is_active = active_tab() == *tab;
+                        let is_active = active_tab_enum() == *tab;
                         let tab_copy = *tab;
                         let count_label = match tab {
                             BossTab::Timers => format!(" ({})", timer_count),
@@ -132,7 +168,7 @@ pub fn BossTabs(
                         rsx! {
                             button {
                                 class: if is_active { "tab-btn active" } else { "tab-btn" },
-                                onclick: move |_| active_tab.set(tab_copy),
+                                onclick: move |_| active_tab_enum.set(tab_copy),
                                 "{tab.label()}{count_label}"
                             }
                         }
@@ -142,11 +178,12 @@ pub fn BossTabs(
 
             // Tab content
             div { class: "p-sm",
-                match active_tab() {
+                match active_tab_enum() {
                     BossTab::Timers => rsx! {
                         TimersTab {
                             boss_with_path: boss_with_path.clone(),
                             encounter_data: encounter_data.clone(),
+                            expanded_timer: expanded_timer,
                             on_change: move |updated_timers: Vec<BossTimerDefinition>| {
                                 let mut bwp = boss_with_path.clone();
                                 bwp.boss.timers = updated_timers;
@@ -159,6 +196,7 @@ pub fn BossTabs(
                         PhasesTab {
                             boss_with_path: boss_with_path.clone(),
                             encounter_data: encounter_data.clone(),
+                            expanded_phase: expanded_phase,
                             on_change: move |updated_phases: Vec<PhaseDefinition>| {
                                 let mut bwp = boss_with_path.clone();
                                 bwp.boss.phases = updated_phases;
@@ -171,6 +209,7 @@ pub fn BossTabs(
                         CountersTab {
                             boss_with_path: boss_with_path.clone(),
                             encounter_data: encounter_data.clone(),
+                            expanded_counter: expanded_counter,
                             on_change: move |updated_counters: Vec<CounterDefinition>| {
                                 let mut bwp = boss_with_path.clone();
                                 bwp.boss.counters = updated_counters;
@@ -183,6 +222,7 @@ pub fn BossTabs(
                         ChallengesTab {
                             boss_with_path: boss_with_path.clone(),
                             encounter_data: encounter_data.clone(),
+                            expanded_challenge: expanded_challenge,
                             on_change: move |updated_challenges: Vec<ChallengeDefinition>| {
                                 let mut bwp = boss_with_path.clone();
                                 bwp.boss.challenges = updated_challenges;
@@ -194,6 +234,7 @@ pub fn BossTabs(
                     BossTab::Entities => rsx! {
                         EntitiesTab {
                             boss_with_path: boss_with_path.clone(),
+                            expanded_entity: expanded_entity,
                             on_change: move |updated_entities: Vec<EntityDefinition>| {
                                 let mut bwp = boss_with_path.clone();
                                 bwp.boss.entities = updated_entities;

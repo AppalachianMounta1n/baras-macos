@@ -1044,6 +1044,9 @@ impl CombatService {
             .app_handle
             .emit("active-file-changed", path.to_string_lossy().to_string());
 
+        // Notify frontend that a new session has started (reset UI state)
+        let _ = self.app_handle.emit("new-session-started", ());
+
         // Create reader for live tailing (after subprocess parse)
         let reader = Reader::from(path.clone(), session.clone());
 

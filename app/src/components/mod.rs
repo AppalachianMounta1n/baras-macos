@@ -16,8 +16,13 @@ pub mod phase_timeline;
 pub mod settings_panel;
 pub mod toast;
 
-pub use combat_log::CombatLogState;
-pub use data_explorer::{DataExplorerPanel, ViewMode};
+// Re-export types that were moved to baras-types for sharing
+pub use crate::types::{
+    CombatLogSessionState, DataExplorerState, EffectsEditorState, EncounterBuilderState,
+    MainTab, SortColumn, SortDirection, UiSessionState, ViewMode,
+};
+
+pub use data_explorer::DataExplorerPanel;
 pub use effect_editor::EffectEditorPanel;
 pub use encounter_editor::EncounterEditorPanel;
 pub use history_panel::HistoryPanel;

@@ -55,10 +55,10 @@ fn default_timer(name: String) -> BossTimerDefinition {
 pub fn TimersTab(
     boss_with_path: BossWithPath,
     encounter_data: EncounterData,
+    expanded_timer: Signal<Option<String>>,
     on_change: EventHandler<Vec<BossTimerDefinition>>,
     on_status: EventHandler<(String, bool)>,
 ) -> Element {
-    let mut expanded_timer = use_signal(|| None::<String>);
 
     // Extract timers from BossWithPath
     let timers = boss_with_path.boss.timers.clone();

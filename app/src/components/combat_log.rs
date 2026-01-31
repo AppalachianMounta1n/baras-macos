@@ -7,6 +7,7 @@ use wasm_bindgen::JsCast;
 
 use crate::api::{self, CombatLogFilters, CombatLogFindMatch, CombatLogRow, TimeRange};
 use crate::components::ability_icon::AbilityIcon;
+use crate::types::CombatLogSessionState;
 
 /// Row height in pixels for virtual scrolling calculations.
 const ROW_HEIGHT: f64 = 24.0;
@@ -43,38 +44,6 @@ const DEFENSE_COVER: i64 = 836045448945510;
 const DEFENSE_ABSORBED: i64 = 836045448945511;
 const DEFENSE_REFLECTED: i64 = 836045448953649;
 
-/// Persisted combat log filter/scroll state that survives component unmounts.
-#[derive(Clone, PartialEq)]
-pub struct CombatLogState {
-    pub encounter_idx: Option<u32>,
-    pub source_filter: Option<String>,
-    pub target_filter: Option<String>,
-    pub search_text: String,
-    pub filter_damage: bool,
-    pub filter_healing: bool,
-    pub filter_actions: bool,
-    pub filter_effects: bool,
-    pub filter_simplified: bool,
-    pub scroll_offset: f64,
-}
-
-impl Default for CombatLogState {
-    fn default() -> Self {
-        Self {
-            encounter_idx: None,
-            source_filter: None,
-            target_filter: None,
-            search_text: String::new(),
-            filter_damage: true,
-            filter_healing: true,
-            filter_actions: true,
-            filter_effects: true,
-            filter_simplified: false,
-            scroll_offset: 0.0,
-        }
-    }
-}
-
 #[derive(Props, Clone, PartialEq)]
 pub struct CombatLogProps {
     pub encounter_idx: u32,
@@ -82,8 +51,8 @@ pub struct CombatLogProps {
     /// Optional initial search text (e.g., player name from death tracker)
     #[props(default)]
     pub initial_search: Option<String>,
-    /// Persisted state signal (survives tab switches)
-    pub state: Signal<CombatLogState>,
+    /// Persisted state signal (survives tab switches, includes show_ids!)
+    pub state: Signal<CombatLogSessionState>,
 }
 
 /// Format time as M:SS.d
@@ -246,8 +215,8 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
     let mut filter_effects = use_signal(|| if should_restore { state.peek().filter_effects } else { true });
     let mut filter_simplified = use_signal(|| if should_restore { state.peek().filter_simplified } else { false });
 
-    // Show IDs toggle
-    let mut show_ids = use_signal(|| false);
+    // Show IDs toggle - NOW PERSISTED!
+    let mut show_ids = use_signal(|| if should_restore { state.peek().show_ids } else { false });
 
     // Scroll restoration flag - true only on first mount when we have saved scroll
     let mut restoring_scroll = use_signal(|| should_restore && state.peek().scroll_offset > 0.0);
@@ -499,7 +468,7 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
     // Save filter/scroll state on unmount so it persists across tab switches
     use_drop(move || {
         if let Ok(mut s) = state.try_write() {
-            *s = CombatLogState {
+            *s = CombatLogSessionState {
                 encounter_idx: Some(*encounter_idx_signal.peek()),
                 source_filter: source_filter.peek().clone(),
                 target_filter: target_filter.peek().clone(),
@@ -509,6 +478,7 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
                 filter_actions: *filter_actions.peek(),
                 filter_effects: *filter_effects.peek(),
                 filter_simplified: *filter_simplified.peek(),
+                show_ids: *show_ids.peek(),  // NOW PERSISTED!
                 scroll_offset: *scroll_top.peek(),
             };
         }

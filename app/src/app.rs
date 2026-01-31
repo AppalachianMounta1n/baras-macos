@@ -7,11 +7,13 @@ use wasm_bindgen_futures::spawn_local;
 
 use crate::api;
 use crate::components::{
-    CombatLogState, DataExplorerPanel, EffectEditorPanel, EncounterEditorPanel, HistoryPanel,
-    HotkeyInput, SettingsPanel, ToastFrame, ToastSeverity, ViewMode, use_toast, use_toast_provider,
+    DataExplorerPanel, EffectEditorPanel, EncounterEditorPanel, HistoryPanel,
+    HotkeyInput, SettingsPanel, ToastFrame, ToastSeverity, use_toast, use_toast_provider,
 };
 use crate::types::{
-    LogFileInfo, MetricType, OverlaySettings, OverlayStatus, OverlayType, SessionInfo, UpdateInfo,
+    CombatLogSessionState, DataExplorerState, EffectsEditorState, EncounterBuilderState,
+    LogFileInfo, MainTab, MetricType, OverlaySettings, OverlayStatus, OverlayType,
+    SessionInfo, UiSessionState, UpdateInfo, ViewMode,
 };
 
 static CSS: Asset = asset!("/assets/styles.css");
@@ -64,16 +66,34 @@ pub fn App() -> Element {
     let mut file_browser_filter = use_signal(String::new);
     let mut hide_small_log_files = use_signal(|| true);
 
-    // UI state
-    let mut active_tab = use_signal(|| "session".to_string());
+    // UI Session State - unified state that persists across tab switches
+    let mut ui_state = use_signal(UiSessionState::default);
+    
+    // Convenience signal for components that need individual fields (bidirectional sync)
+    // This allows HistoryPanel to receive show_only_bosses as a Signal<bool>
+    let mut show_only_bosses = use_signal(|| false);
+    
+    // Sync: ui_state -> show_only_bosses
+    use_effect(move || {
+        let val = ui_state.read().data_explorer.show_only_bosses;
+        if *show_only_bosses.read() != val {
+            show_only_bosses.set(val);
+        }
+    });
+    
+    // Sync: show_only_bosses -> ui_state
+    use_effect(move || {
+        let val = *show_only_bosses.read();
+        if ui_state.read().data_explorer.show_only_bosses != val {
+            ui_state.write().data_explorer.show_only_bosses = val;
+        }
+    });
+    
+    // Other UI state (not part of session persistence)
     let mut settings_open = use_signal(|| false);
     let mut general_settings_open = use_signal(|| false);
     let mut overlay_settings = use_signal(OverlaySettings::default);
     let selected_overlay_tab = use_signal(|| "dps".to_string());
-    let mut show_only_bosses = use_signal(|| false);
-    let explorer_selected_encounter = use_signal(|| None::<u32>);
-    let explorer_view_mode = use_signal(ViewMode::default);
-    let explorer_combat_log_state = use_signal(CombatLogState::default);
 
     // Hotkey state
     let mut hotkey_visibility = use_signal(String::new);
@@ -149,8 +169,8 @@ pub fn App() -> Element {
             audio_volume.set(config.audio.volume);
             audio_countdown_enabled.set(config.audio.countdown_enabled);
             audio_alerts_enabled.set(config.audio.alerts_enabled);
-            // UI preferences
-            show_only_bosses.set(config.show_only_bosses);
+            // UI preferences - now in unified state
+            ui_state.write().data_explorer.show_only_bosses = config.show_only_bosses;
         }
 
         app_version.set(api::get_app_version().await);
@@ -254,6 +274,16 @@ pub fn App() -> Element {
             let _ = session_ended.try_write().map(|mut w| *w = true);
         });
         api::tauri_listen("session-ended", &closure).await;
+        closure.forget();
+    });
+
+    // Listen for new session started (reset UI state for fresh start)
+    use_future(move || async move {
+        let closure = Closure::new(move |_event: JsValue| {
+            // Reset UI state to default when a new non-empty file starts being parsed
+            let _ = ui_state.try_write().map(|mut w| *w = UiSessionState::default());
+        });
+        api::tauri_listen("new-session-started", &closure).await;
         closure.forget();
     });
 
@@ -603,32 +633,32 @@ pub fn App() -> Element {
             // Tabs
             nav { class: "main-tabs",
                 button {
-                    class: if active_tab() == "session" { "tab-btn active" } else { "tab-btn" },
-                    onclick: move |_| active_tab.set("session".to_string()),
+                    class: if ui_state.read().active_tab == MainTab::Session { "tab-btn active" } else { "tab-btn" },
+                    onclick: move |_| ui_state.write().active_tab = MainTab::Session,
                     i { class: "fa-solid fa-chart-line" }
                     " Session"
                 }
                button {
-                    class: if active_tab() == "explorer" { "tab-btn active" } else { "tab-btn" },
-                    onclick: move |_| active_tab.set("explorer".to_string()),
+                    class: if ui_state.read().active_tab == MainTab::DataExplorer { "tab-btn active" } else { "tab-btn" },
+                    onclick: move |_| ui_state.write().active_tab = MainTab::DataExplorer,
                     i { class: "fa-solid fa-magnifying-glass-chart" }
                     " Data Explorer"
                 }
                 button {
-                    class: if active_tab() == "overlays" { "tab-btn active" } else { "tab-btn" },
-                    onclick: move |_| active_tab.set("overlays".to_string()),
+                    class: if ui_state.read().active_tab == MainTab::Overlays { "tab-btn active" } else { "tab-btn" },
+                    onclick: move |_| ui_state.write().active_tab = MainTab::Overlays,
                     i { class: "fa-solid fa-layer-group" }
                     " Overlays"
                 }
                 button {
-                    class: if active_tab() == "timers" { "tab-btn active" } else { "tab-btn" },
-                    onclick: move |_| active_tab.set("timers".to_string()),
+                    class: if ui_state.read().active_tab == MainTab::EncounterBuilder { "tab-btn active" } else { "tab-btn" },
+                    onclick: move |_| ui_state.write().active_tab = MainTab::EncounterBuilder,
                     i { class: "fa-solid fa-skull" }
                     " Encounter Builder"
                 }
                 button {
-                    class: if active_tab() == "effects" { "tab-btn active" } else { "tab-btn" },
-                    onclick: move |_| active_tab.set("effects".to_string()),
+                    class: if ui_state.read().active_tab == MainTab::Effects { "tab-btn active" } else { "tab-btn" },
+                    onclick: move |_| ui_state.write().active_tab = MainTab::Effects,
                     i { class: "fa-solid fa-heart-pulse" }
                     " Effects"
                 }
@@ -640,7 +670,7 @@ pub fn App() -> Element {
                 // ─────────────────────────────────────────────────────────────
                 // Session Tab
                 // ─────────────────────────────────────────────────────────────
-                if active_tab() == "session" {
+                if ui_state.read().active_tab == MainTab::Session {
                     // Empty states: show when no player data yet
                     if show_empty_state {
                         if !live_tailing {
@@ -858,7 +888,7 @@ pub fn App() -> Element {
                 // ─────────────────────────────────────────────────────────────
                 // Overlays Tab
                 // ─────────────────────────────────────────────────────────────
-                if active_tab() == "overlays" {
+                if ui_state.read().active_tab == MainTab::Overlays {
                     section { class: "overlay-controls",
                         // Top bar: Customize button + Profile selector
                         div { class: "overlays-top-bar",
@@ -1205,26 +1235,27 @@ pub fn App() -> Element {
                 // ─────────────────────────────────────────────────────────────
                 // Encounter Editor Tab
                 // ─────────────────────────────────────────────────────────────
-                if active_tab() == "timers" {
-                    EncounterEditorPanel {}
+                if ui_state.read().active_tab == MainTab::EncounterBuilder {
+                    EncounterEditorPanel {
+                        state: ui_state,
+                    }
                 }
 
                 // ─────────────────────────────────────────────────────────────
                 // Effects Tab
                 // ─────────────────────────────────────────────────────────────
-                if active_tab() == "effects" {
-                    EffectEditorPanel {}
+                if ui_state.read().active_tab == MainTab::Effects {
+                    EffectEditorPanel {
+                        state: ui_state,
+                    }
                 }
 
                 // ─────────────────────────────────────────────────────────────
                 // Data Explorer Tab
                 // ─────────────────────────────────────────────────────────────
-                if active_tab() == "explorer" {
+                if ui_state.read().active_tab == MainTab::DataExplorer {
                     DataExplorerPanel {
-                        show_only_bosses,
-                        selected_encounter: explorer_selected_encounter,
-                        view_mode: explorer_view_mode,
-                        combat_log_state: explorer_combat_log_state,
+                        state: ui_state,
                     }
                 }
             }
