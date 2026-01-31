@@ -341,19 +341,40 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
     // Combat log state is a separate signal that CombatLog component will modify
     let mut combat_log_state = use_signal(|| props.state.read().combat_log.clone());
     
+    // Time range is persisted - restore from saved state
+    let mut time_range = use_signal(|| props.state.read().data_explorer.time_range);
+    
+    // Track previous encounter to detect actual changes vs. initial mount
+    let mut prev_encounter = use_signal(|| props.state.read().data_explorer.selected_encounter);
+    
     // Sync local signals back to unified state when they change
+    // Read all values first to create subscriptions, then write to parent state
     use_effect(move || {
-        let mut state = props.state.write();
-        state.data_explorer.selected_encounter = *selected_encounter.read();
-        state.data_explorer.view_mode = *view_mode.read();
-        state.data_explorer.selected_source = selected_source.read().clone();
-        state.data_explorer.breakdown_mode = *breakdown_mode.read();
-        state.data_explorer.show_players_only = *show_players_only.read();
-        state.data_explorer.show_only_bosses = *show_only_bosses.read();
-        state.data_explorer.sort_column = *sort_column.read();
-        state.data_explorer.sort_direction = *sort_direction.read();
-        state.data_explorer.collapsed_sections = collapsed_sections.read().clone();
-        state.combat_log = combat_log_state.read().clone();
+        let enc = *selected_encounter.read();
+        let vm = *view_mode.read();
+        let src = selected_source.read().clone();
+        let bm = *breakdown_mode.read();
+        let players = *show_players_only.read();
+        let bosses = *show_only_bosses.read();
+        let col = *sort_column.read();
+        let dir = *sort_direction.read();
+        let sections = collapsed_sections.read().clone();
+        let tr = *time_range.read();
+        let combat = combat_log_state.read().clone();
+        
+        if let Ok(mut state) = props.state.try_write() {
+            state.data_explorer.selected_encounter = enc;
+            state.data_explorer.view_mode = vm;
+            state.data_explorer.selected_source = src;
+            state.data_explorer.breakdown_mode = bm;
+            state.data_explorer.show_players_only = players;
+            state.data_explorer.show_only_bosses = bosses;
+            state.data_explorer.sort_column = col;
+            state.data_explorer.sort_direction = dir;
+            state.data_explorer.collapsed_sections = sections;
+            state.data_explorer.time_range = tr;
+            state.combat_log = combat;
+        }
     });
 
     // Query result state (not persisted)
@@ -366,9 +387,8 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
     // Generation counter to discard stale async results on rapid encounter switching
     let mut load_generation = use_signal(|| 0u32);
 
-    // Timeline state (not persisted - resets per encounter as requested)
+    // Timeline state
     let mut timeline = use_signal(|| None::<EncounterTimeline>);
-    let mut time_range = use_signal(|| TimeRange::default());
 
     // Overview data
     let mut overview_data = use_signal(Vec::<RaidOverviewRow>::new);
@@ -565,6 +585,13 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
     // Uses generation counter to discard stale async results on rapid switching
     use_effect(move || {
         let idx = *selected_encounter.read();
+        let prev_idx = *prev_encounter.peek();
+        
+        // Check if this is an actual encounter change vs. initial mount with same encounter
+        let is_encounter_change = idx != prev_idx;
+        if is_encounter_change {
+            prev_encounter.set(idx);
+        }
 
         // Dispose charts immediately when encounter changes
         dispose_all_overview_charts();
@@ -573,17 +600,20 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
         let generation = *load_generation.peek() + 1;
         load_generation.set(generation);
 
-        // Clear ALL previous data when encounter changes
+        // Clear ALL previous data when encounter changes (but preserve some state on initial mount)
         let _ = abilities.try_write().map(|mut w| *w = Vec::new());
         let _ = entities.try_write().map(|mut w| *w = Vec::new());
         let _ = overview_data.try_write().map(|mut w| *w = Vec::new());
         let _ = player_deaths.try_write().map(|mut w| *w = Vec::new());
         let _ = last_overview_fetch.try_write().map(|mut w| *w = None);
-        let _ = selected_source.try_write().map(|mut w| *w = None);
         let _ = timeline.try_write().map(|mut w| *w = None);
-        let _ = time_range
-            .try_write()
-            .map(|mut w| *w = TimeRange::default());
+        // Only reset time_range and selected_source if encounter actually changed (not on initial mount restore)
+        if is_encounter_change {
+            let _ = selected_source.try_write().map(|mut w| *w = None);
+            let _ = time_range
+                .try_write()
+                .map(|mut w| *w = TimeRange::default());
+        }
         let _ = timeline_state.try_write().map(|mut w| *w = LoadState::Idle);
         let _ = content_state.try_write().map(|mut w| *w = LoadState::Idle);
 
@@ -594,6 +624,10 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
         let _ = timeline_state
             .try_write()
             .map(|mut w| *w = LoadState::Loading);
+
+        // Capture whether we should restore time_range after timeline loads
+        let restore_time_range = !is_encounter_change;
+        let saved_time_range = *time_range.peek();
 
         spawn(async move {
             // Check if this request is still current
@@ -608,9 +642,14 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                         return;
                     }
                     let dur = tl.duration_secs;
-                    let _ = time_range
-                        .try_write()
-                        .map(|mut w| *w = TimeRange::full(dur));
+                    // Only set to full range if not restoring saved state
+                    if restore_time_range && saved_time_range.end > 0.0 {
+                        // Keep the saved time_range (already set from init)
+                    } else {
+                        let _ = time_range
+                            .try_write()
+                            .map(|mut w| *w = TimeRange::full(dur));
+                    }
                     let _ = timeline.try_write().map(|mut w| *w = Some(tl));
                     let _ = timeline_state
                         .try_write()

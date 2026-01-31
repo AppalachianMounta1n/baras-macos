@@ -1996,7 +1996,7 @@ pub enum SortDirection {
 }
 
 /// Data Explorer session state
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct DataExplorerState {
     /// Selected encounter index
     pub selected_encounter: Option<u32>,
@@ -2016,6 +2016,25 @@ pub struct DataExplorerState {
     pub sort_direction: SortDirection,
     /// Collapsed sections in sidebar (set of section names: "Operations", "Flashpoints", etc.)
     pub collapsed_sections: std::collections::HashSet<String>,
+    /// Timeline selection (time range filter)
+    pub time_range: TimeRange,
+}
+
+impl Default for DataExplorerState {
+    fn default() -> Self {
+        Self {
+            selected_encounter: None,
+            view_mode: ViewMode::default(),
+            selected_source: None,
+            breakdown_mode: BreakdownMode::ability_only(),
+            show_players_only: true,
+            show_only_bosses: false,
+            sort_column: SortColumn::default(),
+            sort_direction: SortDirection::default(),
+            collapsed_sections: std::collections::HashSet::new(),
+            time_range: TimeRange::default(),
+        }
+    }
 }
 
 /// Combat Log session state (filters, scroll position, etc.)
