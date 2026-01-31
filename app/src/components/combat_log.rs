@@ -218,9 +218,6 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
     // Show IDs toggle - NOW PERSISTED!
     let mut show_ids = use_signal(|| if should_restore { state.peek().show_ids } else { false });
 
-    // Scroll restoration flag - true only on first mount when we have saved scroll
-    let mut restoring_scroll = use_signal(|| should_restore && state.peek().scroll_offset > 0.0);
-
     // Find feature - searches all data via backend query
     let mut find_text = use_signal(String::new);
     let mut find_debounce = use_signal(String::new);
@@ -235,8 +232,13 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
     let mut source_names = use_signal(Vec::<String>::new);
     let mut target_names = use_signal(Vec::<String>::new);
 
-    // Virtual scroll state
-    let mut scroll_top = use_signal(|| 0.0f64);
+    // Virtual scroll state - restore from saved state if same encounter
+    let mut scroll_top = use_signal(|| {
+        if should_restore { state.peek().scroll_offset } else { 0.0 }
+    });
+
+    // Track whether we need to restore DOM scroll position after first data load
+    let mut needs_scroll_restore = use_signal(|| should_restore && state.peek().scroll_offset > 0.0);
 
     // Column widths for resizable columns (in pixels)
     let mut col_time = use_signal(|| 70.0f64);
@@ -259,6 +261,55 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
 
     // Debounced search
     let mut search_debounce = use_signal(String::new);
+
+    // Track previous encounter to detect changes (for resetting state on encounter switch)
+    let mut prev_encounter_idx = use_signal(|| props.encounter_idx);
+
+    // Reset all UI state when encounter changes (not on initial mount)
+    // This ensures nothing is remembered from the previous encounter
+    use_effect(move || {
+        let current = *encounter_idx_signal.read();
+        let prev = *prev_encounter_idx.peek();
+
+        if current != prev {
+            prev_encounter_idx.set(current);
+
+            // Reset scroll position
+            scroll_top.set(0.0);
+            loaded_offset.set(0);
+
+            // Reset filters to defaults
+            source_filter.set(None);
+            target_filter.set(None);
+            search_text.set(String::new());
+            search_debounce.set(String::new());
+
+            // Reset event type filters to defaults
+            filter_damage.set(true);
+            filter_healing.set(true);
+            filter_actions.set(true);
+            filter_effects.set(true);
+            filter_simplified.set(false);
+
+            // Clear data to trigger fresh load
+            rows.set(vec![]);
+
+            // Reset find feature state
+            find_text.set(String::new());
+            find_debounce.set(String::new());
+            find_matches.set(vec![]);
+            find_current_idx.set(0);
+            highlighted_row.set(None);
+
+            // Reset DOM scroll position
+            if let Some(window) = web_sys::window()
+                && let Some(doc) = window.document()
+                && let Some(elem) = doc.get_element_by_id("combat-log-scroll")
+            {
+                elem.set_scroll_top(0);
+            }
+        }
+    });
 
     // Load source/target names when encounter changes
     use_effect(move || {
@@ -309,26 +360,9 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
         };
         let event_filters = build_event_filters();
 
-        // Scroll restoration: on first mount with saved state, load data at
-        // the saved offset and restore scroll after data loads.
-        let is_restoring = *restoring_scroll.peek();
-        let load_offset = if is_restoring {
-            let saved = state.peek().scroll_offset;
-            ((saved / ROW_HEIGHT) as u64).saturating_sub(OVERSCAN as u64)
-        } else {
-            0u64
-        };
-
-        if !is_restoring {
-            // Reset scroll position - both signal and DOM element
-            scroll_top.set(0.0);
-            if let Some(window) = web_sys::window()
-                && let Some(doc) = window.document()
-                && let Some(elem) = doc.get_element_by_id("combat-log-scroll")
-            {
-                elem.set_scroll_top(0);
-            }
-        }
+        // Calculate load offset based on current scroll position
+        let current_scroll = *scroll_top.peek();
+        let load_offset = ((current_scroll / ROW_HEIGHT) as u64).saturating_sub(OVERSCAN as u64);
         loaded_offset.set(load_offset);
 
         spawn(async move {
@@ -367,21 +401,25 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
             {
                 rows.set(data);
             }
-
-            // Restore scroll position after data is loaded
-            if is_restoring {
-                let saved = state.peek().scroll_offset;
-                gloo_timers::future::TimeoutFuture::new(16).await;
-                scroll_top.set(saved);
-                if let Some(window) = web_sys::window()
-                    && let Some(doc) = window.document()
-                    && let Some(elem) = doc.get_element_by_id("combat-log-scroll")
-                {
-                    elem.set_scroll_top(saved as i32);
-                }
-                restoring_scroll.set(false);
-            }
         });
+    });
+
+    // Restore DOM scroll position after initial data load (when navigating back to same encounter)
+    use_effect(move || {
+        let rows_loaded = !rows.read().is_empty();
+        let needs_restore = *needs_scroll_restore.peek();
+        
+        if rows_loaded && needs_restore {
+            needs_scroll_restore.set(false);
+            let saved_scroll = *scroll_top.peek();
+            
+            if let Some(window) = web_sys::window()
+                && let Some(doc) = window.document()
+                && let Some(elem) = doc.get_element_by_id("combat-log-scroll")
+            {
+                elem.set_scroll_top(saved_scroll as i32);
+            }
+        }
     });
 
     // Debounce search input
@@ -465,21 +503,33 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
     });
 
 
-    // Save filter/scroll state on unmount so it persists across tab switches
-    use_drop(move || {
+    // Continuously sync state back to parent - this ensures all state persists
+    // Using .read() on all values creates subscriptions so this runs on ANY change
+    use_effect(move || {
+        let scroll = *scroll_top.read();
+        let source = source_filter.read().clone();
+        let target = target_filter.read().clone();
+        let search = search_text.read().clone();
+        let damage = *filter_damage.read();
+        let healing = *filter_healing.read();
+        let actions = *filter_actions.read();
+        let effects = *filter_effects.read();
+        let simplified = *filter_simplified.read();
+        let ids = *show_ids.read();
+        
         if let Ok(mut s) = state.try_write() {
             *s = CombatLogSessionState {
                 encounter_idx: Some(*encounter_idx_signal.peek()),
-                source_filter: source_filter.peek().clone(),
-                target_filter: target_filter.peek().clone(),
-                search_text: search_text.peek().clone(),
-                filter_damage: *filter_damage.peek(),
-                filter_healing: *filter_healing.peek(),
-                filter_actions: *filter_actions.peek(),
-                filter_effects: *filter_effects.peek(),
-                filter_simplified: *filter_simplified.peek(),
-                show_ids: *show_ids.peek(),  // NOW PERSISTED!
-                scroll_offset: *scroll_top.peek(),
+                source_filter: source,
+                target_filter: target,
+                search_text: search,
+                filter_damage: damage,
+                filter_healing: healing,
+                filter_actions: actions,
+                filter_effects: effects,
+                filter_simplified: simplified,
+                show_ids: ids,
+                scroll_offset: scroll,
             };
         }
     });

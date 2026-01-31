@@ -1023,10 +1023,23 @@
 
 .log-header .log-cell {
   padding: 6px 4px;
+  text-align: left;
+  position: relative;
+}
+.log-header .log-value,
+.log-header .log-absorbed,
+.log-header .log-overheal,
+.log-header .log-threat {
+  text-align: center;
+}
+.log-header .log-time,
+.log-header .log-type,
+.log-header .log-mitigation {
   text-align: center;
 }
 .log-header .log-ability {
   display: block;
+  text-align: left;
 }
 
 /* Virtual scroll container */
@@ -1054,31 +1067,30 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  border-right: 1px solid var(--border-subtle);
+  min-height: 1px; /* Ensure border shows even for empty cells */
+}
+.log-cell:last-child {
+  border-right: none;
+}
+/* Ensure empty cells have content to show borders */
+.log-cell:empty::before {
+  content: '\00a0'; /* Non-breaking space */
 }
 
-/* Resize handle between columns */
+/* Resize handle between columns - positioned absolutely on column border */
 .log-resize-handle {
-  width: 5px;
-  cursor: col-resize;
-  background: var(--border-subtle);
-  flex-shrink: 0;
-  position: relative;
-}
-.log-resize-handle::after {
-  content: '';
   position: absolute;
-  top: 25%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 1px;
-  height: 50%;
-  background: var(--text-muted);
+  top: 0;
+  right: -2px;
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 10;
 }
 .log-resize-handle:hover {
-  background: var(--accent-gold);
-}
-.log-resize-handle:hover::after {
-  background: var(--accent-gold);
+  background: rgba(255, 200, 50, 0.3);
 }
 
 .log-time {
@@ -1087,6 +1099,8 @@
 }
 .log-source {
   flex-shrink: 0;
+  flex-grow: 1;
+  text-align: left;
 }
 .log-type {
   flex-shrink: 0;
@@ -1094,6 +1108,8 @@
 }
 .log-target {
   flex-shrink: 0;
+  flex-grow: 1;
+  text-align: left;
 }
 .log-ability {
   flex-shrink: 0;
@@ -1117,6 +1133,7 @@
 }
 .log-threat {
   flex-shrink: 0;
+  flex-grow: 0;
   text-align: right;
   color: var(--text-muted);
 }
