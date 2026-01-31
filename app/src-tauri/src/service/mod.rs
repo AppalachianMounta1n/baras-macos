@@ -324,6 +324,8 @@ pub struct CombatService {
     loaded_area_id: i64,
     /// Icon cache for ability icons (shared with SharedState for overlay data building)
     icon_cache: Option<Arc<baras_overlay::icons::IconCache>>,
+    /// Pending file to switch to when it gets content (deferred rotation for empty files)
+    pending_file: Option<PathBuf>,
 }
 
 impl CombatService {
@@ -396,6 +398,7 @@ impl CombatService {
             area_index,
             loaded_area_id: 0,
             icon_cache,
+            pending_file: None,
         };
 
         let handle = ServiceHandle { cmd_tx, shared };
@@ -765,15 +768,51 @@ impl CombatService {
             return;
         }
 
-        let should_switch = {
+        let (is_newest, is_empty) = {
             let index = self.shared.directory_index.read().await;
-            index.newest_file().map(|f| f.path == path).unwrap_or(false)
+            match index.newest_file() {
+                Some(f) if f.path == path => (true, f.is_empty),
+                _ => (false, false),
+            }
         };
 
-        if should_switch {
-            // Method calls stop_tailing at beginning so won't create duplicate tasks
-            self.start_tailing(path).await;
+        if !is_newest {
+            return;
         }
+
+        // Check if current session has player initialized
+        let has_player = {
+            let session_guard = self.shared.session.read().await;
+            if let Some(session) = session_guard.as_ref() {
+                let s = session.read().await;
+                s.session_cache
+                    .as_ref()
+                    .map(|c| c.player_initialized)
+                    .unwrap_or(false)
+            } else {
+                false
+            }
+        };
+
+        // If new file is empty and we have existing player data, defer the switch
+        // This preserves the current session for viewing/uploading until new data arrives
+        if is_empty && has_player {
+            info!(
+                new_file = %path.display(),
+                "Empty log file detected, deferring switch until content arrives"
+            );
+            self.pending_file = Some(path);
+            // Emit event so frontend can show "session ended" indicator
+            let _ = self.app_handle.emit("session-ended", ());
+            return;
+        }
+
+        info!(
+            new_file = %path.display(),
+            "Log file rotation detected, switching to new file"
+        );
+        self.pending_file = None;
+        self.start_tailing(path).await;
     }
 
     /// Handle file modification - re-check character data for files that were missing it
@@ -793,6 +832,27 @@ impl CombatService {
             debug!(updated, "Re-read character names from modified files");
             // Notify frontend that file list changed (display names may have updated)
             let _ = self.app_handle.emit("log-files-changed", ());
+        }
+
+        // Check if this is the pending file we deferred switching to
+        if self.pending_file.as_ref() == Some(&path) {
+            // Check if file now has content (character name was extracted)
+            let has_content = {
+                let index = self.shared.directory_index.read().await;
+                index
+                    .newest_file()
+                    .map(|f| f.path == path && !f.is_empty)
+                    .unwrap_or(false)
+            };
+
+            if has_content {
+                info!(
+                    file = %path.display(),
+                    "Pending file now has content, switching"
+                );
+                self.pending_file = None;
+                self.start_tailing(path).await;
+            }
         }
     }
 
@@ -898,6 +958,7 @@ impl CombatService {
     }
 
     async fn start_tailing(&mut self, path: PathBuf) {
+        info!(path = %path.display(), "Starting to tail log file");
         self.stop_tailing().await;
 
         // Clear old parquet data from previous session
@@ -1070,14 +1131,16 @@ impl CombatService {
                                 cache.encounter_history.add(summary);
                             }
 
-                            // Import player info
+                            // Import player info (only mark initialized if we actually have player data)
                             cache.player.name =
                                 baras_core::context::intern(&parse_result.player.name);
                             cache.player.id = parse_result.player.entity_id;
                             cache.player.class_name = parse_result.player.class_name.clone();
                             cache.player.discipline_name =
                                 parse_result.player.discipline_name.clone();
-                            cache.player_initialized = true;
+                            if !parse_result.player.name.is_empty() {
+                                cache.player_initialized = true;
+                            }
 
                             // Import area info
                             debug!(
@@ -1191,8 +1254,24 @@ impl CombatService {
         }
 
         // Spawn the tail task to watch for new lines
+        // The tail loop is "immortal" - it only exits via task abort or initialization failure
+        let path_for_logging = path.clone();
         let tail_handle = tokio::spawn(async move {
-            let _ = reader.tail_log_file().await;
+            match reader.tail_log_file().await {
+                Ok(()) => {
+                    // This is unreachable in normal operation since the loop is immortal
+                    // Only happens if task is aborted
+                    debug!(path = %path_for_logging.display(), "Tail task ended");
+                }
+                Err(e) => {
+                    // Initialization failed (couldn't open file, seek, etc.)
+                    error!(
+                        error = %e,
+                        path = %path_for_logging.display(),
+                        "Tail task failed to initialize"
+                    );
+                }
+            }
         });
 
         // Spawn signal-driven metrics task
@@ -1454,6 +1533,10 @@ impl CombatService {
     }
 
     async fn stop_tailing(&mut self) {
+        if self.tail_handle.is_some() {
+            debug!("Stopping active tail task");
+        }
+
         // Reset combat state
         self.shared.in_combat.store(false, Ordering::SeqCst);
 

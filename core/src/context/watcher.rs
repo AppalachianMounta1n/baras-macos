@@ -1,9 +1,7 @@
 use crate::context::DirectoryIndex;
 use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use std::path::{Path, PathBuf};
-use std::time::Duration;
 use tokio::sync::mpsc::{self, Receiver};
-use tokio::time::{Instant, sleep};
 
 pub enum DirectoryEvent {
     NewFile(PathBuf),
@@ -29,7 +27,11 @@ impl DirectoryWatcher {
 
         let mut watcher = RecommendedWatcher::new(
             move |res| {
-                let _ = tx.blocking_send(res);
+                if tx.try_send(res).is_err() {
+                    tracing::error!(
+                        "Watcher channel full, filesystem event dropped - this should not happen"
+                    );
+                }
             },
             Config::default(),
         )?;
@@ -46,7 +48,7 @@ impl DirectoryWatcher {
         while let Some(event_result) = self.rx.recv().await {
             match event_result {
                 Ok(event) => {
-                    if let Some(watcher_event) = self.process_event(event).await {
+                    if let Some(watcher_event) = self.process_event(event) {
                         return Some(watcher_event);
                     }
                 }
@@ -61,12 +63,15 @@ impl DirectoryWatcher {
         None
     }
 
-    async fn process_event(&mut self, event: Event) -> Option<DirectoryEvent> {
+    /// Process a filesystem event and convert to DirectoryEvent if relevant.
+    /// This method is intentionally non-blocking - it immediately returns without
+    /// waiting for file content or any other condition.
+    fn process_event(&self, event: Event) -> Option<DirectoryEvent> {
         match event.kind {
             EventKind::Create(_) => {
                 for path in event.paths {
                     if is_combat_log(&path) {
-                        return Some(self.handle_new_file(path).await);
+                        return Some(DirectoryEvent::NewFile(path));
                     }
                 }
             }
@@ -90,34 +95,6 @@ impl DirectoryWatcher {
             _ => {}
         }
         None
-    }
-
-    async fn handle_new_file(&self, path: PathBuf) -> DirectoryEvent {
-        const NEW_FILE_TIMEOUT: Duration = Duration::from_secs(60);
-        const NEW_FILE_POLL_INTERVAL: Duration = Duration::from_millis(500);
-
-        // Wait for file to have content (DisciplineChanged event)
-        let start = Instant::now();
-        let mut has_content = false;
-
-        while start.elapsed() < NEW_FILE_TIMEOUT {
-            if path.metadata().map(|m| m.len()).unwrap_or(0) > 0 {
-                has_content = true;
-                break;
-            } else {
-                // File might still be locked/being created, keep waiting
-                sleep(NEW_FILE_POLL_INTERVAL).await;
-            }
-        }
-
-        if !has_content {
-            return DirectoryEvent::Message(format!(
-                "Warning: Timed out waiting for content in {}",
-                path.display()
-            ));
-        }
-
-        DirectoryEvent::NewFile(path)
     }
 }
 

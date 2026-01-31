@@ -13,7 +13,7 @@ dev:
   cargo build -p baras-parse-worker && \
   mkdir -p app/target/debug && \
   cp target/debug/baras-parse-worker app/target/debug/ && \
-  cd app && cargo tauri dev 2>&1 | tee /tmp/baras.log
+  cd app && DEBUG_LOGGING=1 cargo tauri dev 2>&1 | tee /tmp/baras.log
 
 # Build parse-worker and copy to binaries dir with platform-specific name
 build-parse-worker:

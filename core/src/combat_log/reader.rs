@@ -16,6 +16,16 @@ use tokio::sync::RwLock;
 use tokio::time::{Duration, sleep};
 
 const TAIL_SLEEP_DURATION: Duration = Duration::from_millis(30);
+const MAX_BACKOFF: Duration = Duration::from_secs(5);
+
+/// Calculate exponential backoff duration based on consecutive error count.
+/// Starts at TAIL_SLEEP_DURATION (30ms), doubles each time, caps at MAX_BACKOFF (5s).
+fn calculate_backoff(consecutive_errors: u32) -> Duration {
+    let base_ms = TAIL_SLEEP_DURATION.as_millis() as u64;
+    let multiplier = 2u64.saturating_pow(consecutive_errors.min(10));
+    let ms = (base_ms * multiplier).min(MAX_BACKOFF.as_millis() as u64);
+    Duration::from_millis(ms)
+}
 
 pub struct Reader {
     path: PathBuf,
@@ -116,7 +126,12 @@ impl Reader {
         Ok((end_pos, event_count))
     }
 
-    //tailing live log file always write to session cache
+    /// Tail a live log file, processing new lines as they are written.
+    /// 
+    /// This method is designed to be "immortal" - it will never exit due to transient
+    /// I/O errors. Instead, it logs errors and retries with exponential backoff.
+    /// The only way this loop exits is via task abort (when stop_tailing is called)
+    /// or if the file cannot be opened/seeked initially.
     pub async fn tail_log_file(self) -> std::result::Result<(), ReaderError> {
         const CRLF: &[u8] = b"\r\n";
         let file = File::open(&self.path)
@@ -146,16 +161,19 @@ impl Reader {
 
         let parser = LogParser::new(session_date);
         let mut buf = Vec::new();
+        let mut consecutive_errors = 0u32;
 
+        // Immortal loop - only exits via task abort
         loop {
             match reader.read_until(b'\n', &mut buf).await {
                 Ok(0) => {
                     // No new data - tick combat state for wall-clock timeout
+                    consecutive_errors = 0; // Not an error, just no data yet
                     self.state.write().await.tick();
                     sleep(TAIL_SLEEP_DURATION).await;
-                    continue;
                 }
                 Ok(_) => {
+                    consecutive_errors = 0; // Reset on successful read
                     // Only process if line is complete (ends with CRLF)
                     if buf.ends_with(CRLF) {
                         let (line, _, _) = WINDOWS_1252.decode(&buf);
@@ -167,9 +185,22 @@ impl Reader {
                     }
                     // Otherwise keep partial data, next read will append to it
                 }
-                Err(_) => break,
+                Err(e) => {
+                    // Log the error but NEVER break - let the watcher handle file deletion
+                    consecutive_errors += 1;
+                    let backoff = calculate_backoff(consecutive_errors);
+                    tracing::warn!(
+                        error = %e,
+                        path = %self.path.display(),
+                        line_number,
+                        consecutive_errors,
+                        backoff_ms = backoff.as_millis() as u64,
+                        "Read error during tailing, will retry"
+                    );
+                    sleep(backoff).await;
+                    // Continue - the loop is immortal
+                }
             }
         }
-        Ok(())
     }
 }
