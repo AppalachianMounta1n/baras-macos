@@ -1,5 +1,5 @@
 use crate::combat_log::EntityType;
-use crate::context::{IStr, empty_istr};
+use crate::context::{empty_istr, IStr};
 use chrono::NaiveDateTime;
 
 #[derive(Debug, Clone)]
@@ -12,6 +12,7 @@ pub struct PlayerInfo {
     pub discipline_name: String,
     pub is_dead: bool,
     pub death_time: Option<NaiveDateTime>,
+    pub received_revive_immunity: bool,
     pub current_target_id: i64,
     /// Last time this player was seen in an event (for filtering stale players)
     pub last_seen_at: Option<NaiveDateTime>,
@@ -28,6 +29,7 @@ impl Default for PlayerInfo {
             discipline_name: String::new(),
             is_dead: false,
             death_time: None,
+            received_revive_immunity: false,
             current_target_id: 0,
             last_seen_at: None,
         }

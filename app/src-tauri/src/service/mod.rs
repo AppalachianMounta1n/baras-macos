@@ -1115,6 +1115,7 @@ impl CombatService {
                                         discipline_name: disc.discipline_name.clone(),
                                         is_dead: false,
                                         death_time: None,
+                                        received_revive_immunity: false,
                                         current_target_id: 0,
                                         last_seen_at: None,
                                     },

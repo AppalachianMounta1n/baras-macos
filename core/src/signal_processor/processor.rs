@@ -1,8 +1,8 @@
 use crate::combat_log::{CombatEvent, EntityType};
 use crate::context::resolve;
-use crate::encounter::EncounterState;
 use crate::encounter::combat::ActiveBoss;
 use crate::encounter::entity_info::PlayerInfo;
+use crate::encounter::EncounterState;
 use crate::game_data::{correct_apply_charges, effect_id, effect_type_id};
 use crate::signal_processor::signal::GameSignal;
 use crate::state::cache::SessionCache;
@@ -129,6 +129,7 @@ impl EventProcessor {
             discipline_name: resolve(event.effect.discipline_name).to_string(),
             is_dead: false,
             death_time: None,
+            received_revive_immunity: false,
             current_target_id: 0,
             last_seen_at: Some(event.timestamp),
         };
@@ -212,10 +213,6 @@ impl EventProcessor {
         let mut signals = Vec::new();
 
         if event.effect.effect_id == effect_id::DEATH {
-            // Check if local player died (before getting mutable ref)
-            let is_local_player_death = cache.player_initialized
-                && event.target_entity.log_id == cache.player.id;
-
             if let Some(enc) = cache.current_encounter_mut() {
                 enc.set_entity_death(
                     event.target_entity.log_id,
@@ -223,11 +220,6 @@ impl EventProcessor {
                     event.timestamp,
                 );
                 enc.check_all_players_dead();
-
-                // Mark local player death (sticky flag for wipe detection)
-                if is_local_player_death {
-                    enc.local_player_died = true;
-                }
             }
 
             signals.push(GameSignal::EntityDeath {
@@ -238,25 +230,15 @@ impl EventProcessor {
                 timestamp: event.timestamp,
             });
         } else if event.effect.effect_id == effect_id::REVIVED {
-            // Check if local player was revived (before getting mutable ref)
-            let is_local_player_revive = cache.player_initialized
-                && event.source_entity.log_id == cache.player.id;
-
             if let Some(enc) = cache.current_encounter_mut() {
                 // Don't process revives after a definitive wipe (all players dead)
                 // This prevents post-wipe UI revives from resetting is_dead flags
-                // But DO process revives if only local player died - they can be battle-rezzed
                 if !enc.all_players_dead {
                     enc.set_entity_alive(
                         event.source_entity.log_id,
                         &event.source_entity.entity_type,
                     );
                     enc.check_all_players_dead();
-
-                    // Reset local_player_died if local player was revived during combat
-                    if is_local_player_revive {
-                        enc.local_player_died = false;
-                    }
                 }
             }
             signals.push(GameSignal::EntityRevived {
@@ -265,6 +247,15 @@ impl EventProcessor {
                 npc_id: event.source_entity.class_id,
                 timestamp: event.timestamp,
             });
+        } else if event.effect.effect_id == effect_id::RECENTLY_REVIVED
+            && event.effect.type_id == effect_type_id::APPLYEFFECT
+            && event.source_entity.entity_type == EntityType::Player
+        {
+            // Player received the revive immunity buff (medcenter/probe revive)
+            // Mark them as permanently dead for this encounter
+            if let Some(enc) = cache.current_encounter_mut() {
+                enc.set_player_revive_immunity(event.source_entity.log_id);
+            }
         }
 
         signals

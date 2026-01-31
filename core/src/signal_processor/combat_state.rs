@@ -174,6 +174,20 @@ fn handle_in_combat(
         kill_target_instances.iter().all(|npc| npc.is_dead)
     });
 
+    // Check if this is a boss encounter (has boss definitions loaded OR boss NPCs detected)
+    // For boss encounters, we don't want to end on local_player_revived because SWTOR
+    // log buffering can cause RECENTLY_REVIVED to arrive before other players' DEATH events
+    let is_boss_encounter = cache.current_encounter().map_or(false, |enc| {
+        // Has boss definitions loaded for this area
+        !enc.boss_definitions().is_empty()
+        // OR has detected any boss NPCs in the encounter
+        || enc.npcs.values().any(|npc| npc.is_boss)
+    });
+
+    // Only end non-boss encounters on local_player_revived
+    // For boss fights, rely on all_players_dead or all_kill_targets_dead
+    let should_end_on_local_revive = local_player_revived && !is_boss_encounter;
+
     if effect_id == effect_id::ENTERCOMBAT {
         // Unexpected EnterCombat while in combat - terminate and restart
         let encounter_id = cache.current_encounter().map(|e| e.id).unwrap_or(0);
@@ -196,7 +210,7 @@ fn handle_in_combat(
     } else if effect_id == effect_id::EXITCOMBAT
         || all_players_dead
         || all_kill_targets_dead
-        || local_player_revived
+        || should_end_on_local_revive
     {
         let encounter_id = cache.current_encounter().map(|e| e.id).unwrap_or(0);
         if let Some(enc) = cache.current_encounter_mut() {

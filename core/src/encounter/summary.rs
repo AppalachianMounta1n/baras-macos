@@ -179,9 +179,9 @@ pub fn classify_encounter(
 }
 
 /// Determine if an encounter was successful (not a wipe)
-/// Returns false (wipe) if either all players died OR the local player died
+/// Returns false (wipe) if all players died
 pub fn determine_success(encounter: &CombatEncounter) -> bool {
-    !encounter.all_players_dead && !encounter.local_player_died
+    !encounter.all_players_dead
 }
 
 /// Create an EncounterSummary from a completed CombatEncounter
@@ -203,16 +203,19 @@ pub fn create_encounter_summary(
         .players
         .values()
         .map(|p| {
-            let in_combat = combat_start.is_none_or(|start| {
-                p.last_seen_at.is_some_and(|seen| seen >= start)
-            });
-            format!("{}:dead={},in_combat={}", resolve(p.name), p.is_dead, in_combat)
+            let in_combat =
+                combat_start.is_none_or(|start| p.last_seen_at.is_some_and(|seen| seen >= start));
+            format!(
+                "{}:dead={},in_combat={}",
+                resolve(p.name),
+                p.is_dead,
+                in_combat
+            )
         })
         .collect();
     debug_log!(
-        "create_encounter_summary: all_dead={}, local_died={}, players={}, states=[{}]",
+        "create_encounter_summary: all_dead={}, players={}, states=[{}]",
         encounter.all_players_dead,
-        encounter.local_player_died,
         encounter.players.len(),
         player_states.join(", ")
     );
@@ -252,9 +255,7 @@ pub fn create_encounter_summary(
             }
             // Filter out players not seen during combat (e.g., character switches)
             encounter.players.get(&m.entity_id).is_some_and(|p| {
-                combat_start.is_none_or(|start| {
-                    p.last_seen_at.is_some_and(|seen| seen >= start)
-                })
+                combat_start.is_none_or(|start| p.last_seen_at.is_some_and(|seen| seen >= start))
             })
         })
         .map(|m| m.to_player_metrics())

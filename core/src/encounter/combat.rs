@@ -106,8 +106,6 @@ pub struct CombatEncounter {
     pub npcs: HashMap<i64, NpcInfo>,
     /// Whether all players are dead (sticky - once true, stays true)
     pub all_players_dead: bool,
-    /// Whether the local player died during this encounter (sticky)
-    pub local_player_died: bool,
 
     // ─── Effect Instances (for shield attribution) ──────────────────────────
     /// Active effects by target ID
@@ -153,7 +151,6 @@ impl CombatEncounter {
             players: HashMap::new(),
             npcs: HashMap::new(),
             all_players_dead: false,
-            local_player_died: false,
 
             // Effects
             effects: HashMap::new(),
@@ -500,8 +497,11 @@ impl CombatEncounter {
         match entity_type {
             EntityType::Player => {
                 if let Some(player) = self.players.get_mut(&entity_id) {
-                    player.is_dead = false;
-                    player.death_time = None;
+                    // Only allow revival if player hasn't used medcenter/probe revive
+                    if !player.received_revive_immunity {
+                        player.is_dead = false;
+                        player.death_time = None;
+                    }
                 }
             }
             EntityType::Npc | EntityType::Companion => {
@@ -511,6 +511,12 @@ impl CombatEncounter {
                 }
             }
             _ => {}
+        }
+    }
+
+    pub fn set_player_revive_immunity(&mut self, entity_id: i64) {
+        if let Some(player) = self.players.get_mut(&entity_id) {
+            player.received_revive_immunity = true;
         }
     }
 
