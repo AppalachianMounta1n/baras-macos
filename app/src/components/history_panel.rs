@@ -4,13 +4,25 @@
 
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local as spawn;
 
 use crate::api;
 use crate::components::class_icons::{get_class_icon, get_role_icon};
 use crate::components::{ToastSeverity, use_toast};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Upload State Tracking
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum UploadState {
+    Idle,
+    Uploading,
+    Success(String), // Contains the Parsely link
+    Error(String),   // Contains the error message
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data Types (mirrors backend)
@@ -70,6 +82,13 @@ pub struct EncounterSummary {
     pub is_phase_start: bool,
     #[serde(default)]
     pub npc_names: Vec<String>,
+    // Line number tracking for per-encounter Parsely uploads
+    #[serde(default)]
+    pub area_entered_line: Option<u64>,
+    #[serde(default)]
+    pub event_start_line: Option<u64>,
+    #[serde(default)]
+    pub event_end_line: Option<u64>,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -131,6 +150,8 @@ pub fn HistoryPanel(props: HistoryPanelProps) -> Element {
     let mut collapsed_sections = use_signal(HashSet::<String>::new);
     let mut loading = use_signal(|| true);
     let mut show_only_bosses = props.show_only_bosses;
+    // Track upload state per encounter_id
+    let mut upload_states = use_signal(HashMap::<u64, UploadState>::new);
 
     // Fetch encounter history
     use_future(move || async move {
@@ -259,6 +280,7 @@ pub fn HistoryPanel(props: HistoryPanelProps) -> Element {
                                 th { class: "col-name", "Encounter" }
                                 th { class: "col-duration", "Duration" }
                                 th { class: "col-result", "Result" }
+                                th { class: "col-upload", "" }
                             }
                         }
                         tbody {
@@ -282,7 +304,7 @@ pub fn HistoryPanel(props: HistoryPanelProps) -> Element {
                                                 }
                                                 collapsed_sections.set(set);
                                             },
-                                            td { colspan: "4",
+                                            td { colspan: "5",
                                                 div { class: "phase-header",
                                                     i { class: "fa-solid {chevron_class} collapse-icon" }
                                                     i { class: "fa-solid fa-map-location-dot" }
@@ -303,6 +325,17 @@ pub fn HistoryPanel(props: HistoryPanelProps) -> Element {
                                                     let row_class = if is_expanded { "expanded" } else { "" };
                                                     let success_class = if enc.success { "success" } else { "wipe" };
                                                     let npc_list = enc.npc_names.join(", ");
+                                                    
+                                                    // Get upload state for this encounter
+                                                    let current_upload_state = upload_states()
+                                                        .get(&enc_id)
+                                                        .cloned()
+                                                        .unwrap_or(UploadState::Idle);
+                                                    
+                                                    // Line numbers for upload (always present for parsed encounters)
+                                                    let start_line = enc.event_start_line.unwrap_or(0);
+                                                    let end_line = enc.event_end_line.unwrap_or(0);
+                                                    let area_line = enc.area_entered_line;
 
                                                     rsx! {
                                                         tr {
@@ -335,11 +368,89 @@ pub fn HistoryPanel(props: HistoryPanelProps) -> Element {
                                                                     }
                                                                 }
                                                             }
+                                                            td { class: "col-upload",
+                                                                match current_upload_state {
+                                                                    UploadState::Idle => rsx! {
+                                                                        button {
+                                                                            class: "parsely-upload-btn",
+                                                                            title: "Upload to Parsely",
+                                                                            onclick: move |e| {
+                                                                                e.stop_propagation();
+                                                                                let area = area_line;
+                                                                                spawn(async move {
+                                                                                    // Set uploading state
+                                                                                    upload_states.with_mut(|states| {
+                                                                                        states.insert(enc_id, UploadState::Uploading);
+                                                                                    });
+                                                                                    
+                                                                                    match api::get_active_file().await {
+                                                                                        Some(path) => {
+                                                                                            match api::upload_encounter_to_parsely(&path, start_line, end_line, area).await {
+                                                                                                Ok(response) if response.success => {
+                                                                                                    let link = response.link.unwrap_or_default();
+                                                                                                    upload_states.with_mut(|states| {
+                                                                                                        states.insert(enc_id, UploadState::Success(link));
+                                                                                                    });
+                                                                                                }
+                                                                                                Ok(response) => {
+                                                                                                    let err = response.error.unwrap_or_else(|| "Unknown error".to_string());
+                                                                                                    upload_states.with_mut(|states| {
+                                                                                                        states.insert(enc_id, UploadState::Error(err));
+                                                                                                    });
+                                                                                                }
+                                                                                                Err(e) => {
+                                                                                                    upload_states.with_mut(|states| {
+                                                                                                        states.insert(enc_id, UploadState::Error(e));
+                                                                                                    });
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                        None => {
+                                                                                            upload_states.with_mut(|states| {
+                                                                                                states.insert(enc_id, UploadState::Error("No active log file".to_string()));
+                                                                                            });
+                                                                                        }
+                                                                                    }
+                                                                                });
+                                                                            },
+                                                                            i { class: "fa-solid fa-upload" }
+                                                                        }
+                                                                    },
+                                                                        UploadState::Uploading => rsx! {
+                                                                            span { class: "parsely-upload-btn uploading",
+                                                                                i { class: "fa-solid fa-spinner fa-spin" }
+                                                                            }
+                                                                        },
+                                                                        UploadState::Success(ref link) => rsx! {
+                                                                            a {
+                                                                                class: "parsely-upload-btn success",
+                                                                                href: "{link}",
+                                                                                target: "_blank",
+                                                                                title: "View on Parsely",
+                                                                                onclick: |e| e.stop_propagation(),
+                                                                                i { class: "fa-solid fa-external-link" }
+                                                                            }
+                                                                        },
+                                                                    UploadState::Error(ref err) => rsx! {
+                                                                        button {
+                                                                            class: "parsely-upload-btn error",
+                                                                            title: "Error: {err}. Click to retry.",
+                                                                            onclick: move |e| {
+                                                                                e.stop_propagation();
+                                                                                upload_states.with_mut(|states| {
+                                                                                    states.insert(enc_id, UploadState::Idle);
+                                                                                });
+                                                                            },
+                                                                            i { class: "fa-solid fa-triangle-exclamation" }
+                                                                        }
+                                                                    },
+                                                                }
+                                                            }
                                                         }
                                                         // Expanded detail row
                                                         if is_expanded {
                                                             tr { class: "detail-row",
-                                                                td { colspan: "4",
+                                                                td { colspan: "5",
                                                                     EncounterDetail { encounter: (*enc).clone() }
                                                                 }
                                                             }

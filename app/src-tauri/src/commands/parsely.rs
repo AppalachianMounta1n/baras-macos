@@ -1,7 +1,7 @@
 //! Parsely.io upload commands
 
-use std::io::BufReader;
-use std::path::PathBuf;
+use std::io::{BufReader, Write};
+use std::path::{Path, PathBuf};
 
 use flate2::Compression;
 use flate2::write::GzEncoder;
@@ -87,6 +87,156 @@ fn gzip_compress_file(path: &std::path::Path) -> std::io::Result<Vec<u8>> {
     let mut reader = BufReader::new(file);
     let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
     std::io::copy(&mut reader, &mut encoder)?;
+    encoder.finish()
+}
+
+/// Upload a specific encounter (line range) to Parsely.io
+#[tauri::command]
+pub async fn upload_encounter_to_parsely(
+    path: PathBuf,
+    start_line: u64,
+    end_line: u64,
+    area_entered_line: Option<u64>,
+    handle: State<'_, ServiceHandle>,
+) -> Result<ParselyUploadResponse, String> {
+    // Extract and compress the relevant lines
+    let compressed = extract_and_compress_lines(&path, start_line, end_line, area_entered_line)
+        .map_err(|e| format!("Failed to extract lines: {}", e))?;
+
+    if compressed.is_empty() {
+        return Ok(ParselyUploadResponse {
+            success: false,
+            link: None,
+            error: Some("No lines extracted".to_string()),
+        });
+    }
+
+    // Build filename with encounter info
+    let base_filename = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("combat.txt");
+    let filename = format!("{}_lines_{}-{}.txt", base_filename, start_line, end_line);
+
+    let file_part = Part::bytes(compressed)
+        .file_name(filename)
+        .mime_str("text/html")
+        .map_err(|e| format!("Failed to create file part: {}", e))?;
+
+    let mut form = Form::new().part("file", file_part).text("public", "1");
+
+    let config = handle.config().await;
+    if !config.parsely.username.is_empty() && !config.parsely.password.is_empty() {
+        form = form.text("username", config.parsely.username.clone());
+        form = form.text("password", config.parsely.password.clone());
+        if !config.parsely.guild.is_empty() {
+            form = form.text("guild", config.parsely.guild.clone());
+        }
+    }
+
+    // Send request
+    let client = reqwest::Client::new();
+    let response = client
+        .post(PARSELY_URL)
+        .header("User-Agent", USER_AGENT)
+        .multipart(form)
+        .timeout(std::time::Duration::from_secs(300))
+        .send()
+        .await
+        .map_err(|e| format!("Upload failed: {}", e))?;
+
+    let response_text = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    parse_parsely_response(&response_text)
+}
+
+/// Extract specific lines from a file, optionally prepending the area entered line,
+/// and gzip compress the result.
+///
+/// Note: Log files are Windows-1252 encoded, so we read raw bytes and split by newlines
+/// without attempting UTF-8 conversion.
+fn extract_and_compress_lines(
+    path: &Path,
+    start_line: u64,
+    end_line: u64,
+    area_entered_line: Option<u64>,
+) -> std::io::Result<Vec<u8>> {
+    use std::io::Read;
+
+    // Read entire file as raw bytes (preserves Windows-1252 encoding)
+    let mut file = std::fs::File::open(path)?;
+    let mut contents = Vec::new();
+    file.read_to_end(&mut contents)?;
+
+    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+    let mut area_line_content: Option<&[u8]> = None;
+
+    // If area_entered_line is before start_line, we need to capture it separately
+    let capture_area_line = area_entered_line
+        .map(|l| l < start_line)
+        .unwrap_or(false);
+
+    // Split by newlines, keeping track of line numbers (1-indexed)
+    let mut line_num: u64 = 0;
+    let mut start = 0;
+
+    for (i, &byte) in contents.iter().enumerate() {
+        if byte == b'\n' {
+            line_num += 1;
+            let line_end = if i > 0 && contents[i - 1] == b'\r' {
+                i - 1 // Strip \r from \r\n
+            } else {
+                i
+            };
+            let line = &contents[start..line_end];
+
+            // Capture area entered line if it's before our range
+            if capture_area_line && Some(line_num) == area_entered_line {
+                area_line_content = Some(line);
+            }
+
+            // Write lines in the encounter range
+            if line_num >= start_line && line_num <= end_line {
+                // If we have a captured area line, write it first (once)
+                if let Some(area_line) = area_line_content.take() {
+                    encoder.write_all(area_line)?;
+                    encoder.write_all(b"\n")?;
+                }
+                encoder.write_all(line)?;
+                encoder.write_all(b"\n")?;
+            }
+
+            // Stop early if we've passed the end and don't need to capture area line
+            if line_num > end_line && (!capture_area_line || area_line_content.is_none()) {
+                break;
+            }
+
+            start = i + 1;
+        }
+    }
+
+    // Handle last line if file doesn't end with newline
+    if start < contents.len() {
+        line_num += 1;
+        let line = &contents[start..];
+
+        if capture_area_line && Some(line_num) == area_entered_line {
+            area_line_content = Some(line);
+        }
+
+        if line_num >= start_line && line_num <= end_line {
+            if let Some(area_line) = area_line_content.take() {
+                encoder.write_all(area_line)?;
+                encoder.write_all(b"\n")?;
+            }
+            encoder.write_all(line)?;
+            encoder.write_all(b"\n")?;
+        }
+    }
+
     encoder.finish()
 }
 

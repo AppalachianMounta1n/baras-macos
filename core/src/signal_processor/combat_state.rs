@@ -101,6 +101,7 @@ fn handle_not_started(
             enc.enter_combat_time = Some(timestamp);
             enc.track_event_entities(event);
             enc.accumulate_data(event);
+            enc.track_event_line(event.line_number);
 
             signals.push(GameSignal::CombatStarted {
                 timestamp,
@@ -111,6 +112,7 @@ fn handle_not_started(
         // Buffer non-damage events for the upcoming encounter (skip pre-combat damage)
         if let Some(enc) = cache.current_encounter_mut() {
             enc.accumulate_data(event);
+            enc.track_event_line(event.line_number);
         }
     }
 
@@ -280,6 +282,7 @@ fn handle_in_combat(
         if let Some(enc) = cache.current_encounter_mut() {
             enc.track_event_entities(event);
             enc.accumulate_data(event);
+            enc.track_event_line(event.line_number);
             if effect_id == effect_id::DAMAGE || effect_id == effect_id::HEAL {
                 enc.last_combat_activity_time = Some(timestamp);
             }
@@ -307,6 +310,8 @@ fn handle_post_combat(
             if let Some(enc) = cache.current_encounter_mut() {
                 enc.state = EncounterState::InCombat;
                 enc.exit_combat_time = None;
+                // Track line number - grace period events are part of this encounter
+                enc.track_event_line(event.line_number);
             }
             // Keep last_combat_exit_time set - we'll use it if another exit comes quickly
             // Don't emit any signals - combat "continues"
@@ -319,6 +324,7 @@ fn handle_post_combat(
                 enc.state = EncounterState::InCombat;
                 enc.enter_combat_time = Some(timestamp);
                 enc.accumulate_data(event);
+                enc.track_event_line(event.line_number);
             }
 
             signals.push(GameSignal::CombatStarted {
@@ -327,8 +333,11 @@ fn handle_post_combat(
             });
         }
     } else if in_grace_window {
-        // During grace window, ignore all other events (EXITCOMBAT, damage, buffs, etc.)
-        // They'll be discarded - we're waiting to see if combat restarts
+        // During grace window, events are not accumulated but we still track their line numbers
+        // for per-encounter Parsely uploads (grace period events belong to this encounter)
+        if let Some(enc) = cache.current_encounter_mut() {
+            enc.track_event_line(event.line_number);
+        }
     } else if effect_id == effect_id::DAMAGE {
         // Discard post-combat damage - start fresh encounter
         finalize_pending_combat_exit(cache, &mut signals);
@@ -339,6 +348,7 @@ fn handle_post_combat(
         cache.push_new_encounter();
         if let Some(enc) = cache.current_encounter_mut() {
             enc.accumulate_data(event);
+            enc.track_event_line(event.line_number);
         }
     }
 

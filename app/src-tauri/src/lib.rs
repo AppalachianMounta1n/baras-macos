@@ -214,6 +214,7 @@ pub fn run() {
             commands::get_icon_preview,
             // Parsely upload
             commands::upload_to_parsely,
+            commands::upload_encounter_to_parsely,
             // Query commands
             commands::query_breakdown,
             commands::query_entity_breakdown,

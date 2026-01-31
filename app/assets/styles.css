@@ -2830,8 +2830,53 @@ details[open] .collapsible-summary::before {
 }
 
 .col-result {
-  width: 15%;
+  width: 12%;
   text-align: center;
+}
+
+.col-upload {
+  width: 50px;
+  text-align: center;
+}
+
+.parsely-upload-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #888);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.parsely-upload-btn:hover {
+  color: var(--accent, #4a9eff);
+  background: rgba(74, 158, 255, 0.1);
+}
+
+.parsely-upload-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.parsely-upload-btn.uploading {
+  color: var(--accent, #4a9eff);
+}
+
+.parsely-upload-btn.success {
+  color: var(--success, #4ade80);
+}
+
+.parsely-upload-btn.success:hover {
+  background: rgba(74, 222, 128, 0.1);
+}
+
+.parsely-upload-btn.error {
+  color: var(--warning, #f59e0b);
+}
+
+.parsely-upload-btn.error:hover {
+  background: rgba(245, 158, 11, 0.1);
 }
 
 .encounter-info {

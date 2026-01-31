@@ -159,6 +159,7 @@ impl EventProcessor {
             cache.current_area.generation += 1;
         }
         cache.current_area.entered_at = Some(event.timestamp);
+        cache.current_area.entered_at_line = Some(event.line_number);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

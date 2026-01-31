@@ -116,6 +116,12 @@ pub struct CombatEncounter {
     pub accumulated_data: HashMap<i64, MetricAccumulator>,
     /// Challenge metrics for boss encounters
     pub challenge_tracker: ChallengeTracker,
+
+    // ─── Line Number Tracking (for per-encounter Parsely uploads) ────────────
+    /// Line number of the first event accumulated for this encounter
+    pub first_event_line: Option<u64>,
+    /// Line number of the last event accumulated (includes grace period events)
+    pub last_event_line: Option<u64>,
 }
 
 impl CombatEncounter {
@@ -158,6 +164,10 @@ impl CombatEncounter {
             // Metrics
             accumulated_data: HashMap::new(),
             challenge_tracker: ChallengeTracker::new(),
+
+            // Line number tracking
+            first_event_line: None,
+            last_event_line: None,
         }
     }
 
@@ -790,6 +800,20 @@ impl CombatEncounter {
                 target.healing_received_effective += event.details.heal_effective as i64;
             }
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Line Number Tracking
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// Track an event's line number for per-encounter Parsely uploads.
+    /// Sets first_event_line if not yet set, always updates last_event_line.
+    #[inline]
+    pub fn track_event_line(&mut self, line_number: u64) {
+        if self.first_event_line.is_none() {
+            self.first_event_line = Some(line_number);
+        }
+        self.last_event_line = Some(line_number);
     }
 
     pub fn calculate_entity_metrics(

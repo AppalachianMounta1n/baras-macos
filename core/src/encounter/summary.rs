@@ -36,6 +36,14 @@ pub struct EncounterSummary {
     pub is_phase_start: bool,
     /// Names of NPC enemies in the encounter
     pub npc_names: Vec<String>,
+
+    // ─── Line Number Tracking (for per-encounter Parsely uploads) ────────────
+    /// Line number of the most recent AreaEntered event before this encounter
+    pub area_entered_line: Option<u64>,
+    /// First line of events for this encounter (after previous encounter ended)
+    pub event_start_line: Option<u64>,
+    /// Last line of events for this encounter (includes grace period)
+    pub event_end_line: Option<u64>,
 }
 
 /// Tracks encounter history for the current log file session
@@ -306,5 +314,9 @@ pub fn create_encounter_summary(
         player_metrics,
         is_phase_start,
         npc_names,
+        // Line number tracking for per-encounter Parsely uploads
+        area_entered_line: area.entered_at_line,
+        event_start_line: encounter.first_event_line,
+        event_end_line: encounter.last_event_line,
     })
 }

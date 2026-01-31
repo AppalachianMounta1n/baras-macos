@@ -533,6 +533,26 @@ pub async fn upload_to_parsely(path: &str) -> Result<ParselyUploadResponse, Stri
     from_js(result).ok_or_else(|| "Failed to parse upload response".to_string())
 }
 
+/// Upload a specific encounter (line range) to Parsely.io
+pub async fn upload_encounter_to_parsely(
+    path: &str,
+    start_line: u64,
+    end_line: u64,
+    area_entered_line: Option<u64>,
+) -> Result<ParselyUploadResponse, String> {
+    let obj = js_sys::Object::new();
+    js_set(&obj, "path", &JsValue::from_str(path));
+    js_set(&obj, "startLine", &JsValue::from_f64(start_line as f64));
+    js_set(&obj, "endLine", &JsValue::from_f64(end_line as f64));
+    if let Some(line) = area_entered_line {
+        js_set(&obj, "areaEnteredLine", &JsValue::from_f64(line as f64));
+    } else {
+        js_set(&obj, "areaEnteredLine", &JsValue::NULL);
+    }
+    let result = try_invoke("upload_encounter_to_parsely", obj.into()).await?;
+    from_js(result).ok_or_else(|| "Failed to parse upload response".to_string())
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Audio File Picker
 // ─────────────────────────────────────────────────────────────────────────────
