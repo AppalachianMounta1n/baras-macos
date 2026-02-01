@@ -133,6 +133,12 @@ impl SessionCache {
         // Share boss definitions with the new encounter (Arc clone is cheap)
         encounter.load_boss_definitions(Arc::clone(&self.boss_definitions));
 
+        tracing::info!(
+            "[ENCOUNTER] Creating new encounter ID={}, boss_defs={}",
+            id,
+            self.boss_definitions.len()
+        );
+
         self.next_encounter_id += 1;
         self.encounters.push_back(encounter);
         self.trim_old_encounters();

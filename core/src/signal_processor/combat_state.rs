@@ -135,7 +135,14 @@ fn handle_in_combat(
     let mut was_accumulated = false;
 
     // Check for combat timeout
-    if let Some(enc) = cache.current_encounter()
+    // Skip timeout for victory-trigger encounters (e.g., Coratanni has long phases with no activity)
+    let has_victory_trigger = cache.current_encounter().map_or(false, |enc| {
+        enc.active_boss_idx()
+            .map_or(false, |idx| enc.boss_definitions()[idx].has_victory_trigger)
+    });
+    
+    if !has_victory_trigger
+        && let Some(enc) = cache.current_encounter()
         && let Some(last_activity) = enc.last_combat_activity_time
     {
         let elapsed = timestamp.signed_duration_since(last_activity).num_seconds();
@@ -151,6 +158,8 @@ fn handle_in_combat(
                 enc.challenge_tracker.finalize(last_activity, duration);
             }
 
+            tracing::info!("[ENCOUNTER] Combat timeout at {}, ending encounter {}", last_activity, encounter_id);
+            
             signals.push(GameSignal::CombatEnded {
                 timestamp: last_activity,
                 encounter_id,
@@ -287,6 +296,7 @@ fn handle_in_combat(
             cache.push_new_encounter();
         } else {
             // Start grace window - don't emit CombatEnded yet
+            tracing::info!("[ENCOUNTER] Starting grace window at {}, encounter {}", timestamp, cache.current_encounter().map(|e| e.id).unwrap_or(0));
             cache.last_combat_exit_time = Some(timestamp);
 
             if let Some(enc) = cache.current_encounter_mut() {
@@ -301,6 +311,7 @@ fn handle_in_combat(
         }
     } else if effect_type_id == effect_type_id::AREAENTERED {
         let encounter_id = cache.current_encounter().map(|e| e.id).unwrap_or(0);
+        tracing::info!("[ENCOUNTER] AREAENTERED at {}, ending encounter {}", timestamp, encounter_id);
         if let Some(enc) = cache.current_encounter_mut() {
             enc.exit_combat_time = Some(timestamp);
             enc.state = EncounterState::PostCombat {
@@ -472,7 +483,14 @@ pub fn tick_combat_state(cache: &mut SessionCache) -> Vec<GameSignal> {
     }
 
     // Check wall-clock timeout
-    if let Some(enc) = cache.current_encounter()
+    // Skip timeout for victory-trigger encounters (e.g., Coratanni has long phases with no activity)
+    let has_victory_trigger = cache.current_encounter().map_or(false, |enc| {
+        enc.active_boss_idx()
+            .map_or(false, |idx| enc.boss_definitions()[idx].has_victory_trigger)
+    });
+    
+    if !has_victory_trigger
+        && let Some(enc) = cache.current_encounter()
         && let Some(last_activity) = enc.last_combat_activity_time
     {
         let elapsed = now.signed_duration_since(last_activity).num_seconds();
