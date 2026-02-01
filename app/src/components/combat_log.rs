@@ -242,15 +242,15 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
 
     // Column widths for resizable columns (in pixels)
     let mut col_time = use_signal(|| 70.0f64);
-    let mut col_source = use_signal(|| 150.0f64);
+    let mut col_source = use_signal(|| 110.0f64);
     let mut col_type = use_signal(|| 90.0f64);
-    let mut col_target = use_signal(|| 150.0f64);
-    let mut col_ability = use_signal(|| 200.0f64);
+    let mut col_target = use_signal(|| 110.0f64);
+    let mut col_ability = use_signal(|| 280.0f64);
     let mut col_value = use_signal(|| 70.0f64);
-    let mut col_abs = use_signal(|| 50.0f64);
+    let mut col_abs = use_signal(|| 70.0f64);
     let mut col_mit = use_signal(|| 60.0f64);
-    let mut col_over = use_signal(|| 50.0f64);
-    let mut col_threat = use_signal(|| 60.0f64);
+    let mut col_over = use_signal(|| 70.0f64);
+    let mut col_threat = use_signal(|| 70.0f64);
 
     // Column resize dragging state
     let mut resizing_col = use_signal(|| None::<usize>);

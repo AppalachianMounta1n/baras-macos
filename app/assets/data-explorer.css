@@ -1069,6 +1069,7 @@
   white-space: nowrap;
   border-right: 1px solid var(--border-subtle);
   min-height: 1px; /* Ensure border shows even for empty cells */
+  user-select: text; /* Allow text selection for overflow content */
 }
 .log-cell:last-child {
   border-right: none;
