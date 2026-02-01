@@ -11,15 +11,15 @@
 
 use arrow::array::{
     ArrayBuilder, ArrayRef, BooleanBuilder, Float32Builder, Int32Builder, Int64Builder, ListArray,
-    StringBuilder, StructArray, TimestampMillisecondBuilder, UInt8Builder, UInt32Builder,
-    UInt64Builder,
+    StringBuilder, StructArray, TimestampMillisecondBuilder, UInt32Builder, UInt64Builder,
+    UInt8Builder,
 };
 use arrow::buffer::{NullBuffer, OffsetBuffer};
 use arrow::datatypes::{DataType, Field, Fields, Schema, TimeUnit};
 use arrow::record_batch::RecordBatch;
 use baras_core::combat_log::{CombatEvent, EntityType, LogParser};
 use baras_core::context::{parse_log_filename, resolve};
-use baras_core::dsl::{BossEncounterDefinition, load_bosses_from_dir, merge_boss_definition};
+use baras_core::dsl::{build_area_index, load_bosses_with_custom};
 use baras_core::encounter::summary::EncounterSummary;
 use baras_core::game_data::defense_type;
 use baras_core::signal_processor::{EventProcessor, GameSignal};
@@ -283,14 +283,15 @@ impl FastEncounterWriter {
         self.encounter_idx.append_value(encounter_idx);
         self.combat_time_secs.append_option(combat_time);
         self.phase_id.append_option(current_phase);
-        self.phase_name.append_option(current_phase.and_then(|phase_id| {
-            boss_def.and_then(|def| {
-                def.phases
-                    .iter()
-                    .find(|p| p.id == phase_id)
-                    .map(|p| p.name.as_str())
-            })
-        }));
+        self.phase_name
+            .append_option(current_phase.and_then(|phase_id| {
+                boss_def.and_then(|def| {
+                    def.phases
+                        .iter()
+                        .find(|p| p.id == phase_id)
+                        .map(|p| p.name.as_str())
+                })
+            }));
         self.area_name.append_value(&cache.current_area.area_name);
         self.boss_name
             .append_option(boss_def.map(|d| d.name.as_str()));
@@ -586,58 +587,28 @@ fn main() {
         std::process::exit(1);
     }
 
-    // Load boss definitions from bundled dir (passed as arg) and user config dir
-    let mut boss_definitions: Vec<BossEncounterDefinition> = Vec::new();
-
-    // 1. Load from bundled directory
-    if let Some(ref dir) = definitions_dir {
-        match load_bosses_from_dir(dir) {
-            Ok(bosses) => {
-                tracing::debug!(count = bosses.len(), "Loaded bundled boss definitions");
-                boss_definitions = bosses;
+    // Build area index from bundled definitions directory (lightweight - only reads headers)
+    let area_index = if let Some(ref dir) = definitions_dir {
+        match build_area_index(dir) {
+            Ok(index) => {
+                tracing::debug!(count = index.len(), "Built area index");
+                Some(index)
             }
             Err(e) => {
-                tracing::warn!(error = %e, "Failed to load bundled definitions");
+                tracing::warn!(error = %e, "Failed to build area index");
+                None
             }
         }
-    }
+    } else {
+        None
+    };
 
-    // 2. Load from user config directory (standalone + overlay user encounters)
-    if let Some(user_dir) =
-        dirs::config_dir().map(|p| p.join("baras").join("definitions").join("encounters"))
-        && user_dir.exists()
-    {
-        match load_bosses_from_dir(&user_dir) {
-            Ok(user_bosses) => {
-                if !user_bosses.is_empty() {
-                    tracing::debug!(count = user_bosses.len(), "Loaded user boss definitions");
-                    // Merge: field-level merge for existing bosses, append new ones
-                    for user_boss in user_bosses {
-                        if let Some(existing) =
-                            boss_definitions.iter_mut().find(|b| b.id == user_boss.id)
-                        {
-                            // Field-level merge: timers, phases, entities, etc. by ID
-                            merge_boss_definition(existing, user_boss);
-                        } else {
-                            // New standalone boss - just add it
-                            boss_definitions.push(user_boss);
-                        }
-                    }
-                    // Rebuild indexes after merge (entities may have been added)
-                    for boss in &mut boss_definitions {
-                        boss.build_indexes();
-                    }
-                }
-            }
-            Err(e) => {
-                tracing::warn!(error = %e, "Failed to load user definitions");
-            }
-        }
-    }
+    // User custom directory for merging
+    let user_dir = dirs::config_dir().map(|p| p.join("baras").join("encounters"));
 
     let timer = std::time::Instant::now();
 
-    match parse_file(&file_path, session_id, &output_dir, boss_definitions) {
+    match parse_file(&file_path, session_id, &output_dir, area_index, user_dir) {
         Ok(output) => {
             let mut output = output;
             output.elapsed_ms = timer.elapsed().as_millis();
@@ -658,7 +629,8 @@ fn parse_file(
     file_path: &Path,
     _session_id: &str,
     output_dir: &Path,
-    boss_definitions: Vec<BossEncounterDefinition>,
+    area_index: Option<baras_core::dsl::AreaIndex>,
+    user_dir: Option<PathBuf>,
 ) -> Result<ParseOutput, String> {
     // Extract session date from filename
     let date_stamp = file_path
@@ -700,9 +672,9 @@ fn parse_file(
 
     let event_count = events.len();
 
-    // Process events and write encounters
+    // Process events and write encounters (definitions loaded lazily on AreaEntered)
     let (encounters, player, area, player_disciplines, incomplete_line) =
-        process_and_write_encounters(events, output_dir, boss_definitions)?;
+        process_and_write_encounters(events, output_dir, area_index, user_dir)?;
 
     // If there's an incomplete encounter, set end_pos to the byte position of its first line
     // Otherwise, use the end of file
@@ -733,7 +705,8 @@ fn parse_file(
 fn process_and_write_encounters(
     events: Vec<CombatEvent>,
     output_dir: &Path,
-    boss_definitions: Vec<BossEncounterDefinition>,
+    area_index: Option<baras_core::dsl::AreaIndex>,
+    user_dir: Option<PathBuf>,
 ) -> Result<
     (
         Vec<EncounterSummary>,
@@ -760,20 +733,48 @@ fn process_and_write_encounters(
     let mut current_encounter_idx: u32 = 0;
     let mut pending_write = false;
     let output_dir = output_dir.to_path_buf();
-    
+
     // Track the first line number of the current incomplete encounter
     let mut incomplete_encounter_first_line: Option<u64> = None;
 
-    cache.load_boss_definitions(boss_definitions);
-
     for event in events {
+        // Load boss definitions lazily when we see AreaEntered for an area we have definitions for
+        use baras_core::game_data::effect_type_id;
+        if event.effect.type_id == effect_type_id::AREAENTERED {
+            let area_id = event.effect.effect_id;
+            tracing::info!(area_id, "Detected AreaEntered event");
+
+            if let Some(ref index) = area_index {
+                if let Some(entry) = index.get(&area_id) {
+                    tracing::info!(area_id, area_name = %entry.name, "Found matching area in index, loading definitions");
+                    match load_bosses_with_custom(&entry.file_path, user_dir.as_deref()) {
+                        Ok(bosses) => {
+                            tracing::info!(
+                                area_id,
+                                count = bosses.len(),
+                                "Loaded boss definitions for area"
+                            );
+                            cache.load_boss_definitions(bosses);
+                        }
+                        Err(e) => {
+                            tracing::warn!(area_id, error = %e, "Failed to load definitions for area");
+                        }
+                    }
+                } else {
+                    tracing::info!(area_id, "No matching area found in index");
+                }
+            } else {
+                tracing::warn!("Area index not available");
+            }
+        }
+
         let (signals, event, was_accumulated) = processor.process_event(event, &mut cache);
-        
+
         // Track first line of current encounter (reset on combat end)
         if incomplete_encounter_first_line.is_none() {
             incomplete_encounter_first_line = Some(event.line_number);
         }
-        
+
         // Only write events that were accumulated (same filtering as live parquet)
         if was_accumulated {
             writer.append_event(&event, &cache, current_encounter_idx);
@@ -843,5 +844,11 @@ fn process_and_write_encounters(
         })
         .collect();
 
-    Ok((encounter_summaries, player, area, player_disciplines, incomplete_encounter_first_line))
+    Ok((
+        encounter_summaries,
+        player,
+        area,
+        player_disciplines,
+        incomplete_encounter_first_line,
+    ))
 }
