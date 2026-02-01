@@ -56,7 +56,10 @@ impl EventProcessor {
         // 1f. Boss HP tracking and phase transitions
         signals.extend(self.handle_boss_hp_and_phases(&event, cache));
 
-        // 1e. NPC Target Tracking
+        // 1g. Victory trigger detection (for special encounters like Coratanni)
+        self.handle_victory_trigger(&event, cache);
+
+        // 1h. NPC Target Tracking
         signals.extend(self.handle_target_changed(&event, cache));
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -518,6 +521,42 @@ impl EventProcessor {
         }
 
         signals
+    }
+
+    /// Check for victory trigger on special encounters (e.g., Coratanni).
+    /// Updates encounter.victory_triggered when the trigger fires.
+    fn handle_victory_trigger(&self, event: &CombatEvent, cache: &mut SessionCache) {
+        let Some(enc) = cache.current_encounter() else {
+            return;
+        };
+        let Some(idx) = enc.active_boss_idx() else {
+            return;
+        };
+
+        let boss_def = &enc.boss_definitions()[idx];
+        if !boss_def.has_victory_trigger || enc.victory_triggered {
+            return;
+        }
+
+        // Check if trigger matches (needs immutable borrow)
+        let trigger_fired = if let Some(ref trigger) = boss_def.victory_trigger {
+            phase::check_ability_trigger(trigger, event)
+        } else {
+            false
+        };
+
+        // Update state if triggered (needs mutable borrow)
+        if trigger_fired {
+            if let Some(enc) = cache.current_encounter_mut() {
+                enc.victory_triggered = true;
+                let boss_name = enc.boss_definitions()[idx].name.clone();
+                tracing::info!(
+                    "Victory trigger fired for {} at {}",
+                    boss_name,
+                    event.timestamp
+                );
+            }
+        }
     }
 
     fn handle_target_changed(

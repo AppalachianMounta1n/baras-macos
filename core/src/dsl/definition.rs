@@ -201,6 +201,17 @@ pub struct BossEncounterDefinition {
     #[serde(default, alias = "challenge", skip_serializing_if = "Vec::is_empty")]
     pub challenges: Vec<ChallengeDefinition>,
 
+    // ─── Victory Trigger (for special encounters) ────────────────────────────
+    /// Whether this boss requires an explicit victory trigger before ExitCombat is honored.
+    /// Used for encounters like Coratanni where the boss doesn't die but an ability signals victory.
+    #[serde(default, skip_serializing_if = "crate::serde_defaults::is_false")]
+    pub has_victory_trigger: bool,
+
+    /// The trigger that signals victory for has_victory_trigger encounters.
+    /// When this fires, subsequent ExitCombat events will end the encounter as a success.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub victory_trigger: Option<super::triggers::Trigger>,
+
     #[serde(skip)]
     pub all_npc_ids: HashSet<i64>,
 }

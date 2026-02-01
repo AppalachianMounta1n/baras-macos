@@ -173,11 +173,15 @@ is_kill_target = true
 # ═══════════════════════════════════════════════════════════════════════════════
 # Boss 5: Coratanni
 # ═══════════════════════════════════════════════════════════════════════════════
+# Special encounter: Multi-phase boss across two ships (Coratanni/Pearl -> Ruugar).
+# Victory is determined by Ruugar casting "Activating Self Destruct" at 9% HP, not by his death.
 
 [[boss]]
 id = "coratanni"
 name = "Coratanni"
 difficulties = ["story", "veteran", "master"]
+has_victory_trigger = true
+victory_trigger = { type = "ability_cast", abilities = [3502391211065344] }
 
 [[boss.entities]]
 name = "Coratanni"
@@ -188,7 +192,6 @@ is_boss = true
 name = "Ruugar"
 ids = [3371441953177600, 3397039958261760]
 is_boss = true
-is_kill_target = true
 
 [[boss.entities]]
 name = "Pearl"

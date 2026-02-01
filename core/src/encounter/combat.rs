@@ -106,6 +106,9 @@ pub struct CombatEncounter {
     pub npcs: HashMap<i64, NpcInfo>,
     /// Whether all players are dead (sticky - once true, stays true)
     pub all_players_dead: bool,
+    /// Whether the victory trigger has fired (for has_victory_trigger encounters).
+    /// Once true, ExitCombat events will be honored.
+    pub victory_triggered: bool,
 
     // ─── Effect Instances (for shield attribution) ──────────────────────────
     /// Active effects by target ID
@@ -157,6 +160,7 @@ impl CombatEncounter {
             players: HashMap::new(),
             npcs: HashMap::new(),
             all_players_dead: false,
+            victory_triggered: false,
 
             // Effects
             effects: HashMap::new(),

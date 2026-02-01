@@ -254,7 +254,15 @@ pub fn classify_encounter(
 
 /// Determine if an encounter was successful (not a wipe)
 /// Returns false (wipe) if all players died
+/// For victory-trigger encounters, success requires the trigger to have fired
 pub fn determine_success(encounter: &CombatEncounter) -> bool {
+    // For victory-trigger encounters (e.g., Coratanni), check if victory trigger fired
+    if let Some(idx) = encounter.active_boss_idx() {
+        if encounter.boss_definitions()[idx].has_victory_trigger {
+            return encounter.victory_triggered;
+        }
+    }
+    // Default: not a wipe = success
     !encounter.all_players_dead
 }
 

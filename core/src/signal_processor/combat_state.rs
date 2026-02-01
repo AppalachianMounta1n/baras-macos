@@ -216,11 +216,69 @@ fn handle_in_combat(
     // For boss fights, rely on all_players_dead or all_kill_targets_dead
     let should_end_on_local_revive = local_player_revived && !is_boss_encounter;
 
+    // Check if this is a victory-trigger encounter that hasn't triggered yet
+    // If so, ignore ExitCombat events until the victory trigger fires
+    // Check ALL boss definitions for the area, not just the active one
+    let should_ignore_exit_combat = cache.current_encounter().map_or(false, |enc| {
+        // If we have an active boss, check it
+        if let Some(idx) = enc.active_boss_idx() {
+            let has_trigger = enc.boss_definitions()[idx].has_victory_trigger;
+            let triggered = enc.victory_triggered;
+            tracing::info!(
+                "[VICTORY-CHECK] Active boss '{}': has_trigger={}, triggered={}",
+                enc.boss_definitions()[idx].name,
+                has_trigger,
+                triggered
+            );
+            has_trigger && !triggered
+        } else {
+            // No active boss yet, but check if ANY boss definition has victory trigger
+            // This handles the case where combat starts before the boss is detected
+            let has_any_trigger = enc.boss_definitions()
+                .iter()
+                .any(|def| def.has_victory_trigger);
+            let triggered = enc.victory_triggered;
+            tracing::info!(
+                "[VICTORY-CHECK] No active boss: has_any_trigger={}, triggered={}, boss_defs_count={}",
+                has_any_trigger,
+                triggered,
+                enc.boss_definitions().len()
+            );
+            has_any_trigger && !triggered
+        }
+    });
+
     if effect_id == effect_id::ENTERCOMBAT {
         // Ignore - local player re-entering combat mid-fight (e.g., after battle rez)
         // ENTERCOMBAT only fires for local player, so this is always a rejoin scenario
-    } else if effect_id == effect_id::EXITCOMBAT
-        || all_players_dead
+    } else if should_ignore_exit_combat {
+        // For victory-trigger encounters, ignore all exit conditions except all_players_dead (wipe)
+        if all_players_dead {
+            // This is a wipe - proceed to end the encounter normally
+            tracing::info!(
+                "[VICTORY-TRIGGER] All players dead, ending encounter as wipe at {}",
+                timestamp
+            );
+        } else {
+            // Ignore all other exit conditions (ExitCombat, kill targets, local revive, etc.)
+            tracing::info!(
+                "[VICTORY-TRIGGER] Ignoring exit condition at {} (ExitCombat={}, all_kill_targets_dead={}, should_end_on_local_revive={})",
+                timestamp,
+                effect_id == effect_id::EXITCOMBAT,
+                all_kill_targets_dead,
+                should_end_on_local_revive
+            );
+            if let Some(enc) = cache.current_encounter_mut() {
+                enc.track_event_entities(event);
+                enc.accumulate_data(event);
+                enc.track_event_line(event.line_number);
+            }
+            return signals; // Don't process further
+        }
+    }
+    
+    if all_players_dead
+        || effect_id == effect_id::EXITCOMBAT
         || all_kill_targets_dead
         || should_end_on_local_revive
     {
@@ -239,6 +297,12 @@ fn handle_in_combat(
                 enc.challenge_tracker.finalize(exit_time, duration);
             }
 
+            tracing::info!(
+                "[COMBAT-STATE] Ending encounter {} at {} (within grace window)",
+                encounter_id,
+                exit_time
+            );
+            
             signals.push(GameSignal::CombatEnded {
                 timestamp: exit_time,
                 encounter_id,
@@ -248,6 +312,11 @@ fn handle_in_combat(
             cache.push_new_encounter();
         } else {
             // Start grace window - don't emit CombatEnded yet
+            tracing::info!(
+                "[COMBAT-STATE] Starting grace window at {} (ExitCombat={})",
+                timestamp,
+                effect_id == effect_id::EXITCOMBAT
+            );
             cache.last_combat_exit_time = Some(timestamp);
 
             if let Some(enc) = cache.current_encounter_mut() {
