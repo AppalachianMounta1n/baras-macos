@@ -334,6 +334,23 @@ pub fn App() -> Element {
         closure.forget();
     });
 
+    // Listen for hotkeys unavailable (Wayland portal failure)
+    let mut hotkeys_toast = use_toast();
+    use_future(move || async move {
+        let closure = Closure::new(move |event: JsValue| {
+            if let Ok(payload) = js_sys::Reflect::get(&event, &JsValue::from_str("payload"))
+                && let Some(msg) = payload.as_string()
+            {
+                hotkeys_toast.show(
+                    format!("Global hotkeys unavailable: {}. Configure shortcuts in compositor settings.", msg),
+                    ToastSeverity::Normal
+                );
+            }
+        });
+        api::tauri_listen("hotkeys-unavailable", &closure).await;
+        closure.forget();
+    });
+
     // Check for changelog on startup
     use_future(move || async move {
         if let Some(response) = api::get_changelog().await {
@@ -1453,7 +1470,7 @@ pub fn App() -> Element {
                                 p { class: "hint", "Click to capture a key combination. Backspace to clear." }
                                 p { class: "hint hint-warning",
                                     i { class: "fa-solid fa-triangle-exclamation" }
-                                    " Global hotkeys are not supported on Linux Wayland"
+                                    " Linux Wayland: Requires compositor support (Hyprland, KDE). You may be prompted to approve."
                                 }
                                 p { class: "hint hint-warning",
                                     i { class: "fa-solid fa-triangle-exclamation" }

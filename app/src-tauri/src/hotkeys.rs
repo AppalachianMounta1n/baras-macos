@@ -1,12 +1,16 @@
 //! Global hotkey registration
 //!
 //! Registers global keyboard shortcuts for overlay visibility, move mode, and rearrange mode.
-//! Supported on Windows, macOS, and Linux (X11 only - Wayland does not support global hotkeys
-//! due to its security model).
+//! Supported on Windows, macOS, Linux X11, and Linux Wayland (via XDG GlobalShortcuts portal).
 
 use crate::overlay::{OverlayCommand, OverlayManager, OverlayType, SharedOverlayState};
 use crate::service::ServiceHandle;
 use tracing::{error, info, warn};
+
+#[cfg(target_os = "linux")]
+use futures_util::StreamExt;
+#[cfg(target_os = "linux")]
+use tauri::Emitter;
 
 /// Check if running on Wayland (Linux only)
 #[cfg(target_os = "linux")]
@@ -17,20 +21,179 @@ fn is_wayland() -> bool {
             .unwrap_or(false)
 }
 
+/// Convert Tauri key format to XDG shortcuts format
+/// 
+/// Per XDG shortcuts spec:
+/// - Modifiers are uppercase: CTRL, ALT, SHIFT, LOGO
+/// - Keys are lowercase: a, w, return
+/// 
+/// Examples:
+/// - "CommandOrControl+Shift+H" -> "CTRL+SHIFT+h"
+/// - "Alt+F1" -> "ALT+f1"
+/// - "Ctrl+Shift+W" -> "CTRL+SHIFT+w"
+#[cfg(target_os = "linux")]
+fn convert_key_format(tauri_key: &str) -> String {
+    tauri_key
+        .split('+')
+        .map(|part| {
+            let part_lower = part.to_lowercase();
+            // Map known modifiers to uppercase XDG format
+            match part_lower.as_str() {
+                "commandorcontrol" | "control" | "ctrl" => "CTRL",
+                "command" | "super" | "meta" => "LOGO",  // LOGO is the XDG name for Super/Windows key
+                "alt" => "ALT",
+                "shift" => "SHIFT",
+                // Everything else is a key - keep it lowercase
+                key => return key.to_owned(),
+            }.to_owned()
+        })
+        .collect::<Vec<_>>()
+        .join("+")
+}
+
+/// Try to register global shortcuts via XDG portal (Wayland)
+/// 
+/// This function creates a portal session, binds shortcuts, and listens for activation signals.
+/// It runs indefinitely until an error occurs or the app closes.
+#[cfg(target_os = "linux")]
+async fn try_portal_shortcuts(
+    _app_handle: tauri::AppHandle,
+    overlay_state: SharedOverlayState,
+    service_handle: ServiceHandle,
+) -> Result<(), ashpd::Error> {
+    use ashpd::desktop::global_shortcuts::{GlobalShortcuts, NewShortcut};
+    
+    let config = service_handle.config().await;
+    let hotkeys = &config.hotkeys;
+    
+    // Build list of shortcuts to register
+    // Store converted keys so we can pass references
+    let mut converted_keys = Vec::new();
+    let mut shortcuts = Vec::new();
+    
+    if let Some(ref key) = hotkeys.toggle_visibility {
+        let converted = convert_key_format(key);
+        converted_keys.push(converted);
+        shortcuts.push(
+            NewShortcut::new("toggle-visibility", "Toggle overlay visibility")
+                .preferred_trigger(converted_keys.last().unwrap().as_str())
+        );
+    }
+    if let Some(ref key) = hotkeys.toggle_move_mode {
+        let converted = convert_key_format(key);
+        converted_keys.push(converted);
+        shortcuts.push(
+            NewShortcut::new("toggle-move-mode", "Toggle move mode")
+                .preferred_trigger(converted_keys.last().unwrap().as_str())
+        );
+    }
+    if let Some(ref key) = hotkeys.toggle_rearrange_mode {
+        let converted = convert_key_format(key);
+        converted_keys.push(converted);
+        shortcuts.push(
+            NewShortcut::new("toggle-rearrange", "Toggle rearrange mode")
+                .preferred_trigger(converted_keys.last().unwrap().as_str())
+        );
+    }
+    
+    if shortcuts.is_empty() {
+        info!("No hotkeys configured, skipping portal registration");
+        return Ok(());
+    }
+    
+    // Create portal connection and session
+    let portal = GlobalShortcuts::new().await?;
+    let session = portal.create_session().await?;
+    
+    // Bind shortcuts (may show user permission dialog on first run)
+    let _response = portal
+        .bind_shortcuts(&session, &shortcuts, None)
+        .await?
+        .response()?;
+    
+    info!(
+        "Registered {} global shortcuts via portal",
+        shortcuts.len()
+    );
+    
+    // Spawn a dedicated task to listen for activation signals
+    // This is critical - the stream must be polled in a separate task
+    tauri::async_runtime::spawn(async move {
+        match portal.receive_activated().await {
+            Ok(mut activated) => {
+                while let Some(activation) = activated.next().await {
+                    let shortcut_id = activation.shortcut_id();
+                    let state = overlay_state.clone();
+                    let handle = service_handle.clone();
+                    
+                    match shortcut_id {
+                        "toggle-visibility" => {
+                            tauri::async_runtime::spawn(async move {
+                                toggle_visibility_hotkey(state, handle).await;
+                            });
+                        }
+                        "toggle-move-mode" => {
+                            tauri::async_runtime::spawn(async move {
+                                toggle_move_mode_hotkey(state, handle).await;
+                            });
+                        }
+                        "toggle-rearrange" => {
+                            tauri::async_runtime::spawn(async move {
+                                toggle_rearrange_mode_hotkey(state, handle).await;
+                            });
+                        }
+                        _ => {
+                            warn!("Unknown shortcut ID: {}", shortcut_id);
+                        }
+                    }
+                }
+                
+                warn!("Global shortcuts activation stream ended");
+            }
+            Err(e) => {
+                error!("Failed to create global shortcuts activation stream: {}", e);
+            }
+        }
+    });
+    
+    Ok(())
+}
+
 /// Register global hotkeys from config
 pub fn spawn_register_hotkeys(
     app_handle: tauri::AppHandle,
     overlay_state: SharedOverlayState,
     service_handle: ServiceHandle,
 ) {
-    use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
-
-    // Skip on Wayland - global hotkeys not supported due to security model
+    // Try portal on Wayland, otherwise use tauri-plugin-global-shortcut
     #[cfg(target_os = "linux")]
     if is_wayland() {
-        warn!("Global hotkeys disabled on Wayland (not supported)");
+        info!("Detected Wayland, attempting to register shortcuts via XDG portal");
+        
+        let app = app_handle.clone();
+        let state = overlay_state.clone();
+        let handle = service_handle.clone();
+        
+        tauri::async_runtime::spawn(async move {
+            // Small delay to ensure everything is initialized
+            tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+            
+            if let Err(e) = try_portal_shortcuts(app.clone(), state, handle).await {
+                let error_msg = format!("{}", e);
+                warn!(
+                    "GlobalShortcuts portal not available: {}. \
+                     Hotkeys will not work. Configure shortcuts in your compositor settings instead.",
+                    error_msg
+                );
+                
+                // Emit event to frontend so user sees a helpful message
+                let _ = app.emit("hotkeys-unavailable", error_msg);
+            }
+        });
         return;
     }
+    
+    use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
     tauri::async_runtime::spawn(async move {
         // Small delay to ensure everything is initialized

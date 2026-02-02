@@ -47,6 +47,10 @@ tracing-subscriber = { workspace = true }
 tracing-appender = { workspace = true }
 rolling-file = { workspace = true }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+ashpd = { version = "0.12", default-features = false, features = ["tokio"] }
+futures-util = "0.3"
+
 [target.'cfg(not(target_os = "linux"))'.dependencies]
 tts = "0.26"
 
