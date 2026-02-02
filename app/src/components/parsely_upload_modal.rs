@@ -232,6 +232,7 @@ pub fn ParselyUploadModal() -> Element {
                             is_uploading.set(true);
 
                             spawn(async move {
+                                let is_file_upload = matches!(&upload_req.upload_type, ParselyUploadType::File { .. });
                                 let upload_path = match &upload_req.upload_type {
                                     ParselyUploadType::File { path, .. } => path.clone(),
                                     ParselyUploadType::Encounter { path, .. } => path.clone(),
@@ -281,28 +282,32 @@ pub fn ParselyUploadModal() -> Element {
                                 is_uploading.set(false);
                                 manager.close();
 
-                                // Emit event with upload result for UI updates
-                                if let Some(window) = web_sys::window() {
-                                    let global = js_sys::global();
-                                    match &result {
-                                        Ok(resp) if resp.success => {
-                                            let link = resp.link.clone().unwrap_or_default();
-                                            let data = format!("{}|true|{}", upload_path, link);
-                                            js_sys::Reflect::set(&global, &"__parsely_upload_result".into(), &data.into()).ok();
+                                // Emit event with upload result for UI updates (file uploads only)
+                                // Individual encounter uploads have their own state management via
+                                // parsely_link field and parsely-upload-success event
+                                if is_file_upload {
+                                    if let Some(window) = web_sys::window() {
+                                        let global = js_sys::global();
+                                        match &result {
+                                            Ok(resp) if resp.success => {
+                                                let link = resp.link.clone().unwrap_or_default();
+                                                let data = format!("{}|true|{}", upload_path, link);
+                                                js_sys::Reflect::set(&global, &"__parsely_upload_result".into(), &data.into()).ok();
+                                            }
+                                            Ok(resp) => {
+                                                let err = resp.error.clone().unwrap_or_else(|| "Upload failed".to_string());
+                                                let data = format!("{}|false|{}", upload_path, err);
+                                                js_sys::Reflect::set(&global, &"__parsely_upload_result".into(), &data.into()).ok();
+                                            }
+                                            Err(e) => {
+                                                let data = format!("{}|false|{}", upload_path, e);
+                                                js_sys::Reflect::set(&global, &"__parsely_upload_result".into(), &data.into()).ok();
+                                            }
                                         }
-                                        Ok(resp) => {
-                                            let err = resp.error.clone().unwrap_or_else(|| "Upload failed".to_string());
-                                            let data = format!("{}|false|{}", upload_path, err);
-                                            js_sys::Reflect::set(&global, &"__parsely_upload_result".into(), &data.into()).ok();
-                                        }
-                                        Err(e) => {
-                                            let data = format!("{}|false|{}", upload_path, e);
-                                            js_sys::Reflect::set(&global, &"__parsely_upload_result".into(), &data.into()).ok();
-                                        }
-                                    }
 
-                                    if let Ok(event) = web_sys::Event::new("parsely-upload-complete") {
-                                        let _ = window.dispatch_event(&event);
+                                        if let Ok(event) = web_sys::Event::new("parsely-upload-complete") {
+                                            let _ = window.dispatch_event(&event);
+                                        }
                                     }
                                 }
 
