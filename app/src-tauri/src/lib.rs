@@ -216,6 +216,8 @@ pub fn run() {
             // Parsely upload
             commands::upload_to_parsely,
             commands::upload_encounter_to_parsely,
+            // URL opening
+            commands::open_url,
             // Query commands
             commands::query_breakdown,
             commands::query_entity_breakdown,

@@ -24,9 +24,6 @@ extern "C" {
 
     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "app"], js_name = "getVersion")]
     pub async fn get_version() -> JsValue;
-
-    #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "opener"], js_name = "openUrl")]
-    pub async fn open_url(url: &str) -> JsValue;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -339,6 +336,18 @@ pub async fn pick_directory(title: &str) -> Option<String> {
 /// Get the app version from tauri.conf.json
 pub async fn get_app_version() -> String {
     get_version().await.as_string().unwrap_or_default()
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// URL Opening
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Open a URL in the default browser
+///
+/// On Linux, uses XDG Desktop Portal for better compatibility with immutable distros.
+/// Falls back to tauri-plugin-opener on other platforms or if portal fails.
+pub async fn open_url(url: &str) {
+    let _ = try_invoke("open_url", build_args("url", &url)).await;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

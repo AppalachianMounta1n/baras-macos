@@ -10,6 +10,7 @@
 //! - `encounters` - Unified encounter item CRUD (NEW - replaces timers)
 //! - `effects` - Effect definition CRUD for the effect editor UI
 //! - `parsely` - Parsely.io log upload
+//! - `url` - URL opening with portal support for Linux
 
 mod effects;
 mod encounters;
@@ -17,6 +18,7 @@ mod overlay;
 mod parsely;
 mod query;
 mod service;
+mod url;
 
 // Re-export all commands for the invoke_handler
 pub use effects::*;
@@ -25,3 +27,4 @@ pub use overlay::*;
 pub use parsely::*;
 pub use query::*;
 pub use service::*;
+pub use url::*;
