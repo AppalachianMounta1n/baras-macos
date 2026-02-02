@@ -160,8 +160,25 @@ impl ParsingSession {
             }
         }
 
+        // Tick combat state FIRST to check wall-clock timeouts (grace windows, combat timeout).
+        // This ensures pending encounters are closed even when events flow continuously,
+        // fixing the bug where live mode would show very long fight times.
+        let tick_signals = self.session_cache.as_mut().map(|cache| {
+            crate::signal_processor::tick_combat_state(cache)
+        }).unwrap_or_default();
+        
+        if !tick_signals.is_empty() {
+            let should_flush_tick = tick_signals
+                .iter()
+                .any(|s| matches!(s, GameSignal::CombatEnded { .. }));
+            self.dispatch_signals(&tick_signals);
+            if should_flush_tick {
+                self.flush_encounter_parquet();
+            }
+        }
+
         if let Some(cache) = &mut self.session_cache {
-            // Process event FIRST to detect phase transitions, boss detection, etc.
+            // Process event to detect phase transitions, boss detection, etc.
             // This updates cache state (including current_phase) before we capture metadata.
             let (signals, event, was_accumulated) = self.processor.process_event(event, cache);
 
