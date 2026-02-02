@@ -70,6 +70,9 @@ pub struct CombatEncounter {
     pub difficulty_id: Option<i64>,
     /// Difficulty name from game (for display)
     pub difficulty_name: Option<String>,
+    /// Line number of the AreaEntered event for this encounter's area.
+    /// Used for per-encounter Parsely uploads to include server info.
+    pub area_entered_line: Option<u64>,
 
     // ─── Boss Definitions (loaded on area enter) ────────────────────────────
     /// Boss definitions for current area (Arc for zero-copy sharing)
@@ -145,6 +148,7 @@ impl CombatEncounter {
             area_name: None,
             difficulty_id: None,
             difficulty_name: None,
+            area_entered_line: None,
 
             // Boss definitions
             boss_definitions: Arc::new(Vec::new()),
@@ -258,6 +262,18 @@ impl CombatEncounter {
     pub fn set_area(&mut self, area_id: Option<i64>, area_name: Option<String>) {
         self.area_id = area_id;
         self.area_name = area_name;
+    }
+
+    /// Set the area context with AreaEntered line number for this encounter
+    pub fn set_area_with_line(
+        &mut self,
+        area_id: Option<i64>,
+        area_name: Option<String>,
+        area_entered_line: Option<u64>,
+    ) {
+        self.area_id = area_id;
+        self.area_name = area_name;
+        self.area_entered_line = area_entered_line;
     }
 
     // ═══════════════════════════════════════════════════════════════════════

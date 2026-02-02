@@ -411,7 +411,9 @@ pub fn create_encounter_summary(
         is_phase_start,
         npc_names,
         // Line number tracking for per-encounter Parsely uploads
-        area_entered_line: area.entered_at_line,
+        // Use encounter's area_entered_line (set when combat started) instead of cache's current area
+        // This ensures we get the correct AreaEntered line even if player exits to a different area
+        area_entered_line: encounter.area_entered_line.or(area.entered_at_line),
         event_start_line: encounter.first_event_line,
         event_end_line: encounter.last_event_line,
         // Parsely link (set after successful upload)

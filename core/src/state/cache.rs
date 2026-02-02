@@ -138,7 +138,8 @@ impl SessionCache {
         } else {
             Some(self.current_area.area_name.clone())
         };
-        encounter.set_area(area_id, area_name);
+        let area_entered_line = self.current_area.entered_at_line;
+        encounter.set_area_with_line(area_id, area_name, area_entered_line);
 
         // Share boss definitions with the new encounter (Arc clone is cheap)
         encounter.load_boss_definitions(Arc::clone(&self.boss_definitions));
