@@ -5,8 +5,8 @@
 
 use baras_core::context::{OverlayPositionConfig, OverlaySettings};
 use baras_overlay::{
-    CooldownConfig, DotTrackerConfig, EffectsABConfig, EffectsLayout, OverlayConfigUpdate,
-    OverlayData, RaidGridLayout, RaidOverlayConfig,
+    platform, CooldownConfig, DotTrackerConfig, EffectsABConfig, EffectsLayout,
+    OverlayConfigUpdate, OverlayData, RaidGridLayout, RaidOverlayConfig,
 };
 use std::time::Duration;
 
@@ -808,10 +808,21 @@ impl OverlayManager {
                 .collect()
         };
 
+        // Get monitors once for position resolution
+        let monitors = platform::get_all_monitors();
+
         for (kind, tx) in overlays {
             // Send position update
             if let Some(pos) = settings.positions.get(kind.config_key()) {
-                let _ = tx.send(OverlayCommand::SetPosition(pos.x, pos.y)).await;
+                // Convert relative position to absolute screen coordinates
+                // Positions are stored relative to their target monitor
+                let (abs_x, abs_y) = platform::resolve_absolute_position(
+                    pos.x,
+                    pos.y,
+                    pos.monitor_id.as_deref(),
+                    &monitors,
+                );
+                let _ = tx.send(OverlayCommand::SetPosition(abs_x, abs_y)).await;
             }
 
             // Send config update
