@@ -81,7 +81,7 @@ pub fn run() {
             let overlay_state = overlay_state.clone();
             move |app| {
                 // Create channel for overlay updates
-                let (overlay_tx, overlay_rx) = mpsc::channel::<OverlayUpdate>(64);
+                let (overlay_tx, overlay_rx) = mpsc::channel::<OverlayUpdate>(256);
 
                 // Create channel for audio events
                 let (audio_tx, audio_rx) = create_audio_channel();
