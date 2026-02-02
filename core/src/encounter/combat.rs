@@ -644,7 +644,12 @@ impl CombatEncounter {
                 
                 // If we've seen kill targets and any are still alive, it's a wipe
                 if !kill_target_instances.is_empty() {
-                    let all_kill_targets_dead = kill_target_instances.iter().all(|npc| npc.is_dead);
+                    // Consider a kill target dead if either:
+                    // - is_dead flag is set (received death event), OR
+                    // - current_hp <= 0 (handles game race condition where death event is never logged)
+                    let all_kill_targets_dead = kill_target_instances.iter().all(|npc| {
+                        npc.is_dead || npc.current_hp <= 0
+                    });
                     return !all_kill_targets_dead;
                 }
             }

@@ -220,7 +220,8 @@ fn handle_in_combat(
         }
 
         // All seen kill target instances must be dead
-        kill_target_instances.iter().all(|npc| npc.is_dead)
+        // Also consider dead if HP <= 0 (handles game race condition where death event is never logged)
+        kill_target_instances.iter().all(|npc| npc.is_dead || npc.current_hp <= 0)
     });
 
     // Check if this is a boss encounter (has boss definitions loaded OR boss NPCs detected)
