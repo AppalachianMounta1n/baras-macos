@@ -244,8 +244,88 @@ fn handle_in_combat(
     });
 
     if effect_id == effect_id::ENTERCOMBAT {
-        // Ignore - local player re-entering combat mid-fight (e.g., after battle rez)
+        // Check if this is a victory-trigger encounter
+        // These are special long encounters (e.g., Coratanni) where players can legitimately
+        // die, medcenter, and run back while the raid continues fighting
+        let has_victory_trigger = cache.current_encounter().map_or(false, |enc| {
+            enc.active_boss_idx()
+                .map_or(false, |idx| enc.boss_definitions()[idx].has_victory_trigger)
+        });
+
+        if has_victory_trigger {
+            // Victory-trigger encounters: always ignore EnterCombat (treated as rejoin)
+            tracing::info!(
+                "[ENCOUNTER] EnterCombat during InCombat at {} - victory-trigger encounter, ignoring (rejoin)",
+                timestamp
+            );
+            return (signals, was_accumulated);
+        }
+
+        // Normal encounters: check if local player has received revive immunity (medcenter/probe revive)
+        // If so, this is a new pull after a wipe, not a battle-rez rejoin
+        let player_info = cache
+            .current_encounter()
+            .and_then(|enc| enc.players.get(&cache.player.id));
+        
+        let local_player_has_revive_immunity = player_info
+            .map(|p| p.received_revive_immunity)
+            .unwrap_or(false);
+
+        tracing::info!(
+            "[ENCOUNTER] EnterCombat during InCombat at {} - player_id: {}, player_found: {}, revive_immunity: {}",
+            timestamp,
+            cache.player.id,
+            player_info.is_some(),
+            local_player_has_revive_immunity
+        );
+
+        if local_player_has_revive_immunity {
+            // Local player died, used medcenter, and is now re-entering combat
+            // End the current encounter (mark as wipe) and start a new one
+            let encounter_id = cache.current_encounter().map(|e| e.id).unwrap_or(0);
+            
+            tracing::info!(
+                "[ENCOUNTER] Local player re-entering combat after medcenter revive at {}, ending encounter {} (wipe)",
+                timestamp,
+                encounter_id
+            );
+
+            if let Some(enc) = cache.current_encounter_mut() {
+                enc.exit_combat_time = Some(timestamp);
+                enc.state = EncounterState::PostCombat {
+                    exit_time: timestamp,
+                };
+                let duration = enc.duration_seconds().unwrap_or(0) as f32;
+                enc.challenge_tracker.finalize(timestamp, duration);
+            }
+
+            signals.push(GameSignal::CombatEnded {
+                timestamp,
+                encounter_id,
+            });
+
+            // Create new encounter and immediately start it with this EnterCombat event
+            let new_encounter_id = cache.push_new_encounter();
+            if let Some(enc) = cache.current_encounter_mut() {
+                enc.state = EncounterState::InCombat;
+                enc.enter_combat_time = Some(timestamp);
+                enc.track_event_entities(event);
+                enc.accumulate_data(event);
+                enc.track_event_line(event.line_number);
+                was_accumulated = true;
+            }
+
+            signals.push(GameSignal::CombatStarted {
+                timestamp,
+                encounter_id: new_encounter_id,
+            });
+
+            return (signals, was_accumulated);
+        }
+        
+        // Normal case: battle rez rejoin - ignore this EnterCombat
         // ENTERCOMBAT only fires for local player, so this is always a rejoin scenario
+        return (signals, was_accumulated);
     } else if should_ignore_exit_combat {
         // For victory-trigger encounters, ignore all exit conditions except all_players_dead (wipe)
         if !all_players_dead {

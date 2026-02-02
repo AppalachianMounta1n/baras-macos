@@ -259,6 +259,12 @@ impl EventProcessor {
         {
             // Player received the revive immunity buff (medcenter/probe revive)
             // Mark them as permanently dead for this encounter
+            tracing::info!(
+                "[ENCOUNTER] RECENTLY_REVIVED at {} - player_id: {}, is_local_player: {}",
+                event.timestamp,
+                event.source_entity.log_id,
+                event.source_entity.log_id == cache.player.id
+            );
             if let Some(enc) = cache.current_encounter_mut() {
                 enc.set_player_revive_immunity(event.source_entity.log_id);
             }

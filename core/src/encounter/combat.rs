@@ -176,8 +176,18 @@ impl CombatEncounter {
     }
 
     /// Create with a pre-registered local player
-    pub fn with_player(id: u64, mode: ProcessingMode, player: PlayerInfo) -> Self {
+    pub fn with_player(id: u64, mode: ProcessingMode, mut player: PlayerInfo) -> Self {
         let mut enc = Self::new(id, mode);
+        // Clear per-encounter flags when starting a new encounter
+        tracing::debug!(
+            "[ENCOUNTER] Creating new encounter {} with player {} - clearing revive_immunity (was: {})",
+            id,
+            player.id,
+            player.received_revive_immunity
+        );
+        player.received_revive_immunity = false;
+        player.is_dead = false;
+        player.death_time = None;
         enc.players.insert(player.id, player);
         enc
     }
@@ -529,9 +539,14 @@ impl CombatEncounter {
     }
 
     pub fn set_player_revive_immunity(&mut self, entity_id: i64) {
-        if let Some(player) = self.players.get_mut(&entity_id) {
-            player.received_revive_immunity = true;
-        }
+        self.players
+            .entry(entity_id)
+            .and_modify(|p| p.received_revive_immunity = true)
+            .or_insert_with(|| PlayerInfo {
+                id: entity_id,
+                received_revive_immunity: true,
+                ..Default::default()
+            });
     }
 
     pub fn check_all_players_dead(&mut self) {
