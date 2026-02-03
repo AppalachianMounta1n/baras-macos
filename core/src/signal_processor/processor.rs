@@ -267,12 +267,17 @@ impl EventProcessor {
                 event.source_entity.log_id,
                 is_local_player
             );
+            // Only track revive immunity during active combat
+            // Prevents stale timestamps from previous encounters bleeding into new ones
+            // (e.g., medcenter revive after a wipe shouldn't affect the next pull)
             if let Some(enc) = cache.current_encounter_mut() {
-                enc.set_player_revive_immunity(event.source_entity.log_id);
+                if enc.state == EncounterState::InCombat {
+                    enc.set_player_revive_immunity(event.source_entity.log_id);
 
-                // Track timestamp for local player (soft-timeout wipe detection)
-                if is_local_player {
-                    enc.local_player_revive_immunity_time = Some(event.timestamp);
+                    // Track timestamp for local player (soft-timeout wipe detection)
+                    if is_local_player {
+                        enc.local_player_revive_immunity_time = Some(event.timestamp);
+                    }
                 }
             }
         }
