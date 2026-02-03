@@ -284,9 +284,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     cache.load_boss_definitions(boss_defs.clone());
     timer_manager.load_boss_definitions(boss_defs);
 
-    // IMPORTANT: Disable live mode to process historical events
-    timer_manager.set_live_mode(false);
-
     // Initialize challenge tracker
     let mut challenge_tracker = ChallengeTracker::new();
     let boss_npc_ids: Vec<i64> = boss_def

@@ -84,6 +84,15 @@ pub struct TimerManager {
     /// Boss NPC class IDs for the active encounter (to detect additional boss entities)
     /// When NPCs with these class IDs are first seen, add their entity_id to boss_entity_ids
     boss_npc_class_ids: HashSet<i64>,
+
+    // ─── Encounter-scoped State (for lazy re-initialization) ─────────────────
+    /// Current encounter ID being tracked (for detecting encounter changes)
+    /// When this doesn't match the signal's encounter, we reset timer state.
+    pub(super) active_encounter_id: Option<u64>,
+
+    /// Fingerprint of loaded definitions (hash of definition IDs + count)
+    /// Used to detect when definitions actually change vs. redundant reloads.
+    definitions_fingerprint: u64,
 }
 
 impl Default for TimerManager {
@@ -109,6 +118,8 @@ impl TimerManager {
             current_target_id: None,
             boss_entity_ids: HashSet::new(),
             boss_npc_class_ids: HashSet::new(),
+            active_encounter_id: None,
+            definitions_fingerprint: 0,
         }
     }
 
@@ -143,6 +154,29 @@ impl TimerManager {
     /// Clear boss NPC class IDs (called when encounter ends)
     pub(super) fn clear_boss_npc_class_ids(&mut self) {
         self.boss_npc_class_ids.clear();
+    }
+
+    /// Compute a fingerprint for a set of boss definitions.
+    /// Used to detect if definitions actually changed vs. redundant reloads.
+    fn compute_boss_fingerprint(bosses: &[BossEncounterDefinition]) -> u64 {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        let mut hasher = DefaultHasher::new();
+
+        // Hash boss count and each boss's area_id + name + timer count + timer IDs
+        bosses.len().hash(&mut hasher);
+        for boss in bosses {
+            boss.area_id.hash(&mut hasher);
+            boss.name.hash(&mut hasher);
+            boss.timers.len().hash(&mut hasher);
+            for timer in &boss.timers {
+                timer.id.hash(&mut hasher);
+                timer.enabled.hash(&mut hasher);
+            }
+        }
+
+        hasher.finish()
     }
 
     /// Format alert text for display
@@ -193,7 +227,20 @@ impl TimerManager {
 
     /// Load boss definitions and extract their timer definitions.
     /// Only the timer definitions are stored - boss definitions are managed by SessionCache.
-    pub fn load_boss_definitions(&mut self, bosses: Vec<BossEncounterDefinition>) {
+    ///
+    /// Returns true if definitions were actually loaded (changed), false if skipped (same fingerprint).
+    pub fn load_boss_definitions(&mut self, bosses: Vec<BossEncounterDefinition>) -> bool {
+        // Check fingerprint to avoid redundant reloads
+        let new_fingerprint = Self::compute_boss_fingerprint(&bosses);
+        if new_fingerprint == self.definitions_fingerprint && !self.definitions.is_empty() {
+            // Definitions haven't changed - skip reload
+            return false;
+        }
+
+        // Track if we were in combat before loading (for mid-combat reload handling)
+        let was_in_combat = self.in_combat;
+        let combat_start = self.combat_start_time;
+
         // Clear existing boss-related timer definitions (keep generic ones)
         // We'll re-add them from the fresh boss definitions
         self.definitions
@@ -231,6 +278,9 @@ impl TimerManager {
             }
         }
 
+        // Update fingerprint
+        self.definitions_fingerprint = new_fingerprint;
+
         if duplicate_count > 0 {
             tracing::info!(
                 timer_count,
@@ -248,6 +298,19 @@ impl TimerManager {
 
         // Validate timer chain references
         self.validate_timer_chains();
+
+        // If we were in combat when definitions loaded and have no active timers,
+        // this likely means definitions loaded late. Re-trigger combat_start timers.
+        if was_in_combat && self.active_timers.is_empty() && combat_start.is_some() {
+            tracing::info!("Definitions loaded mid-combat, triggering combat_start timers");
+            // Note: We can't call signal_handlers::handle_combat_start here because
+            // we don't have the encounter reference. The next signal will detect
+            // the encounter mismatch and handle it via lazy re-init.
+            // Mark that we need to re-trigger on next signal.
+            self.active_encounter_id = None;
+        }
+
+        true
     }
 
     /// Set the local player's entity ID (for LocalPlayer filter matching).
@@ -801,6 +864,31 @@ impl SignalHandler for TimerManager {
 
         let ts = signal.timestamp();
         self.last_timestamp = Some(ts);
+
+        // ─── Lazy Re-initialization: Detect encounter changes ───────────────────
+        // If the encounter ID changed, reset timer state and re-trigger combat_start.
+        // This handles cases where:
+        // 1. Definitions loaded after combat started
+        // 2. Timer manager somehow got out of sync with the encounter
+        // 3. App was restarted mid-encounter
+        if let Some(enc) = encounter {
+            let current_enc_id = enc.id;
+            if self.active_encounter_id != Some(current_enc_id) {
+                // Encounter changed - reset timer state
+                self.active_timers.clear();
+                self.fired_alerts.clear();
+
+                // Update tracked encounter
+                self.active_encounter_id = Some(current_enc_id);
+
+                // If we're in combat, re-trigger combat_start timers
+                if self.in_combat {
+                    if let Some(combat_start) = self.combat_start_time {
+                        signal_handlers::handle_combat_start(self, Some(enc), combat_start);
+                    }
+                }
+            }
+        }
 
         // Clear tick-tracking vectors at the start of each signal processing.
         // Timer starts/cancels accumulate during matching below, then we read them after handle_signal.

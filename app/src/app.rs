@@ -1470,10 +1470,10 @@ pub fn App() -> Element {
                                 p { class: "hint", "Click to capture a key combination. Backspace to clear." }
                                 p { class: "hint hint-warning",
                                     i { class: "fa-solid fa-triangle-exclamation" }
-                                    " Linux Wayland: Requires compositor support (Hyprland, KDE). You may be prompted to approve."
+                                    " Linux Wayland: Experimental, requires compositor support for freedesktop global shortcuts portal."
                                 }
                                 p { class: "hint hint-warning",
-                                    i { class: "fa-solid fa-triangle-exclamation" }
+                                    i { class: "fa-solid fa-info-circle" }
                                     " Restart app after changes."
                                 }
                                 div { class: "hotkey-grid",

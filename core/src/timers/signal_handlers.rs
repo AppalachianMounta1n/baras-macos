@@ -66,7 +66,11 @@ pub(super) fn handle_ability(
         .collect();
 
     for def in matching {
-        let instance_id = if def.per_target { Some(target_id) } else { None };
+        let instance_id = if def.per_target {
+            Some(target_id)
+        } else {
+            None
+        };
         manager.start_timer(&def, timestamp, instance_id);
     }
 
@@ -119,7 +123,11 @@ pub(super) fn handle_effect_applied(
         .collect();
 
     for def in matching {
-        let instance_id = if def.per_target { Some(target_id) } else { None };
+        let instance_id = if def.per_target {
+            Some(target_id)
+        } else {
+            None
+        };
         manager.start_timer(&def, timestamp, instance_id);
     }
 
@@ -172,7 +180,11 @@ pub(super) fn handle_effect_removed(
         .collect();
 
     for def in matching {
-        let instance_id = if def.per_target { Some(target_id) } else { None };
+        let instance_id = if def.per_target {
+            Some(target_id)
+        } else {
+            None
+        };
         manager.start_timer(&def, timestamp, instance_id);
     }
 
@@ -469,7 +481,11 @@ pub(super) fn handle_damage_taken(
         .collect();
 
     for def in matching {
-        let instance_id = if def.per_target { Some(target_id) } else { None };
+        let instance_id = if def.per_target {
+            Some(target_id)
+        } else {
+            None
+        };
         manager.start_timer(&def, timestamp, instance_id);
     }
 
@@ -550,4 +566,6 @@ pub(super) fn clear_combat_timers(manager: &mut TimerManager) {
     manager.boss_entity_ids.clear();
     // Boss name is now read from encounter.active_boss directly
     manager.clear_boss_npc_class_ids();
+    // Clear encounter tracking so next encounter triggers fresh initialization
+    manager.active_encounter_id = None;
 }

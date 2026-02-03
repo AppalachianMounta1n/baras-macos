@@ -697,11 +697,10 @@ impl CombatEncounter {
                     });
             }
             EntityType::Npc | EntityType::Companion => {
-                // Only register companions during active combat to avoid stale entries
-                // from mount/dismount respawns in the "dead zone" between encounters
-                if entity.entity_type == EntityType::Companion
-                    && self.state != EncounterState::InCombat
-                {
+                // Only register NPCs/companions during active combat to avoid stale entries
+                // from targeting nearby enemies during grace period (e.g., boss jumping down
+                // after trash) or mount/dismount respawns between encounters
+                if self.state != EncounterState::InCombat {
                     return;
                 }
 
