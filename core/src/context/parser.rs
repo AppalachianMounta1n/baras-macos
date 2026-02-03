@@ -31,6 +31,8 @@ pub type DefinitionLoader = Box<dyn Fn(i64) -> Option<Vec<BossEncounterDefinitio
 /// In Historical mode, these components are not created to save memory.
 pub struct ParsingSession {
     pub current_byte: Option<u64>,
+    /// Current line number (for correct line numbering when tailing after subprocess parse)
+    pub current_line: Option<u64>,
     pub active_file: Option<PathBuf>,
     pub game_session_date: Option<NaiveDateTime>,
     pub session_cache: Option<SessionCache>,
@@ -70,6 +72,7 @@ impl ParsingSession {
     pub fn live() -> Self {
         Self {
             current_byte: None,
+            current_line: None,
             active_file: None,
             game_session_date: None,
             session_cache: Some(SessionCache::new()),
@@ -90,6 +93,7 @@ impl ParsingSession {
     pub fn historical() -> Self {
         Self {
             current_byte: None,
+            current_line: None,
             active_file: None,
             game_session_date: None,
             session_cache: Some(SessionCache::new()),
@@ -117,6 +121,7 @@ impl ParsingSession {
 
         Self {
             current_byte: None,
+            current_line: None,
             active_file: Some(path),
             game_session_date: date_stamp,
             session_cache: Some(SessionCache::new()),

@@ -141,7 +141,9 @@ impl Reader {
                 source,
             })?;
         let mut reader = BufReader::new(file);
-        let mut line_number = 0u64;
+        // Initialize line number from subprocess parse result (if available)
+        // This ensures correct line numbering for events processed during tailing
+        let mut line_number = self.state.read().await.current_line.unwrap_or(0);
         let pos = self.state.read().await.current_byte.unwrap_or(0);
 
         let session_date = self

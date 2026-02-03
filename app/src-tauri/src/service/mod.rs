@@ -76,6 +76,7 @@ struct WorkerPlayerDiscipline {
 #[derive(Debug, serde::Deserialize)]
 struct ParseWorkerOutput {
     end_pos: u64,
+    line_count: u64,
     event_count: usize,
     encounter_count: usize,
     encounters: Vec<EncounterSummary>,
@@ -1146,6 +1147,7 @@ impl CombatService {
                     Ok(parse_result) => {
                         let mut session_guard = session.write().await;
                         session_guard.current_byte = Some(parse_result.end_pos);
+                        session_guard.current_line = Some(parse_result.line_count);
 
                         // Import encounter summaries and session metadata from subprocess
                         if let Some(cache) = &mut session_guard.session_cache {

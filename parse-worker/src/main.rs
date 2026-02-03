@@ -75,6 +75,8 @@ struct ParseOutput {
     /// If there's an incomplete encounter, this is the byte position where it started.
     /// Otherwise, this is the end of the file.
     end_pos: u64,
+    /// Final line number parsed (for correct line numbering during tailing).
+    line_count: u64,
     /// Number of events parsed.
     event_count: usize,
     /// Number of encounters written.
@@ -718,6 +720,7 @@ fn parse_file(
 
     Ok(ParseOutput {
         end_pos: final_end_pos,
+        line_count: line_ranges.len() as u64,
         event_count,
         encounter_count: encounters.len(),
         encounters,
