@@ -178,6 +178,60 @@ fn handle_in_combat(
         }
     }
 
+    // Check for revive immunity timeout (event-driven, works in Historical mode)
+    // If local player received RECENTLY_REVIVED and 5+ seconds have passed (by event time),
+    // end the encounter. This handles speedrun scenarios where players die to trash,
+    // revive at medcenter, and quick-travel to the boss room.
+    if let Some(enc) = cache.current_encounter() {
+        if let Some(revive_time) = enc.local_player_revive_immunity_time {
+            let elapsed = timestamp.signed_duration_since(revive_time).num_seconds();
+            if elapsed >= REVIVE_IMMUNITY_WIPE_TIMEOUT_SECS {
+                let is_boss_encounter = enc.active_boss_idx().is_some();
+                // For boss encounters, check if kill targets are still alive (wipe)
+                // For trash encounters, always end (no kill targets to check)
+                let should_end = if is_boss_encounter {
+                    enc.is_likely_wipe()
+                } else {
+                    true // Always end trash encounters after revive timeout
+                };
+
+                if should_end {
+                    let encounter_id = enc.id;
+
+                    tracing::info!(
+                        "[ENCOUNTER] Revive immunity timeout at {} (revive was at {}), ending encounter {} (is_boss: {})",
+                        timestamp,
+                        revive_time,
+                        encounter_id,
+                        is_boss_encounter
+                    );
+
+                    // End encounter and mark as wipe
+                    if let Some(enc) = cache.current_encounter_mut() {
+                        enc.all_players_dead = true; // Force wipe flag
+                        enc.exit_combat_time = Some(revive_time);
+                        enc.state = EncounterState::PostCombat {
+                            exit_time: revive_time,
+                        };
+                        let duration = enc.duration_seconds().unwrap_or(0) as f32;
+                        enc.challenge_tracker.finalize(revive_time, duration);
+                    }
+
+                    signals.push(GameSignal::CombatEnded {
+                        timestamp: revive_time,
+                        encounter_id,
+                    });
+
+                    cache.push_new_encounter();
+                    // Re-process this event in the new encounter's state machine
+                    let (new_signals, new_accumulated) = advance_combat_state(event, cache);
+                    signals.extend(new_signals);
+                    return (signals, new_accumulated);
+                }
+            }
+        }
+    }
+
     let all_players_dead = cache
         .current_encounter()
         .map(|e| e.all_players_dead)
@@ -536,25 +590,32 @@ pub fn tick_combat_state(cache: &mut SessionCache) -> Vec<GameSignal> {
         .map(|e| e.state.clone())
         .unwrap_or_default();
 
-    // Check for revive immunity soft-timeout (boss encounters only)
-    // If local player received RECENTLY_REVIVED and kill targets aren't dead,
-    // end encounter after 5 seconds and mark as wipe
+    // Check for revive immunity soft-timeout
+    // If local player received RECENTLY_REVIVED and timeout has elapsed, end the encounter.
+    // For boss encounters: only end if kill targets aren't dead (is_likely_wipe)
+    // For trash encounters: always end after timeout (player died and revived = fight over for them)
     if let Some(enc) = cache.current_encounter() {
-        if enc.state == EncounterState::InCombat 
-            && enc.active_boss_idx().is_some()  // Only for boss encounters
-        {
+        if enc.state == EncounterState::InCombat {
             if let Some(revive_time) = enc.local_player_revive_immunity_time {
                 let elapsed = now.signed_duration_since(revive_time).num_seconds();
                 if elapsed >= REVIVE_IMMUNITY_WIPE_TIMEOUT_SECS {
-                    // Check if kill targets are dead
-                    let is_wipe = enc.is_likely_wipe();
-                    if is_wipe {
+                    let is_boss_encounter = enc.active_boss_idx().is_some();
+                    // For boss encounters, check if kill targets are still alive (wipe)
+                    // For trash encounters, always end (no kill targets to check)
+                    let should_end = if is_boss_encounter {
+                        enc.is_likely_wipe()
+                    } else {
+                        true  // Always end trash encounters after revive timeout
+                    };
+                    
+                    if should_end {
                         let encounter_id = enc.id;
                         
                         tracing::info!(
-                            "[ENCOUNTER] Revive immunity soft-timeout at {}, ending encounter {} (wipe)",
+                            "[ENCOUNTER] Revive immunity soft-timeout at {}, ending encounter {} (wipe, is_boss: {})",
                             now,
-                            encounter_id
+                            encounter_id,
+                            is_boss_encounter
                         );
                         
                         // End encounter and mark as wipe
