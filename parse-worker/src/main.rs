@@ -587,24 +587,49 @@ fn main() {
         std::process::exit(1);
     }
 
-    // Build area index from bundled definitions directory (lightweight - only reads headers)
-    let area_index = if let Some(ref dir) = definitions_dir {
-        match build_area_index(dir) {
-            Ok(index) => {
-                tracing::debug!(count = index.len(), "Built area index");
-                Some(index)
-            }
-            Err(e) => {
-                tracing::warn!(error = %e, "Failed to build area index");
-                None
+    // User custom directory for definitions
+    let user_dir =
+        dirs::config_dir().map(|p| p.join("baras").join("definitions").join("encounters"));
+
+    // Build area index from both bundled and custom definitions (lightweight - only reads headers)
+    // Custom definitions can override bundled ones (e.g., for new areas like flashpoints)
+    let area_index = {
+        let mut index = baras_core::dsl::AreaIndex::new();
+
+        // Index bundled definitions
+        if let Some(ref dir) = definitions_dir {
+            match build_area_index(dir) {
+                Ok(bundled_index) => {
+                    tracing::debug!(count = bundled_index.len(), "Built bundled area index");
+                    index.extend(bundled_index);
+                }
+                Err(e) => {
+                    tracing::warn!(error = %e, "Failed to build bundled area index");
+                }
             }
         }
-    } else {
-        None
-    };
 
-    // User custom directory for merging
-    let user_dir = dirs::config_dir().map(|p| p.join("baras").join("encounters"));
+        // Index custom definitions (can add new areas or override bundled)
+        if let Some(ref dir) = user_dir {
+            if dir.exists() {
+                match build_area_index(dir) {
+                    Ok(custom_index) => {
+                        tracing::debug!(count = custom_index.len(), "Built custom area index");
+                        index.extend(custom_index);
+                    }
+                    Err(e) => {
+                        tracing::warn!(error = %e, "Failed to build custom area index");
+                    }
+                }
+            }
+        }
+
+        if index.is_empty() {
+            None
+        } else {
+            Some(index)
+        }
+    };
 
     let timer = std::time::Instant::now();
 
