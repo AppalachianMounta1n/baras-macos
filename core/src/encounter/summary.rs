@@ -334,6 +334,13 @@ pub fn create_encounter_summary(
         .map(|last| last.area_name != encounter_area_name)
         .unwrap_or(true);  // First encounter is always a phase start
     
+    // Reset pull counts on phase change (area transition)
+    // This ensures encounter numbering restarts from 1 in each new area
+    if is_phase_start {
+        history.boss_pull_counts.clear();
+        history.trash_pull_count = 0;
+    }
+    
     // Classify using encounter's area info
     let (encounter_type, boss_info) = classify_encounter(
         encounter,

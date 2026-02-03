@@ -304,9 +304,6 @@ impl EventProcessor {
         // the raid area with the medcenter/fleet area)
         if let Some(enc) = cache.current_encounter_mut() {
             if enc.state == EncounterState::NotStarted {
-                // Use difficulty_id (language-independent) instead of parsing localized strings
-                // Note: Game sends two AreaEntered events - first with difficulty_id=0, then with real value
-                // Only update difficulty if we get a valid ID (non-zero)
                 if event.effect.difficulty_id != 0 {
                     let difficulty = crate::game_data::Difficulty::from_difficulty_id(
                         event.effect.difficulty_id,
@@ -314,6 +311,9 @@ impl EventProcessor {
                     let difficulty_id = Some(event.effect.difficulty_id);
                     let difficulty_name = Some(resolve(event.effect.difficulty_name).to_string());
                     enc.set_difficulty_info(difficulty, difficulty_id, difficulty_name);
+                } else {
+                    // No difficulty = open world, clear any stale instance difficulty
+                    enc.set_difficulty_info(None, None, None);
                 }
                 let area_id = if event.effect.effect_id != 0 {
                     Some(event.effect.effect_id)
