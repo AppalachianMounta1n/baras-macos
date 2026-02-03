@@ -542,6 +542,9 @@ impl OverlayManager {
         // Save positions for overlays that needed monitor IDs
         Self::save_positions_delayed(needs_monitor_save, service).await;
 
+        // Notify frontend to update UI buttons
+        service.emit_overlay_status_changed();
+
         Ok(shown_metric_types)
     }
 
@@ -572,6 +575,9 @@ impl OverlayManager {
         service.set_overlay_active("boss_health", false);
         service.set_overlay_active("timers", false);
         service.set_overlay_active("effects", false);
+
+        // Notify frontend to update UI buttons
+        service.emit_overlay_status_changed();
 
         Ok(true)
     }
@@ -720,6 +726,9 @@ impl OverlayManager {
             service.update_config(config).await?;
         }
 
+        // Notify frontend to update UI buttons
+        service.emit_overlay_status_changed();
+
         Ok(new_mode)
     }
 
@@ -743,6 +752,9 @@ impl OverlayManager {
         if let Some(tx) = raid_tx {
             let _ = tx.send(OverlayCommand::SetRearrangeMode(new_mode)).await;
         }
+
+        // Notify frontend to update UI buttons
+        service.emit_overlay_status_changed();
 
         Ok(new_mode)
     }

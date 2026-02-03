@@ -16,6 +16,7 @@ use baras_core::query::{
     EffectChartData, EffectWindow, EncounterTimeline, EntityBreakdown, PlayerDeath,
     RaidOverviewRow, TimeRange, TimeSeriesPoint,
 };
+use tauri::{AppHandle, Emitter};
 
 use super::{CombatData, LogFileInfo, ServiceCommand, SessionInfo};
 use crate::state::SharedState;
@@ -25,6 +26,7 @@ use crate::state::SharedState;
 pub struct ServiceHandle {
     pub cmd_tx: mpsc::Sender<ServiceCommand>,
     pub shared: Arc<SharedState>,
+    pub app_handle: AppHandle,
 }
 
 impl ServiceHandle {
@@ -1117,5 +1119,11 @@ impl ServiceHandle {
     /// Set rearrange mode flag (for rendering loop to bypass gates)
     pub fn set_rearrange_mode(&self, enabled: bool) {
         self.shared.rearrange_mode.store(enabled, Ordering::SeqCst);
+    }
+
+    /// Emit overlay status changed event to notify frontend UI
+    /// Called when visibility, move mode, or rearrange mode changes
+    pub fn emit_overlay_status_changed(&self) {
+        let _ = self.app_handle.emit("overlay-status-changed", ());
     }
 }

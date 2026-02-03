@@ -334,6 +334,9 @@ async fn toggle_move_mode_hotkey(overlay_state: SharedOverlayState, service: Ser
     for tx in txs {
         let _ = tx.send(OverlayCommand::SetMoveMode(new_mode)).await;
     }
+
+    // Notify frontend to update UI buttons
+    service.emit_overlay_status_changed();
 }
 
 /// Hotkey handler: Toggle rearrange mode (raid frames)
@@ -360,4 +363,7 @@ async fn toggle_rearrange_mode_hotkey(overlay_state: SharedOverlayState, service
     if let Some(tx) = raid_tx {
         let _ = tx.send(OverlayCommand::SetRearrangeMode(new_mode)).await;
     }
+
+    // Notify frontend to update UI buttons
+    service.emit_overlay_status_changed();
 }

@@ -351,6 +351,24 @@ pub fn App() -> Element {
         closure.forget();
     });
 
+    // Listen for overlay status changes (from hotkeys or other sources)
+    // This ensures UI buttons stay in sync when overlay state changes
+    use_future(move || async move {
+        let closure = Closure::new(move |_event: JsValue| {
+            // Use spawn_local for JS callbacks (no Dioxus runtime context available)
+            spawn_local(async move {
+                if let Some(status) = api::get_overlay_status().await {
+                    // Use try_write for signals - safe outside Dioxus runtime context
+                    let _ = overlays_visible.try_write().map(|mut w| *w = status.overlays_visible);
+                    let _ = move_mode.try_write().map(|mut w| *w = status.move_mode);
+                    let _ = rearrange_mode.try_write().map(|mut w| *w = status.rearrange_mode);
+                }
+            });
+        });
+        api::tauri_listen("overlay-status-changed", &closure).await;
+        closure.forget();
+    });
+
     // Check for changelog on startup
     use_future(move || async move {
         if let Some(response) = api::get_changelog().await {

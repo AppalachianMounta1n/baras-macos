@@ -402,7 +402,7 @@ impl CombatService {
         let icon_cache = Self::init_icon_cache(&app_handle);
 
         let service = Self {
-            app_handle,
+            app_handle: app_handle.clone(),
             shared: shared.clone(),
             overlay_tx,
             audio_tx,
@@ -419,7 +419,7 @@ impl CombatService {
             pending_file: None,
         };
 
-        let handle = ServiceHandle { cmd_tx, shared };
+        let handle = ServiceHandle { cmd_tx, shared, app_handle };
 
         (service, handle)
     }
