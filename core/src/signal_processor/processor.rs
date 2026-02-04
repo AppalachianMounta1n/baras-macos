@@ -555,6 +555,7 @@ impl EventProcessor {
     /// Check for victory trigger on special encounters (e.g., Coratanni, Terror from Beyond).
     /// Updates encounter.victory_triggered when the trigger fires.
     /// Supports all trigger types including ability casts, HP thresholds, and composite triggers.
+    /// Optionally filtered by difficulty (e.g., Trandoshan Squad only has victory trigger on Master).
     fn handle_victory_trigger(
         &self,
         event: &CombatEvent,
@@ -564,13 +565,36 @@ impl EventProcessor {
         let Some(enc) = cache.current_encounter() else {
             return;
         };
+
         let Some(idx) = enc.active_boss_idx() else {
             return;
         };
 
         let boss_def = &enc.boss_definitions()[idx];
-        if !boss_def.has_victory_trigger || enc.victory_triggered {
+
+        if !boss_def.has_victory_trigger {
             return;
+        }
+        if enc.victory_triggered {
+            return;
+        }
+
+        // Check if victory trigger applies to current difficulty
+        if !boss_def.victory_trigger_difficulties.is_empty() {
+            let difficulty_matches = enc
+                .difficulty
+                .as_ref()
+                .map(|d| {
+                    boss_def
+                        .victory_trigger_difficulties
+                        .iter()
+                        .any(|vd| d.matches_config_key(vd))
+                })
+                .unwrap_or(true); // Default to true if difficulty unknown
+
+            if !difficulty_matches {
+                return; // Victory trigger doesn't apply to this difficulty
+            }
         }
 
         // Check if trigger matches (needs immutable borrow)

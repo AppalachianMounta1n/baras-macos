@@ -212,6 +212,11 @@ pub struct BossEncounterDefinition {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub victory_trigger: Option<super::triggers::Trigger>,
 
+    /// Difficulties the victory trigger applies to (empty = all difficulties).
+    /// Used for encounters like Trandoshan Squad where victory conditions differ by difficulty.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub victory_trigger_difficulties: Vec<String>,
+
     #[serde(skip)]
     pub all_npc_ids: HashSet<i64>,
 }

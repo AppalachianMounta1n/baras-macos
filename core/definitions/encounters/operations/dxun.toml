@@ -205,6 +205,14 @@ difficulties = ["story", "veteran", "master"]
 id = "trandos"
 name = "Trandoshans"
 difficulties = ["story", "veteran", "master"]
+# On Master, fight ends when Ultimate Hunter casts Dying Light (effect removed) with players alive
+has_victory_trigger = true
+victory_trigger = { type = "effect_removed", effects = [
+  4381085685252096,
+], source = { selector = [
+  "Ultimate Hunter",
+] } }
+victory_trigger_difficulties = ["master"]
 
 [[boss.entities]]
 name = "Titax"
@@ -230,7 +238,6 @@ is_boss = true
 name = "Ultimate Hunter"
 ids = [4381150109761536]
 is_boss = true
-is_kill_target = true
 
 [[boss.phases]]
 id = "trandos_first_four"
