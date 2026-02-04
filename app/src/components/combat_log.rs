@@ -1103,13 +1103,30 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
                                     if row.ability_id != 0 {
                                         AbilityIcon { key: "{row.ability_id}", ability_id: row.ability_id, size: 16 }
                                     }
-                                    if !row.ability_name.is_empty() {
-                                        "{row.ability_name}"
-                                    } else {
-                                        "{row.effect_name}"
-                                    }
-                                    if show_ids_val && row.ability_id != 0 {
-                                        span { class: "log-id-suffix", " [{row.ability_id}]" }
+                                    // For effect gained/lost events, show the effect name (the buff/debuff)
+                                    // For other events (damage, heal, activation), show the ability name
+                                    {
+                                        let is_effect_event = (row.effect_type_id == EFFECT_TYPE_APPLYEFFECT || row.effect_type_id == EFFECT_TYPE_REMOVEEFFECT)
+                                            && row.effect_id != EFFECT_DAMAGE && row.effect_id != EFFECT_HEAL
+                                            && !row.effect_name.is_empty();
+                                        let display_name = if is_effect_event {
+                                            row.effect_name.as_str()
+                                        } else if !row.ability_name.is_empty() {
+                                            row.ability_name.as_str()
+                                        } else {
+                                            row.effect_name.as_str()
+                                        };
+                                        let display_id = if is_effect_event {
+                                            row.effect_id
+                                        } else {
+                                            row.ability_id
+                                        };
+                                        rsx! {
+                                            "{display_name}"
+                                            if show_ids_val && display_id != 0 {
+                                                span { class: "log-id-suffix", " [{display_id}]" }
+                                            }
+                                        }
                                     }
                                 }
                                 div { class: "log-cell log-value", style: "width: {col_value}px; min-width: {col_value}px;",
