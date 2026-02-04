@@ -663,7 +663,7 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
                     if !sources_grouped.friendly.is_empty() {
                         optgroup { label: "Friendly",
                             option { value: "__ALL_FRIENDLY__", "All Friendly" }
-                            for name in sources_grouped.friendly.iter() {
+                            for name in sources_grouped.friendly.iter().filter(|n| !n.is_empty()) {
                                 option { value: "{name}", "{name}" }
                             }
                         }
@@ -671,7 +671,7 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
                     if !sources_grouped.npcs.is_empty() {
                         optgroup { label: "NPCs",
                             option { value: "__ALL_NPCS__", "All NPCs" }
-                            for name in sources_grouped.npcs.iter() {
+                            for name in sources_grouped.npcs.iter().filter(|n| !n.is_empty()) {
                                 option { value: "{name}", "{name}" }
                             }
                         }
@@ -690,7 +690,7 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
                     if !targets_grouped.friendly.is_empty() {
                         optgroup { label: "Friendly",
                             option { value: "__ALL_FRIENDLY__", "All Friendly" }
-                            for name in targets_grouped.friendly.iter() {
+                            for name in targets_grouped.friendly.iter().filter(|n| !n.is_empty()) {
                                 option { value: "{name}", "{name}" }
                             }
                         }
@@ -698,7 +698,7 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
                     if !targets_grouped.npcs.is_empty() {
                         optgroup { label: "NPCs",
                             option { value: "__ALL_NPCS__", "All NPCs" }
-                            for name in targets_grouped.npcs.iter() {
+                            for name in targets_grouped.npcs.iter().filter(|n| !n.is_empty()) {
                                 option { value: "{name}", "{name}" }
                             }
                         }
@@ -712,6 +712,24 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
                     placeholder: "Filter... (use OR)",
                     value: "{search_text}",
                     oninput: move |e| search_text.set(e.value()),
+                }
+
+                // Clear all filters button
+                button {
+                    class: "log-clear-filters",
+                    r#type: "button",
+                    title: "Reset all filters to defaults",
+                    onclick: move |_| {
+                        source_filter.set(None);
+                        target_filter.set(None);
+                        search_text.set(String::new());
+                        filter_damage.set(true);
+                        filter_healing.set(true);
+                        filter_actions.set(true);
+                        filter_effects.set(true);
+                        filter_other.set(true);
+                    },
+                    "Clear Filters"
                 }
 
                 // Find group (searches all data via backend)

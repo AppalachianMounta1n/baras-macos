@@ -1279,6 +1279,24 @@
   color: var(--text-muted);
 }
 
+.log-clear-filters {
+  padding: 4px 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.log-clear-filters:hover {
+  background: var(--accent-gold);
+  color: var(--bg-primary);
+  border-color: var(--accent-gold);
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
    Find Input Group
    ───────────────────────────────────────────────────────────────────────────── */
