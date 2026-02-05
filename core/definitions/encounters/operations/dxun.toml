@@ -208,7 +208,7 @@ difficulties = ["story", "veteran", "master"]
 # On Master, fight ends when Ultimate Hunter casts Dying Light (effect removed) with players alive
 has_victory_trigger = true
 victory_trigger = { type = "effect_removed", effects = [
-  4381085685252096,
+  4381085685252434,
 ], source = { selector = [
   "Ultimate Hunter",
 ] } }
