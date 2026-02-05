@@ -119,6 +119,8 @@ pub enum ServiceCommand {
     RefreshRaidFrames,
     /// Send specific boss notes to the overlay
     SendNotesToOverlay(NotesData),
+    /// Reload area definitions for a new area (triggers notes update)
+    ReloadAreaDefinitions(i64),
 }
 
 /// Updates sent to the overlay system
@@ -185,6 +187,8 @@ struct CombatSignalHandler {
     session_event_tx: std::sync::mpsc::Sender<SessionEvent>,
     /// Channel for overlay updates (to clear overlays on combat end)
     overlay_tx: mpsc::Sender<OverlayUpdate>,
+    /// Channel for service commands (to reload area definitions on area change)
+    cmd_tx: mpsc::Sender<ServiceCommand>,
     /// Local player entity ID (set on first DisciplineChanged)
     local_player_id: Option<i64>,
 }
@@ -195,12 +199,14 @@ impl CombatSignalHandler {
         trigger_tx: mpsc::Sender<MetricsTrigger>,
         session_event_tx: std::sync::mpsc::Sender<SessionEvent>,
         overlay_tx: mpsc::Sender<OverlayUpdate>,
+        cmd_tx: mpsc::Sender<ServiceCommand>,
     ) -> Self {
         Self {
             shared,
             trigger_tx,
             session_event_tx,
             overlay_tx,
+            cmd_tx,
             local_player_id: None,
         }
     }
@@ -268,11 +274,13 @@ impl SignalHandler for CombatSignalHandler {
             GameSignal::AreaEntered { area_id, .. } => {
                 // Note: Boss definitions are loaded synchronously in process_event via definition_loader
                 let current = self.shared.current_area_id.load(Ordering::SeqCst);
-                if *area_id != current && *area_id != 0 {
+                if *area_id != current {
                     self.shared
                         .current_area_id
                         .store(*area_id, Ordering::SeqCst);
                     let _ = self.session_event_tx.send(SessionEvent::AreaChanged);
+                    // Trigger area definition reload (will send notes or clear them)
+                    let _ = self.cmd_tx.try_send(ServiceCommand::ReloadAreaDefinitions(*area_id));
                 }
             }
             GameSignal::BossEncounterDetected {
@@ -727,6 +735,25 @@ impl CombatService {
                     // Send specific boss notes to the overlay
                     let _ = self.overlay_tx.try_send(OverlayUpdate::NotesUpdated(notes_data));
                 }
+                ServiceCommand::ReloadAreaDefinitions(area_id) => {
+                    // Reload definitions for the new area and update notes overlay
+                    if area_id == 0 {
+                        // Left raid area (fleet, etc.) - clear notes
+                        let _ = self.overlay_tx.try_send(OverlayUpdate::NotesUpdated(NotesData::default()));
+                    } else if let Some(bosses) = self.load_area_definitions(area_id) {
+                        // Send notes from new area's boss definitions
+                        self.send_notes_from_bosses(&bosses);
+                        // Also load definitions into the session
+                        let session_guard = self.shared.session.read().await;
+                        if let Some(session) = session_guard.as_ref() {
+                            let mut session = session.write().await;
+                            session.load_boss_definitions(bosses);
+                        }
+                    } else {
+                        // No definitions for this area - clear notes
+                        let _ = self.overlay_tx.try_send(OverlayUpdate::NotesUpdated(NotesData::default()));
+                    }
+                }
             }
         }
     }
@@ -1076,6 +1103,7 @@ impl CombatService {
             trigger_tx.clone(),
             session_event_tx.clone(),
             self.overlay_tx.clone(),
+            self.cmd_tx.clone(),
         );
         session.add_signal_handler(Box::new(handler));
 
