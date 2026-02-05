@@ -390,14 +390,11 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
         }
     });
     
-    // Sync selected_encounter from parent state when it changes
-    // This allows other components (e.g., HistoryPanel) to navigate to a specific encounter
-    use_effect(move || {
-        let parent_encounter = props.state.read().data_explorer.selected_encounter;
-        if *selected_encounter.read() != parent_encounter {
-            selected_encounter.set(parent_encounter);
-        }
-    });
+    // NOTE: selected_encounter is initialized from parent state on mount (line 332).
+    // This handles navigation from HistoryPanel "View in Explorer" button.
+    // We do NOT have a continuous parent→local sync effect here because it creates
+    // a bidirectional sync loop with the local→parent sync above, causing
+    // encounter clicks in the sidebar to be ignored/sticky.
     
     // Sync show_ids from parent state when it changes (e.g., config loaded at startup)
     use_effect(move || {
