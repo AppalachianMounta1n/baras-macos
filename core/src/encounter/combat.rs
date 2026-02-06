@@ -111,6 +111,8 @@ pub struct CombatEncounter {
     pub players: HashMap<i64, PlayerInfo>,
     /// NPCs in this encounter
     pub npcs: HashMap<i64, NpcInfo>,
+    /// Buffered NPC targets from TargetSet events that arrived before InCombat
+    pending_npc_targets: HashMap<i64, i64>,
     /// Whether all players are dead (sticky - once true, stays true)
     pub all_players_dead: bool,
     /// Whether the victory trigger has fired (for has_victory_trigger encounters).
@@ -174,6 +176,7 @@ impl CombatEncounter {
             // Entity tracking
             players: HashMap::new(),
             npcs: HashMap::new(),
+            pending_npc_targets: HashMap::new(),
             all_players_dead: false,
             victory_triggered: false,
             victory_triggered_at: None,
@@ -700,6 +703,8 @@ impl CombatEncounter {
                     return;
                 }
 
+                let pending_target =
+                    self.pending_npc_targets.remove(&entity.log_id).unwrap_or(0);
                 self.npcs.entry(entity.log_id).or_insert_with(|| NpcInfo {
                     name: entity.name,
                     entity_type: entity.entity_type,
@@ -709,6 +714,7 @@ impl CombatEncounter {
                     current_hp: entity.health.0,
                     max_hp: entity.health.1,
                     is_boss: is_boss(entity.class_id),
+                    current_target_id: pending_target,
                     ..Default::default()
                 });
             }
@@ -744,6 +750,9 @@ impl CombatEncounter {
             player.current_target_id = target_id;
         } else if let Some(npc) = self.npcs.get_mut(&entity_id) {
             npc.current_target_id = target_id;
+        } else {
+            // Buffer target for NPCs not yet registered (TargetSet arrived before InCombat)
+            self.pending_npc_targets.insert(entity_id, target_id);
         }
     }
 
