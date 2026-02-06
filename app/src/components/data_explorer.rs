@@ -882,8 +882,12 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
 
         spawn(async move {
             // Apply entity filter only when no specific source is selected
-            let entity_filter: Option<&[&str]> = if src.is_none() && players_only {
-                Some(&["Player", "Companion"])
+            let entity_filter: Option<&[&str]> = if src.is_none() {
+                if players_only {
+                    Some(&["Player", "Companion"])
+                } else {
+                    Some(&["Npc"])
+                }
             } else {
                 None
             };
@@ -939,12 +943,15 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
 
         spawn(async move {
             // Apply entity filter only when no specific source is selected
-            let entity_filter: Option<&[&str]> =
-                if new_source.is_none() && *show_players_only.read() {
+            let entity_filter: Option<&[&str]> = if new_source.is_none() {
+                if *show_players_only.read() {
                     Some(&["Player", "Companion"])
                 } else {
-                    None
-                };
+                    Some(&["Npc"])
+                }
+            } else {
+                None
+            };
             let breakdown = *breakdown_mode.read();
             let duration = timeline.read().as_ref().map(|t| t.duration_secs);
             if let Some(data) = api::query_breakdown(
@@ -1013,7 +1020,13 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
         entities
             .read()
             .iter()
-            .filter(|e| !players_only || e.entity_type == "Player" || e.entity_type == "Companion")
+            .filter(|e| {
+                if players_only {
+                    e.entity_type == "Player" || e.entity_type == "Companion"
+                } else {
+                    e.entity_type == "Npc"
+                }
+            })
             .cloned()
             .collect::<Vec<_>>()
     });
@@ -1551,12 +1564,12 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                         button {
                                             class: if *show_players_only.read() { "filter-tab active" } else { "filter-tab" },
                                             onclick: move |_| show_players_only.set(true),
-                                            "Players"
+                                            "Player"
                                         }
                                         button {
                                             class: if !*show_players_only.read() { "filter-tab active" } else { "filter-tab" },
                                             onclick: move |_| show_players_only.set(false),
-                                            "All"
+                                            "NPC"
                                         }
                                     }
                                 }

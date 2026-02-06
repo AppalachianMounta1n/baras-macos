@@ -408,15 +408,13 @@ pub fn ChartsPanel(props: ChartsPanelProps) -> Element {
     // Mirror encounter_idx prop into a signal for reactivity
     let mut encounter_idx_signal = use_signal(|| props.encounter_idx);
 
-    // Sync props to signals when they change (use_effect for proper reactivity)
-    use_effect({
-        let time_range = props.time_range.clone();
-        let encounter_idx = props.encounter_idx;
-        move || {
-            time_range_signal.set(time_range.clone());
-            encounter_idx_signal.set(encounter_idx);
-        }
-    });
+    // Update signals when props change (runs on every render with new props)
+    if *time_range_signal.read() != props.time_range {
+        time_range_signal.set(props.time_range.clone());
+    }
+    if *encounter_idx_signal.read() != props.encounter_idx {
+        encounter_idx_signal.set(props.encounter_idx);
+    }
 
     // Entity selection (default to none - show aggregated data)
     let mut selected_entity = use_signal(|| None::<String>);
@@ -443,6 +441,9 @@ pub fn ChartsPanel(props: ChartsPanelProps) -> Element {
 
     // Loading state
     let mut loading = use_signal(|| false);
+
+    // Epoch counter to discard stale async results
+    let mut load_epoch = use_signal(|| 0u32);
 
     // Bucket size for time series (1 second)
     let bucket_ms: i64 = 1000;
@@ -501,10 +502,16 @@ pub fn ChartsPanel(props: ChartsPanelProps) -> Element {
         let tr = time_range_signal.read().clone();
         let entity = selected_entity.read().clone();
 
+        // Wait for entity auto-selection before loading
+        let Some(entity) = entity else { return };
+
+        // Bump load_epoch to invalidate any in-flight tasks
+        let current_gen = *load_epoch.read() + 1;
+        load_epoch.set(current_gen);
+
         spawn(async move {
             loading.set(true);
 
-            // Fetch all three time series
             let tr_opt = if tr.start == 0.0 && tr.end == 0.0 {
                 None
             } else {
@@ -512,22 +519,27 @@ pub fn ChartsPanel(props: ChartsPanelProps) -> Element {
             };
 
             if let Some(data) =
-                api::query_dps_over_time(idx, bucket_ms, entity.as_deref(), tr_opt).await
+                api::query_dps_over_time(idx, bucket_ms, Some(&entity), tr_opt).await
             {
+                if *load_epoch.read() != current_gen { return; }
                 dps_data.set(data);
             }
             if let Some(data) =
-                api::query_hps_over_time(idx, bucket_ms, entity.as_deref(), tr_opt).await
+                api::query_hps_over_time(idx, bucket_ms, Some(&entity), tr_opt).await
             {
+                if *load_epoch.read() != current_gen { return; }
                 hps_data.set(data);
             }
             if let Some(data) =
-                api::query_dtps_over_time(idx, bucket_ms, entity.as_deref(), tr_opt).await
+                api::query_dtps_over_time(idx, bucket_ms, Some(&entity), tr_opt).await
             {
+                if *load_epoch.read() != current_gen { return; }
                 dtps_data.set(data);
             }
 
-            loading.set(false);
+            if *load_epoch.read() == current_gen {
+                loading.set(false);
+            }
         });
     });
 
@@ -538,6 +550,8 @@ pub fn ChartsPanel(props: ChartsPanelProps) -> Element {
         let tr = time_range_signal.read().clone();
         let entity = selected_entity.read().clone();
 
+        let Some(entity) = entity else { return };
+
         spawn(async move {
             let tr_opt = if tr.start == 0.0 && tr.end == 0.0 {
                 None
@@ -546,7 +560,7 @@ pub fn ChartsPanel(props: ChartsPanelProps) -> Element {
             };
 
             if let Some(data) =
-                api::query_effect_uptime(idx, entity.as_deref(), tr_opt, duration).await
+                api::query_effect_uptime(idx, Some(&entity), tr_opt, duration).await
             {
                 let (active, passive): (Vec<_>, Vec<_>) =
                     data.into_iter().partition(|e| e.is_active);
