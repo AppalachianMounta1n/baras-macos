@@ -1679,6 +1679,8 @@ pub struct AppConfig {
     #[serde(default)]
     pub auto_delete_empty_files: bool,
     #[serde(default)]
+    pub auto_delete_small_files: bool,
+    #[serde(default)]
     pub auto_delete_old_files: bool,
     #[serde(default = "default_retention_days")]
     pub log_retention_days: u32,
@@ -1742,6 +1744,7 @@ impl AppConfig {
         Self {
             log_directory,
             auto_delete_empty_files: false,
+            auto_delete_small_files: false,
             auto_delete_old_files: false,
             log_retention_days: 21,
             minimize_to_tray: false,

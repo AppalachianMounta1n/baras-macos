@@ -95,6 +95,7 @@ pub fn App() -> Element {
     let mut log_dir_size = use_signal(|| 0u64);
     let mut log_file_count = use_signal(|| 0usize);
     let mut auto_delete_empty = use_signal(|| false);
+    let mut auto_delete_small = use_signal(|| false);
     let mut auto_delete_old = use_signal(|| false);
     let mut retention_days = use_signal(|| 21u32);
     let mut cleanup_status = use_signal(String::new);
@@ -147,6 +148,7 @@ pub fn App() -> Element {
             profile_names.set(config.profiles.iter().map(|p| p.name.clone()).collect());
             active_profile.set(config.active_profile_name);
             auto_delete_empty.set(config.auto_delete_empty_files);
+            auto_delete_small.set(config.auto_delete_small_files);
             auto_delete_old.set(config.auto_delete_old_files);
             retention_days.set(config.log_retention_days);
             hide_small_log_files.set(config.hide_small_log_files);
@@ -1464,6 +1466,27 @@ pub fn App() -> Element {
                                 }
 
                                 div { class: "setting-row",
+                                    label { "Auto-delete small files (<1MB)" }
+                                    input {
+                                        r#type: "checkbox",
+                                        checked: auto_delete_small(),
+                                        onchange: move |e| {
+                                            let checked = e.checked();
+                                            auto_delete_small.set(checked);
+                                            let mut toast = use_toast();
+                                            spawn(async move {
+                                                if let Some(mut cfg) = api::get_config().await {
+                                                    cfg.auto_delete_small_files = checked;
+                                                    if let Err(err) = api::update_config(&cfg).await {
+                                                        toast.show(format!("Failed to save settings: {}", err), ToastSeverity::Normal);
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+
+                                div { class: "setting-row",
                                     label { "Delete old files" }
                                     input {
                                         r#type: "checkbox",
@@ -1488,12 +1511,12 @@ pub fn App() -> Element {
                                     label { "Retention days" }
                                     input {
                                         r#type: "number",
-                                        min: "1",
+                                        min: "7",
                                         max: "365",
                                         value: "{retention_days()}",
                                         onchange: move |e| {
                                             if let Ok(days) = e.value().parse::<u32>() {
-                                                let days = days.clamp(1, 365);
+                                                let days = days.clamp(7, 365);
                                                 retention_days.set(days);
                                                 let mut toast = use_toast();
                                                 spawn(async move {
@@ -1514,13 +1537,14 @@ pub fn App() -> Element {
                                         class: "btn btn-control",
                                         onclick: move |_| {
                                             let del_empty = auto_delete_empty();
+                                            let del_small = auto_delete_small();
                                             let del_old = auto_delete_old();
                                             let days = retention_days();
                                             spawn(async move {
                                                 cleanup_status.set("Cleaning...".to_string());
                                                 let retention = if del_old { Some(days) } else { None };
-                                                let (empty, old) = api::cleanup_logs(del_empty, retention).await;
-                                                cleanup_status.set(format!("Deleted {} empty, {} old files", empty, old));
+                                                let (empty, small, old) = api::cleanup_logs(del_empty, del_small, retention).await;
+                                                cleanup_status.set(format!("Deleted {} empty, {} small, {} old files", empty, small, old));
                                                 log_dir_size.set(api::get_log_directory_size().await);
                                                 log_file_count.set(api::get_log_file_count().await);
                                             });

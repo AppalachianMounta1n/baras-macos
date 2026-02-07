@@ -121,14 +121,15 @@ impl ServiceHandle {
         index.len()
     }
 
-    /// Clean up log files based on provided settings. Returns (empty_deleted, old_deleted).
+    /// Clean up log files based on provided settings. Returns (empty_deleted, small_deleted, old_deleted).
     pub async fn cleanup_logs(
         &self,
         delete_empty: bool,
+        delete_small: bool,
         retention_days: Option<u32>,
-    ) -> (u32, u32) {
+    ) -> (u32, u32, u32) {
         let mut index = self.shared.directory_index.write().await;
-        index.cleanup(delete_empty, retention_days)
+        index.cleanup(delete_empty, delete_small, retention_days)
     }
 
     /// Refresh file sizes in the directory index (fast stat-only, no re-parsing)

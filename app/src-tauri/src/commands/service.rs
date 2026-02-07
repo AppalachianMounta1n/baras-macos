@@ -45,9 +45,10 @@ pub async fn get_log_file_count(handle: State<'_, ServiceHandle>) -> Result<usiz
 pub async fn cleanup_logs(
     handle: State<'_, ServiceHandle>,
     delete_empty: bool,
+    delete_small: bool,
     retention_days: Option<u32>,
-) -> Result<(u32, u32), String> {
-    Ok(handle.cleanup_logs(delete_empty, retention_days).await)
+) -> Result<(u32, u32, u32), String> {
+    Ok(handle.cleanup_logs(delete_empty, delete_small, retention_days).await)
 }
 
 #[tauri::command]

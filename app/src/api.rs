@@ -276,17 +276,18 @@ pub async fn get_log_files() -> JsValue {
     invoke("get_log_files", JsValue::NULL).await
 }
 
-/// Clean up log files. Returns (empty_deleted, old_deleted).
-pub async fn cleanup_logs(delete_empty: bool, retention_days: Option<u32>) -> (u32, u32) {
+/// Clean up log files. Returns (empty_deleted, small_deleted, old_deleted).
+pub async fn cleanup_logs(delete_empty: bool, delete_small: bool, retention_days: Option<u32>) -> (u32, u32, u32) {
     let args = js_sys::Object::new();
     js_set(&args, "deleteEmpty", &JsValue::from_bool(delete_empty));
+    js_set(&args, "deleteSmall", &JsValue::from_bool(delete_small));
     if let Some(days) = retention_days {
         js_set(&args, "retentionDays", &JsValue::from_f64(days as f64));
     } else {
         js_set(&args, "retentionDays", &JsValue::NULL);
     }
     let result = invoke("cleanup_logs", args.into()).await;
-    from_js(result).unwrap_or((0, 0))
+    from_js(result).unwrap_or((0, 0, 0))
 }
 
 /// Refresh file sizes in the directory index (fast stat-only)

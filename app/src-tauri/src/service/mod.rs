@@ -657,6 +657,27 @@ impl CombatService {
 
     /// Run the service event loop
     pub async fn run(mut self) {
+        // Auto-cleanup log files on startup based on user settings
+        {
+            let config = self.shared.config.read().await;
+            let delete_empty = config.auto_delete_empty_files;
+            let delete_small = config.auto_delete_small_files;
+            let retention = if config.auto_delete_old_files {
+                Some(config.log_retention_days)
+            } else {
+                None
+            };
+            drop(config);
+
+            if delete_empty || delete_small || retention.is_some() {
+                let mut index = self.shared.directory_index.write().await;
+                let (empty, small, old) = index.cleanup(delete_empty, delete_small, retention);
+                if empty > 0 || small > 0 || old > 0 {
+                    tracing::info!(empty_deleted = empty, small_deleted = small, old_deleted = old, "Startup log cleanup");
+                }
+            }
+        }
+
         self.start_watcher().await;
 
         loop {
