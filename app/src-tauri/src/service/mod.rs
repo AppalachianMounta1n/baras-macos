@@ -1450,7 +1450,7 @@ impl CombatService {
                 if matches!(trigger, MetricsTrigger::CombatStarted) {
                     // Poll during active combat
                     while shared.in_combat.load(Ordering::SeqCst) {
-                        tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+                        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
                         if let Some(data) = calculate_combat_data(&shared).await
                             && !data.metrics.is_empty()
