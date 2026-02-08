@@ -861,6 +861,12 @@ fn EffectEditForm(
     let mut trigger_type = use_signal(|| EffectTriggerType::from_effect(&effect_for_trigger));
     let mut icon_preview_url = use_signal(|| None::<String>);
 
+    // Load available sound files once
+    let mut sound_files = use_signal(Vec::<String>::new);
+    use_future(move || async move {
+        sound_files.set(api::list_sound_files().await);
+    });
+
     // Track if form was just saved (resets dirty state)
     let mut just_saved = use_signal(|| false);
 
@@ -1484,11 +1490,12 @@ fn EffectEditForm(
                                         draft.set(d);
                                     },
                                     option { value: "", "(none)" }
-                                    option { value: "Alarm.mp3", "Alarm.mp3" }
-                                    option { value: "Alert.mp3", "Alert.mp3" }
-                                    // Show custom path if set and not a bundled sound
+                                    for name in sound_files().iter() {
+                                        option { key: "{name}", value: "{name}", "{name}" }
+                                    }
+                                    // Show custom path if set and not in the bundled list
                                     if let Some(ref path) = draft().audio.file {
-                                        if !path.is_empty() && path != "Alarm.mp3" && path != "Alert.mp3" {
+                                        if !path.is_empty() && !sound_files().contains(path) {
                                             option { value: "{path}", selected: true, "{path} (custom)" }
                                         }
                                     }

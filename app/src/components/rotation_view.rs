@@ -29,6 +29,15 @@ pub fn RotationView(props: RotationViewProps) -> Element {
         tracked_source.set(props.selected_source.clone());
     }
 
+    // Track time_range so effects react to phase/time filter changes
+    let mut tracked_time_range = use_signal(|| props.time_range.clone());
+    if *tracked_time_range.read() != props.time_range {
+        tracked_time_range.set(props.time_range.clone());
+    }
+
+    // Flag: user has clicked Create (reset on source/anchor change)
+    let mut rotation_active = use_signal(|| false);
+
     let enc_idx = props.encounter_idx;
 
     // Load available abilities when source changes
@@ -37,6 +46,7 @@ pub fn RotationView(props: RotationViewProps) -> Element {
 
         selected_anchor.set(None);
         rotation.set(None);
+        rotation_active.set(false);
 
         let Some(source_name) = source else {
             available_abilities.set(Vec::new());
@@ -52,31 +62,39 @@ pub fn RotationView(props: RotationViewProps) -> Element {
         });
     });
 
+    // Query rotation when Create is clicked (rotation_active) or time_range changes
+    use_effect(move || {
+        let tr = tracked_time_range();
+        let active = rotation_active();
+
+        if !active {
+            return;
+        }
+        let Some(anchor_id) = *selected_anchor.peek() else {
+            return;
+        };
+        let Some(ref source_name) = *tracked_source.peek() else {
+            return;
+        };
+        let source_name = source_name.clone();
+
+        let tr_opt = if tr.start == 0.0 && tr.end == 0.0 {
+            None
+        } else {
+            Some(tr)
+        };
+
+        loading.set(true);
+        spawn(async move {
+            let result =
+                api::query_rotation(enc_idx, &source_name, anchor_id, tr_opt.as_ref()).await;
+            rotation.set(result);
+            loading.set(false);
+        });
+    });
+
     let abilities = available_abilities.read().clone();
     let source = props.selected_source.clone();
-    let time_range = props.time_range.clone();
-
-    let create_onclick = {
-        let source = source.clone();
-        let time_range = time_range.clone();
-        move |_| {
-            let Some(anchor_id) = selected_anchor() else {
-                return;
-            };
-            let Some(ref source_name) = source else {
-                return;
-            };
-            let source_name = source_name.clone();
-            let time_range = time_range.clone();
-            loading.set(true);
-            spawn(async move {
-                let result =
-                    api::query_rotation(enc_idx, &source_name, anchor_id, Some(&time_range)).await;
-                rotation.set(result);
-                loading.set(false);
-            });
-        }
-    };
 
     rsx! {
         div { class: "rotation-view",
@@ -90,6 +108,7 @@ pub fn RotationView(props: RotationViewProps) -> Element {
                         let val = evt.value();
                         selected_anchor.set(val.parse::<i64>().ok());
                         rotation.set(None);
+                        rotation_active.set(false);
                     },
                     option { value: "", "-- Select Ability --" }
                     for (id, name) in &abilities {
@@ -103,7 +122,9 @@ pub fn RotationView(props: RotationViewProps) -> Element {
                 button {
                     class: "btn btn-primary",
                     disabled: selected_anchor().is_none() || source.is_none() || loading(),
-                    onclick: create_onclick,
+                    onclick: move |_| {
+                        rotation_active.set(true);
+                    },
                     if loading() { "Loading..." } else { "Create" }
                 }
             }
