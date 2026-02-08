@@ -127,28 +127,16 @@ pub fn RotationView(props: RotationViewProps) -> Element {
                                 key: "{i}",
                                 // Per-cycle stats
                                 div { class: "rotation-cycle-stats",
-                                    if cycle.total_damage > 0.0 {
-                                        span { class: "cycle-stat",
-                                            span { class: "cycle-stat-label", "Dmg " }
-                                            "{format_number(cycle.total_damage)}"
-                                        }
-                                        if cycle.duration_secs > 0.0 {
-                                            span { class: "cycle-stat dps",
-                                                span { class: "cycle-stat-label", "DPS " }
-                                                "{format_number(cycle.total_damage as f64 / cycle.duration_secs as f64)}"
-                                            }
+                                    if cycle.total_damage > 0.0 && cycle.duration_secs > 0.0 {
+                                        span { class: "cycle-stat dps",
+                                            span { class: "cycle-stat-label", "DPS " }
+                                            "{format_number(cycle.total_damage / cycle.duration_secs as f64)}"
                                         }
                                     }
-                                    if cycle.effective_heal > 0.0 {
-                                        span { class: "cycle-stat heal",
-                                            span { class: "cycle-stat-label", "EHeal " }
-                                            "{format_number(cycle.effective_heal)}"
-                                        }
-                                        if cycle.duration_secs > 0.0 {
-                                            span { class: "cycle-stat hps",
-                                                span { class: "cycle-stat-label", "HPS " }
-                                                "{format_number(cycle.effective_heal as f64 / cycle.duration_secs as f64)}"
-                                            }
+                                    if cycle.effective_heal > 0.0 && cycle.duration_secs > 0.0 {
+                                        span { class: "cycle-stat hps",
+                                            span { class: "cycle-stat-label", "EHPS " }
+                                            "{format_number(cycle.effective_heal / cycle.duration_secs as f64)}"
                                         }
                                     }
                                     if cycle.hit_count > 0 {

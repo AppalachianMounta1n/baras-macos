@@ -811,15 +811,32 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
             };
 
             // Load entity breakdown - single attempt
-            // None typically means no data available (no encounters dir, etc.) - show empty state
-            let entity_data = match api::query_entity_breakdown(tab, idx, tr_opt.as_ref()).await {
-                Some(data) => data,
-                None => {
-                    // No data available - just mark as loaded with empty data
-                    let _ = content_state
-                        .try_write()
-                        .map(|mut w| *w = LoadState::Loaded);
-                    return;
+            // For Rotation mode, merge Damage + Healing entities so healers with 0 dmg appear
+            let entity_data = if matches!(mode, ViewMode::Rotation) {
+                let dmg = api::query_entity_breakdown(DataTab::Damage, idx, tr_opt.as_ref()).await.unwrap_or_default();
+                let heal = api::query_entity_breakdown(DataTab::Healing, idx, tr_opt.as_ref()).await.unwrap_or_default();
+                let mut merged: HashMap<String, EntityBreakdown> = HashMap::new();
+                for e in dmg.into_iter().chain(heal) {
+                    merged.entry(e.source_name.clone())
+                        .and_modify(|existing| {
+                            existing.total_value += e.total_value;
+                            existing.abilities_used = existing.abilities_used.max(e.abilities_used);
+                        })
+                        .or_insert(e);
+                }
+                let mut result: Vec<_> = merged.into_values().collect();
+                result.sort_by(|a, b| b.total_value.partial_cmp(&a.total_value).unwrap_or(std::cmp::Ordering::Equal));
+                result
+            } else {
+                match api::query_entity_breakdown(tab, idx, tr_opt.as_ref()).await {
+                    Some(data) => data,
+                    None => {
+                        // No data available - just mark as loaded with empty data
+                        let _ = content_state
+                            .try_write()
+                            .map(|mut w| *w = LoadState::Loaded);
+                        return;
+                    }
                 }
             };
 
@@ -1591,12 +1608,22 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                 }
                                 div { class: "entity-list",
                                     // Uses memoized entity_list
+                                    {
+                                    let tr = *time_range.read();
+                                    let duration = if tr.start != 0.0 || tr.end != 0.0 {
+                                        tr.end - tr.start
+                                    } else {
+                                        timeline.read().as_ref().map(|t| t.duration_secs).unwrap_or(1.0)
+                                    } as f64;
+                                    let duration = if duration > 0.0 { duration } else { 1.0 };
+                                    rsx! {
                                     for entity in entity_list().iter() {
                                         {
                                             let name = entity.source_name.clone();
                                             let is_selected = selected_source.read().as_ref() == Some(&name);
                                             let is_npc = entity.entity_type == "Npc";
                                             let class_icon = class_icon_lookup().get(&name).cloned();
+                                            let per_sec = entity.total_value / duration;
                                             rsx! {
                                                 div {
                                                     class: if is_selected { "entity-row selected" } else if is_npc { "entity-row npc" } else { "entity-row" },
@@ -1616,11 +1643,13 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                         }
                                                         "{entity.source_name}"
                                                     }
-                                                    span { class: "entity-value", "{format_number(entity.total_value)}" }
+                                                    span { class: "entity-value", "{format_number(per_sec)}/s" }
                                                     span { class: "entity-abilities", "{entity.abilities_used} abilities" }
                                                 }
                                             }
                                         }
+                                    }
+                                    }
                                     }
                                 }
                             }
