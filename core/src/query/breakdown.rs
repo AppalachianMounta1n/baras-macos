@@ -50,6 +50,9 @@ impl EncounterQuery<'_> {
 
         // Build WHERE conditions
         let mut conditions = vec![format!("{} > 0", value_col)];
+        if tab == DataTab::Damage {
+            conditions.push("source_id != target_id".to_string());
+        }
         if let Some(n) = entity_name {
             conditions.push(format!("{} = '{}'", entity_col, sql_escape(n)));
         }
@@ -237,6 +240,9 @@ impl EncounterQuery<'_> {
         };
 
         let mut conditions = vec![format!("{} > 0", value_col)];
+        if tab == DataTab::Damage {
+            conditions.push("source_id != target_id".to_string());
+        }
         if let Some(tr) = time_range {
             conditions.push(tr.sql_filter());
         }
