@@ -620,12 +620,10 @@ impl EffectTracker {
         self.fired_alerts.extend(pending_alerts);
 
         // Queue target for raid frame registration only when effect was created or refreshed.
+        // Only players belong on raid frames (not companions or NPCs)
         if should_register
             && is_from_local
-            && matches!(
-                target_entity_type,
-                EntityType::Player | EntityType::Companion
-            )
+            && target_entity_type == EntityType::Player
         {
             self.new_targets.push(NewTargetInfo {
                 entity_id: target_id,
@@ -657,11 +655,10 @@ impl EffectTracker {
             return;
         }
 
-        // Check if target is a player (only players should be registered on raid frames)
-        // Note: This also allows companions since they wouldn't be in npcs map
-        let is_npc = encounter
-            .map(|e| e.npcs.contains_key(&target_id))
-            .unwrap_or(false);
+        // Only register actual players on raid frames (not companions or NPCs)
+        let is_player = encounter
+            .map(|e| e.players.contains_key(&target_id))
+            .unwrap_or(true);
 
         // Single-target case: refresh effect on specific target
         let action_name_str = crate::context::resolve(action_name);
@@ -727,8 +724,7 @@ impl EffectTracker {
                 effect.refresh(timestamp, def.duration);
 
                 // Re-register for raid frames (in case user cleared the slot)
-                // Only register non-NPC entities (players/companions)
-                if def.display_target == DisplayTarget::RaidFrames && !is_npc {
+                if def.display_target == DisplayTarget::RaidFrames && is_player {
                     self.new_targets.push(NewTargetInfo {
                         entity_id: target_id,
                         name: target_name,
@@ -766,8 +762,8 @@ impl EffectTracker {
 
                 self.active_effects.insert(key, effect);
 
-                // Queue target for raid frame registration (only non-NPCs)
-                if !is_npc {
+                // Queue target for raid frame registration (only players)
+                if is_player {
                     self.new_targets.push(NewTargetInfo {
                         entity_id: target_id,
                         name: target_name,
@@ -976,12 +972,8 @@ impl EffectTracker {
                 existing.refresh(timestamp, duration);
 
                 // Re-register target in raid registry if they were removed
-                // Only register Player/Companion entities on raid frames
                 if existing.is_from_local_player
-                    && matches!(
-                        effect_target_type,
-                        EntityType::Player | EntityType::Companion
-                    )
+                    && effect_target_type == EntityType::Player
                 {
                     self.new_targets.push(NewTargetInfo {
                         entity_id: effect_target_id,
