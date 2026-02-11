@@ -720,13 +720,13 @@ id = "finger_deaths"
 name = "Finger Deaths"
 increment_on = { type = "entity_death", selector = ["Fingers-2"] }
 
-[[boss.counters]]
+[[boss.counter]]
 id = "brontes_droid_deaths"
 name = "Droid deaths"
 initial_value = 0
 decrement = false
 
-[boss.counters.increment_on]
+[boss.counter.increment_on]
 type = "entity_death"
 selector = ["Droids"]
 
