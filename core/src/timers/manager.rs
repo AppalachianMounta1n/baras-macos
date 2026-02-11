@@ -357,7 +357,15 @@ impl TimerManager {
     /// Pass the current encounter context to allow timer restarts.
     pub fn tick(&mut self, encounter: Option<&crate::encounter::CombatEncounter>) {
         if let Some(ts) = self.last_timestamp {
-            self.process_expirations(ts, encounter);
+            let effective_time = self
+                .active_timers
+                .values()
+                .filter(|t| t.remaining_secs_realtime() <= 0.0)
+                .map(|t| t.expires_at)
+                .max()
+                .map_or(ts, |max_expires| max_expires.max(ts));
+
+            self.process_expirations(effective_time, encounter);
         }
     }
 
