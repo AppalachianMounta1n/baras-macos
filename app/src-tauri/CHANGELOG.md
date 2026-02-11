@@ -8,17 +8,23 @@ Features / Improvements:
   force/tech, melee/ranged) and mitigation stats (avoided, shielded, absorbed)
 - Damage Taken tab: attack type and damage type columns per ability
 - Totals row on all ability breakdown tables
-- Improved rotation analysis using explicit off-GCD ability classification instead of timing heuristic
+- Improved rotation analysis using explicit off-GCD ability classification instead of timing heuristic (thank you Mari for data)
 - Data explorer defaults to local player instead of top value
 - Phase timeline and combat log time range selection (start/end)
 - Tab-colored value columns in ability tables for better readability
-- Data explorer tabs now default to local player
+
+Timers and Definitions:
+
+- Zorn & Toth encounter now ends on Handler Murdock death
+- Brontes Clock phase start/end detection is more robust (credit Wolfy)
+- Added Dxun II Pursuit droid phases and DPS challenge (credit Wolfy)
+- Add Lady Dominique Phases and 2 alerts (credit Wolfy)
 
 Fixes:
 
 - Respect time range filter in effect uptime calculations
 - Respect time range in shield attribution queries
-- Remove self-damage events from data explorer
+- Remove self-damage events from data explorer damage tab
 - Properly parse threat drops
 - Protect recent log files (48h) from cleanup instead of date-based cutoff
 - Fix stale timer pipeline_delay argument
