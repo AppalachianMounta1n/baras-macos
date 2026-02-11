@@ -960,6 +960,7 @@ pub fn PhaseSelector(
     on_change: EventHandler<Vec<String>>,
 ) -> Element {
     let mut dropdown_open = use_signal(|| false);
+    let mut dropdown_pos = use_signal(|| (0.0f64, 0.0f64));
 
     // Display text
     let display = if selected.is_empty() {
@@ -973,21 +974,31 @@ pub fn PhaseSelector(
     rsx! {
         div {
             class: "phase-selector",
-            style: "position: relative;",
             // Dropdown trigger
             button {
                 class: "select",
                 style: "width: 160px; text-align: left;",
-                onclick: move |_| dropdown_open.set(!dropdown_open()),
+                onclick: move |e| {
+                    if !dropdown_open() {
+                        // Use element_coordinates to find offset within button,
+                        // then subtract from client_coordinates to get button origin
+                        let click = e.client_coordinates();
+                        let offset = e.element_coordinates();
+                        let btn_left = click.x - offset.x;
+                        let btn_bottom = click.y - offset.y + 30.0;
+                        dropdown_pos.set((btn_left, btn_bottom));
+                    }
+                    dropdown_open.set(!dropdown_open());
+                },
                 "{display}"
                 span { class: "ml-auto", "▾" }
             }
 
-            // Dropdown menu
+            // Dropdown menu (fixed position to escape overflow clipping)
             if dropdown_open() {
                 div {
                     class: "phase-dropdown",
-                    style: "position: absolute; top: 100%; left: 0; z-index: 1000; background: #1e1e2e; border: 1px solid var(--border-medium); border-radius: var(--radius-sm); padding: var(--space-xs); min-width: 160px; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.5);",
+                    style: "position: fixed; left: {dropdown_pos().0}px; top: {dropdown_pos().1}px; z-index: 10000; background: #1e1e2e; border: 1px solid var(--border-medium); border-radius: var(--radius-sm); padding: var(--space-xs); min-width: 160px; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.5);",
 
                     if available.is_empty() {
                         span { class: "text-muted text-sm", "No phases defined" }
