@@ -19,6 +19,7 @@ Timers and Definitions:
 - Brontes Clock phase start/end detection is more robust (credit Wolfy)
 - Added Dxun II Pursuit droid phases and DPS challenge (credit Wolfy)
 - Add Lady Dominique Phases and 2 alerts (credit Wolfy)
+- Added definition file for Orbital Core
 
 Fixes:
 
