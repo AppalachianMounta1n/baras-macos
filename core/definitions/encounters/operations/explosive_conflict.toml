@@ -11,7 +11,15 @@ area_id = 833571547775688
 [[boss]]
 id = "zorn_toth"
 name = "Zorn & Toth"
-difficulties = ["veteran", "master"]
+difficulties = ["story", "veteran", "master"]
+has_victory_trigger = true
+victory_trigger = { type = "entity_death", selector = ["Handler Murdok"] }
+
+[[boss.entities]]
+name = "Handler Murdok"
+ids = [2855809654456320, 2810922951245824, 2855813949423616, 2855818244390912]
+is_boss = true
+is_kill_target = true
 
 [[boss.entities]]
 name = "Zorn"
@@ -24,7 +32,6 @@ ids = [
   2857544821243904,
 ]
 is_boss = true
-is_kill_target = true
 
 [[boss.entities]]
 name = "Toth"
@@ -36,7 +43,6 @@ ids = [
   285754911621120,
 ]
 is_boss = true
-is_kill_target = true
 
 [[boss.phases]]
 id = "zt_main"
