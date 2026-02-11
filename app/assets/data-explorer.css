@@ -1456,6 +1456,12 @@
   gap: 2px;
 }
 
+.gcd-gap-time {
+  font-size: 0.65rem;
+  color: var(--text-muted, #888);
+  line-height: 1;
+}
+
 .rotation-cycle-stats {
   display: flex;
   gap: 1rem;

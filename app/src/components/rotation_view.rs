@@ -221,6 +221,11 @@ pub fn RotationView(props: RotationViewProps) -> Element {
                                                     fallback: slot.gcd_ability.ability_name.clone(),
                                                 }
                                             }
+                                            // GCD gap timing
+                                            match slot.gcd_gap {
+                                                Some(gap) => rsx! { span { class: "gcd-gap-time", "{gap:.3}" } },
+                                                None => rsx! { span { class: "gcd-gap-time", visibility: "hidden", "0.000" } },
+                                            }
                                         }
                                         }
                                         }
