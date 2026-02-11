@@ -2075,6 +2075,16 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                 }
                                                 if is_damage_taken {
                                                     th {
+                                                        class: "num col-pct {sort_class(SortColumn::ShldPct)}",
+                                                        onclick: sort_click(SortColumn::ShldPct, false),
+                                                        "Shld%"
+                                                    }
+                                                    th {
+                                                        class: "num col-val {sort_class(SortColumn::Absorbed)}",
+                                                        onclick: sort_click(SortColumn::Absorbed, false),
+                                                        "Abs"
+                                                    }
+                                                    th {
                                                         class: "num col-dmg-type {sort_class(SortColumn::AttackType)}",
                                                         onclick: sort_click(SortColumn::AttackType, true),
                                                         "AT"
@@ -2085,22 +2095,12 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                         "DT"
                                                     }
                                                 }
-                                                if is_damage_taken {
+                                                if !is_damage_taken {
                                                     th {
-                                                        class: "num col-pct {sort_class(SortColumn::ShldPct)}",
-                                                        onclick: sort_click(SortColumn::ShldPct, false),
-                                                        "Shld%"
+                                                        class: "num col-pct {sort_class(SortColumn::CritPct)}",
+                                                        onclick: sort_click(SortColumn::CritPct, false),
+                                                        "Crit%"
                                                     }
-                                                    th {
-                                                        class: "num col-val {sort_class(SortColumn::Absorbed)}",
-                                                        onclick: sort_click(SortColumn::Absorbed, false),
-                                                        "Abs"
-                                                    }
-                                                }
-                                                th {
-                                                    class: "num col-pct {sort_class(SortColumn::CritPct)}",
-                                                    onclick: sort_click(SortColumn::CritPct, false),
-                                                    "Crit%"
                                                 }
                                                 th {
                                                     class: "num col-avg col-avg-first {sort_class(SortColumn::Avg)}",
@@ -2164,10 +2164,6 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                             td { class: "num group-stat col-pct", "{format_pct(group_miss_pct(stats))}" }
                                                         }
                                                         if is_damage_taken {
-                                                            td { class: "num group-stat col-dmg-type", "-" }
-                                                            td { class: "num group-stat col-dmg-type", "-" }
-                                                        }
-                                                        if is_damage_taken {
                                                             td { class: "num group-stat col-pct",
                                                                 {
                                                                     let total = stats.hits + stats.shield_count;
@@ -2181,8 +2177,12 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                             td { class: "num group-stat col-val",
                                                                 if stats.absorbed_total > 0.0 { "{format_number(stats.absorbed_total)}" } else { "-" }
                                                             }
+                                                            td { class: "num group-stat col-dmg-type", "-" }
+                                                            td { class: "num group-stat col-dmg-type", "-" }
                                                         }
-                                                        td { class: "num group-stat col-pct", "{format_pct(stats.crit_pct)}" }
+                                                        if !is_damage_taken {
+                                                            td { class: "num group-stat col-pct", "{format_pct(stats.crit_pct)}" }
+                                                        }
                                                         td { class: "num group-stat col-avg col-avg-first",
                                                             {
                                                                 let overall = if is_damage_tab {
@@ -2257,6 +2257,19 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                                 }
                                                             }
                                                             if is_damage_taken {
+                                                                td { class: "num col-pct",
+                                                                    {
+                                                                        let total = ability.hit_count + ability.shield_count;
+                                                                        if total > 0 {
+                                                                            format_pct(ability.shield_count as f64 / total as f64 * 100.0)
+                                                                        } else {
+                                                                            "-".to_string()
+                                                                        }
+                                                                    }
+                                                                }
+                                                                td { class: "num col-val",
+                                                                    if ability.absorbed_total > 0.0 { "{format_number(ability.absorbed_total)}" } else { "-" }
+                                                                }
                                                                 td { class: "num col-dmg-type",
                                                                     {
                                                                         match ability.attack_type.as_str() {
@@ -2274,23 +2287,10 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                                     }
                                                                 }
                                                             }
-                                                            if is_damage_taken {
+                                                            if !is_damage_taken {
                                                                 td { class: "num col-pct",
-                                                                    {
-                                                                        let total = ability.hit_count + ability.shield_count;
-                                                                        if total > 0 {
-                                                                            format_pct(ability.shield_count as f64 / total as f64 * 100.0)
-                                                                        } else {
-                                                                            "-".to_string()
-                                                                        }
-                                                                    }
+                                                                    if ability.is_shield { "-" } else { "{format_pct(ability.crit_rate)}" }
                                                                 }
-                                                                td { class: "num col-val",
-                                                                    if ability.absorbed_total > 0.0 { "{format_number(ability.absorbed_total)}" } else { "-" }
-                                                                }
-                                                            }
-                                                            td { class: "num col-pct",
-                                                                if ability.is_shield { "-" } else { "{format_pct(ability.crit_rate)}" }
                                                             }
                                                             td { class: "num col-avg col-avg-first",
                                                                 {
@@ -2378,16 +2378,16 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                             td { class: "num col-pct", "{format_pct(miss_pct)}" }
                                                         }
                                                         if is_damage_taken {
-                                                            td { class: "num col-dmg-type" }
-                                                            td { class: "num col-dmg-type" }
-                                                        }
-                                                        if is_damage_taken {
                                                             td { class: "num col-pct", "{format_pct(shld_pct)}" }
                                                             td { class: "num col-val",
                                                                 if total_absorbed > 0.0 { "{format_number(total_absorbed)}" } else { "-" }
                                                             }
+                                                            td { class: "num col-dmg-type" }
+                                                            td { class: "num col-dmg-type" }
                                                         }
-                                                        td { class: "num col-pct", "{format_pct(crit_pct)}" }
+                                                        if !is_damage_taken {
+                                                            td { class: "num col-pct", "{format_pct(crit_pct)}" }
+                                                        }
                                                         td { class: "num col-avg col-avg-first", "{format_number(avg)}" }
                                                         if is_damage_tab {
                                                             td { class: "num col-avg" }
