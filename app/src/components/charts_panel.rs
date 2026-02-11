@@ -445,6 +445,9 @@ pub struct ChartsPanelProps {
     pub duration_secs: f32,
     /// Time range filter
     pub time_range: TimeRange,
+    /// Local player name for default selection
+    #[props(default)]
+    pub local_player: Option<String>,
 }
 
 #[component]
@@ -506,9 +509,13 @@ pub fn ChartsPanel(props: ChartsPanelProps) -> Element {
         "rgba(255, 180, 100, 0.35)", // Orange
     ];
 
+    // Local player name for default selection
+    let local_player = props.local_player.clone();
+
     // Load entities on mount and auto-select first player (with retry for race conditions)
     use_effect(move || {
         let idx = encounter_idx_signal();
+        let local_name = local_player.clone();
         spawn(async move {
             // Retry up to 3 seconds if data not ready
             for attempt in 0..10 {
@@ -518,9 +525,12 @@ pub fn ChartsPanel(props: ChartsPanelProps) -> Element {
                         .filter(|r| r.entity_type == "Player" || r.entity_type == "Companion")
                         .collect();
                     if !players.is_empty() {
-                        // Auto-select first player
-                        if let Some(first) = players.first() {
-                            selected_entity.set(Some(first.name.clone()));
+                        // Auto-select local player, fall back to first player
+                        let pick = local_name.as_deref()
+                            .and_then(|name| players.iter().find(|p| p.name == name))
+                            .or(players.first());
+                        if let Some(p) = pick {
+                            selected_entity.set(Some(p.name.clone()));
                         }
                         // Store class icons lookup
                         let icons: HashMap<String, String> = players
