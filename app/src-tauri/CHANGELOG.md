@@ -1,4 +1,4 @@
-# v2026.2.11
+# v2026.2.12
 
 Extensive improvements to the data explorer. More boss definitions. Bug fixes.
 
