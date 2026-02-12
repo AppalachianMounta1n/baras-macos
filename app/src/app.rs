@@ -624,7 +624,11 @@ pub fn App() -> Element {
                                 });
                             },
                             for name in profile_names().iter() {
-                                option { value: "{name}", "{name}" }
+                                option {
+                                    value: "{name}",
+                                    selected: active_profile().as_deref() == Some(name.as_str()),
+                                    "{name}"
+                                }
                             }
                         }
                     }
@@ -1055,7 +1059,11 @@ pub fn App() -> Element {
                                             });
                                         },
                                         for name in profile_names().iter() {
-                                            option { value: "{name}", "{name}" }
+                                            option {
+                                                value: "{name}",
+                                                selected: active_profile().as_deref() == Some(name.as_str()),
+                                                "{name}"
+                                            }
                                         }
                                     }
                                     if active_profile().is_some() {
