@@ -803,6 +803,9 @@
 .toggle-dtps {
   color: #e67e22;
 }
+.toggle-hp {
+  color: #f1c40f;
+}
 
 /* Charts area - takes up available space */
 .charts-area {

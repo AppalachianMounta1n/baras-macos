@@ -213,6 +213,16 @@ pub struct TimeSeriesPoint {
     pub total_value: f64,
 }
 
+/// Query result for HP% over time — includes absolute HP for tooltips.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HpPoint {
+    pub bucket_start_ms: i64,
+    pub hp_pct: f64,
+    pub current_hp: i64,
+    pub max_hp: i64,
+}
+
 /// Time window when an effect was active (for chart highlighting).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EffectWindow {

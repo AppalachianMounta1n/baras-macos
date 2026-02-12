@@ -5,7 +5,8 @@
 use baras_core::query::{
     AbilityBreakdown, BreakdownMode, CombatLogFilters, CombatLogFindMatch, CombatLogRow,
     DamageTakenSummary, DataTab, EffectChartData, EffectWindow, EncounterTimeline,
-    EntityBreakdown, PlayerDeath, RaidOverviewRow, RotationAnalysis, TimeRange, TimeSeriesPoint,
+    EntityBreakdown, HpPoint, PlayerDeath, RaidOverviewRow, RotationAnalysis, TimeRange,
+    TimeSeriesPoint,
 };
 use tauri::State;
 
@@ -117,6 +118,20 @@ pub async fn query_ehps_over_time(
 ) -> Result<Vec<TimeSeriesPoint>, String> {
     handle
         .query_ehps_over_time(encounter_idx, bucket_ms, source_name, time_range)
+        .await
+}
+
+/// Query HP% over time with specified bucket size.
+#[tauri::command]
+pub async fn query_hp_over_time(
+    handle: State<'_, ServiceHandle>,
+    encounter_idx: Option<u32>,
+    bucket_ms: i64,
+    target_name: Option<String>,
+    time_range: Option<TimeRange>,
+) -> Result<Vec<HpPoint>, String> {
+    handle
+        .query_hp_over_time(encounter_idx, bucket_ms, target_name, time_range)
         .await
 }
 

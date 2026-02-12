@@ -3378,6 +3378,17 @@ details[open] .collapsible-summary::before {
   text-align: center;
 }
 
+.metrics-table .totals-row {
+  font-weight: 600;
+}
+.metrics-table .totals-row td {
+  box-shadow: inset 0 2px 0 var(--border-color);
+}
+.metrics-table .totals-label {
+  text-align: left;
+  color: var(--text-secondary);
+}
+
 .no-metrics {
   text-align: center;
   color: var(--text-disabled);

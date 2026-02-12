@@ -243,6 +243,7 @@ pub fn run() {
             commands::query_hps_over_time,
             commands::query_ehps_over_time,
             commands::query_dtps_over_time,
+            commands::query_hp_over_time,
             commands::query_effect_uptime,
             commands::query_effect_windows,
             commands::query_combat_log,

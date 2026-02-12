@@ -760,6 +760,36 @@ fn EncounterDetail(
                                 }
                             }
                         }
+                        {
+                            let tot_dps: i64 = sorted_metrics.iter().map(|p| p.dps).sum();
+                            let tot_dmg: i64 = sorted_metrics.iter().map(|p| p.total_damage).sum();
+                            let tot_tps: i64 = sorted_metrics.iter().map(|p| p.tps).sum();
+                            let tot_taken: i64 = sorted_metrics.iter().map(|p| p.total_damage_taken).sum();
+                            let tot_dtps: i64 = sorted_metrics.iter().map(|p| p.dtps).sum();
+                            let tot_hps: i64 = sorted_metrics.iter().map(|p| p.hps).sum();
+                            let tot_ehps: i64 = sorted_metrics.iter().map(|p| p.ehps).sum();
+                            let tot_heal: i64 = sorted_metrics.iter().map(|p| p.total_healing).sum();
+                            let tot_eheal: i64 = sorted_metrics.iter().map(|p| p.total_healing_effective).sum();
+                            let eff_pct = if tot_heal > 0 { tot_eheal as f32 / tot_heal as f32 * 100.0 } else { 0.0 };
+                            let tot_abs: i64 = sorted_metrics.iter().map(|p| p.abs).sum();
+                            rsx! {
+                                tfoot {
+                                    tr { class: "totals-row",
+                                        td { class: "player-name totals-label", "Total" }
+                                        td { class: "metric-value dps", "{format_number(tot_dps)}" }
+                                        td { class: "metric-value dps", "{format_number(tot_dmg)}" }
+                                        td { class: "metric-value tps", "{format_number(tot_tps)}" }
+                                        td { class: "metric-value dtps", "{format_number(tot_taken)}" }
+                                        td { class: "metric-value dtps", "{format_number(tot_dtps)}" }
+                                        td { class: "metric-value hps", "{format_number(tot_hps)}" }
+                                        td { class: "metric-value hps", "{format_number(tot_ehps)}" }
+                                        td { class: "metric-value hps", "{eff_pct:.1}%" }
+                                        td { class: "metric-value hps", "{format_number(tot_abs)}" }
+                                        td { class: "metric-value apm", "—" }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
