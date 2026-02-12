@@ -1169,10 +1169,11 @@ impl RaidOverlay {
         // Then check slot selection for swapping
         if let Some(slot) = self.hit_test(px, py) {
             if let Some((a, b)) = self.swap_state.on_click(slot) {
-                // Queue swap action - registry will update, then data will flow back
+                // Apply swap locally for immediate visual feedback
+                self.swap_frames(a, b);
+                // Queue swap action so the registry stays in sync
                 self.pending_registry_actions
                     .push(RaidRegistryAction::SwapSlots(a, b));
-                self.needs_render = true;
             } else {
                 // Selection changed (first click or deselect same slot)
                 self.needs_render = true;
