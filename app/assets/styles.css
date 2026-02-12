@@ -6703,6 +6703,16 @@ details[open] .collapsible-summary::before {
   line-height: 1.4;
 }
 
+.toast-link {
+  display: block;
+  color: #5dade2;
+  text-decoration: underline;
+  word-break: break-all;
+}
+.toast-link:hover {
+  color: #85c1e9;
+}
+
 .toast-close {
   background: none;
   border: none;
