@@ -16,7 +16,7 @@ use super::{ToastSeverity, use_toast};
 use crate::api;
 use crate::types::{
     AbilitySelector, AlertTrigger, AudioConfig, DisplayTarget, EffectImportPreview,
-    EffectListItem, EffectSelector, EntityFilter, Trigger, UiSessionState,
+    EffectListItem, EffectSelector, EntityFilter, RefreshAbility, Trigger, UiSessionState,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -167,6 +167,7 @@ fn default_effect(name: String) -> EffectListItem {
         name,
         display_text: None,
         is_user_override: false,
+        is_bundled: false,
         enabled: true,
         trigger: Trigger::EffectApplied {
             effects: vec![],
@@ -773,7 +774,10 @@ fn EffectRow(
                         span { class: "unsaved-indicator", title: "Unsaved changes" }
                     }
                     if is_draft {
-                        span { class: "effect-new-badge", "(New)" }
+                        span { class: "effect-new-badge", "New" }
+                    }
+                    if effect.is_bundled && effect.is_user_override && !is_draft {
+                        span { class: "effect-modified-badge", "Modified Default" }
                     }
                     if let Some(ref dt) = effect.display_text {
                         if dt != &effect.name {
@@ -1150,10 +1154,10 @@ fn EffectEditForm(
                         div { class: "form-row-hz", style: "align-items: flex-start;",
                             AbilitySelectorEditor {
                                 label: "Refresh Abilities",
-                                selectors: draft().refresh_abilities.clone(),
-                                on_change: move |ids| {
+                                selectors: draft().refresh_abilities.iter().map(|r| r.ability().clone()).collect(),
+                                on_change: move |ids: Vec<AbilitySelector>| {
                                     let mut d = draft();
-                                    d.refresh_abilities = ids;
+                                    d.refresh_abilities = ids.into_iter().map(RefreshAbility::Simple).collect();
                                     draft.set(d);
                                 }
                             }

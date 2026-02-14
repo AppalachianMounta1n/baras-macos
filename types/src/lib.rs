@@ -514,6 +514,68 @@ impl AbilitySelector {
     }
 }
 
+/// When an ability can trigger a refresh
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RefreshTrigger {
+    /// Refresh on ability activation (default)
+    #[default]
+    Activation,
+    /// Refresh on heal completion (for abilities with cast time)
+    Heal,
+}
+
+/// An ability that can refresh an effect, with optional conditions.
+/// Supports both simple syntax (just ability ID/name) and conditional syntax.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum RefreshAbility {
+    /// Simple ability selector (backward compatible): just ID or name
+    Simple(AbilitySelector),
+    /// Ability with conditions
+    Conditional {
+        /// The ability that triggers refresh
+        ability: AbilitySelector,
+        /// Minimum stacks required for refresh (None = any stack count)
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        min_stacks: Option<u8>,
+        /// When the refresh triggers
+        #[serde(default)]
+        trigger: RefreshTrigger,
+    },
+}
+
+impl RefreshAbility {
+    /// Get the ability selector
+    pub fn ability(&self) -> &AbilitySelector {
+        match self {
+            Self::Simple(selector) => selector,
+            Self::Conditional { ability, .. } => ability,
+        }
+    }
+
+    /// Get minimum stacks requirement (None = any)
+    pub fn min_stacks(&self) -> Option<u8> {
+        match self {
+            Self::Simple(_) => None,
+            Self::Conditional { min_stacks, .. } => *min_stacks,
+        }
+    }
+
+    /// Get the trigger type
+    pub fn trigger(&self) -> RefreshTrigger {
+        match self {
+            Self::Simple(_) => RefreshTrigger::Activation,
+            Self::Conditional { trigger, .. } => *trigger,
+        }
+    }
+
+    /// Check if this ability matches the given ID or name
+    pub fn matches(&self, id: u64, name: Option<&str>) -> bool {
+        self.ability().matches(id, name)
+    }
+}
+
 /// Selector for entities - can match by NPC ID, roster alias, or name.
 /// Uses untagged serde: numbers as IDs, strings as roster alias or name.
 /// Priority when matching: Roster Alias → NPC ID → Name (resolved at runtime).
@@ -2308,4 +2370,100 @@ pub struct EffectsEditorState {
     pub expanded_effect: Option<String>,
     /// Search query
     pub search_query: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_refresh_ability_simple_parsing() {
+        // Test simple ability ID
+        let toml = r#"value = 814832605462528"#;
+
+        #[derive(Deserialize, Debug)]
+        struct Test {
+            value: RefreshAbility,
+        }
+
+        let parsed: Test = toml::from_str(toml).unwrap();
+        println!("Parsed simple: {:?}", parsed.value);
+
+        assert!(matches!(
+            parsed.value,
+            RefreshAbility::Simple(AbilitySelector::Id(814832605462528))
+        ));
+        assert_eq!(parsed.value.min_stacks(), None);
+        assert_eq!(parsed.value.trigger(), RefreshTrigger::Activation);
+    }
+
+    #[test]
+    fn test_refresh_ability_conditional_parsing() {
+        // Test conditional with min_stacks and trigger
+        let toml = r#"
+            [value]
+            ability = 1014376786034688
+            min_stacks = 2
+            trigger = "heal"
+        "#;
+
+        #[derive(Deserialize, Debug)]
+        struct Test {
+            value: RefreshAbility,
+        }
+
+        let parsed: Test = toml::from_str(toml).unwrap();
+        println!("Parsed conditional: {:?}", parsed.value);
+
+        assert!(matches!(parsed.value, RefreshAbility::Conditional { .. }));
+        assert_eq!(parsed.value.min_stacks(), Some(2));
+        assert_eq!(parsed.value.trigger(), RefreshTrigger::Heal);
+    }
+
+    #[test]
+    fn test_refresh_ability_array_parsing() {
+        // Test array with mixed simple and conditional - exactly like the TOML config
+        let toml = r#"
+            refresh_abilities = [
+                814832605462528,
+                { ability = 1014376786034688, min_stacks = 2, trigger = "heal" },
+                { ability = 815240627355648, min_stacks = 2, trigger = "heal" },
+            ]
+        "#;
+
+        #[derive(Deserialize, Debug)]
+        struct Test {
+            refresh_abilities: Vec<RefreshAbility>,
+        }
+
+        let parsed: Test = toml::from_str(toml).unwrap();
+        println!("Parsed array: {:?}", parsed.refresh_abilities);
+
+        // First entry: Simple
+        assert!(matches!(
+            parsed.refresh_abilities[0],
+            RefreshAbility::Simple(_)
+        ));
+        assert_eq!(parsed.refresh_abilities[0].min_stacks(), None);
+        assert_eq!(
+            parsed.refresh_abilities[0].trigger(),
+            RefreshTrigger::Activation
+        );
+
+        // Second entry: Conditional with min_stacks = 2, trigger = heal
+        assert!(matches!(
+            parsed.refresh_abilities[1],
+            RefreshAbility::Conditional { .. }
+        ));
+        assert_eq!(parsed.refresh_abilities[1].min_stacks(), Some(2));
+        assert_eq!(parsed.refresh_abilities[1].trigger(), RefreshTrigger::Heal);
+
+        // Third entry: Conditional with min_stacks = 2, trigger = heal
+        assert!(matches!(
+            parsed.refresh_abilities[2],
+            RefreshAbility::Conditional { .. }
+        ));
+        assert_eq!(parsed.refresh_abilities[2].min_stacks(), Some(2));
+        assert_eq!(parsed.refresh_abilities[2].trigger(), RefreshTrigger::Heal);
+    }
 }

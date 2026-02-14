@@ -40,6 +40,7 @@ pub use baras_types::{
     PersonalOverlayConfig,
     PersonalStat,
     RaidOverlaySettings,
+    RefreshAbility,
     SortColumn,
     SortDirection,
     TimerOverlayConfig,
@@ -561,6 +562,9 @@ pub struct EffectListItem {
     /// Whether this effect has a user override (vs bundled-only)
     #[serde(default)]
     pub is_user_override: bool,
+    /// Whether this effect exists in the bundled defaults
+    #[serde(default)]
+    pub is_bundled: bool,
 
     // Core
     pub enabled: bool,
@@ -572,7 +576,7 @@ pub struct EffectListItem {
     pub ignore_effect_removed: bool,
 
     // Matching - abilities that refresh the effect duration
-    pub refresh_abilities: Vec<AbilitySelector>,
+    pub refresh_abilities: Vec<RefreshAbility>,
 
     // Duration
     pub duration_secs: Option<f32>,
