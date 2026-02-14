@@ -90,14 +90,20 @@ impl EventProcessor {
         ));
 
         // Update combat time and check for TimeElapsed phase transitions
-        signals.extend(phase::check_time_phase_transitions(cache, event.timestamp));
+        // Skip during grace window to prevent inflating combat_time_secs/phase durations
+        if !cache.is_in_grace_window() {
+            signals.extend(phase::check_time_phase_transitions(cache, event.timestamp));
+        }
 
         // Victory trigger detection (for special encounters like Coratanni)
         // Must happen after signals are emitted to support HP-based victory triggers
         self.handle_victory_trigger(&event, &signals, cache);
 
         // Process challenge metrics (accumulates values, polled with combat data)
-        challenge::process_challenge_events(&event, cache);
+        // Skip during grace window to prevent accumulating metrics after combat ends
+        if !cache.is_in_grace_window() {
+            challenge::process_challenge_events(&event, cache);
+        }
 
         // ═══════════════════════════════════════════════════════════════════════
         // PHASE 3: Combat State Machine
