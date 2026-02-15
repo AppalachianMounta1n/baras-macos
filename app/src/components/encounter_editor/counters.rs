@@ -259,173 +259,231 @@ fn CounterEditForm(
 
     rsx! {
         div { class: "counter-edit-form",
-            // ─── ID (read-only) ─────────────────────────────────────────────
-            div { class: "form-row-hz",
-                label { "Counter ID" }
-                code { class: "tag-muted text-mono text-xs", "{counter_id_display}" }
-            }
-
-            // ─── Name ────────────────────────────────────────────────────────
-            div { class: "form-row-hz",
-                label { "Name" }
-                input {
-                    class: "input-inline",
-                    style: "width: 200px;",
-                    value: "{draft().name.clone()}",
-                    oninput: move |e| {
-                        let mut d = draft();
-                        d.name = e.value();
-                        draft.set(d);
+            div { class: "encounter-item-grid",
+                // ═══ LEFT: Identity Card ═════════════════════════════════════
+                div { class: "form-card",
+                    div { class: "form-card-header",
+                        i { class: "fa-solid fa-tag" }
+                        span { "Identity" }
                     }
-                }
-            }
-
-            // ─── Display Text ────────────────────────────────────────────────
-            div { class: "form-row-hz",
-                label { "Display Text" }
-                input {
-                    class: "input-inline",
-                    style: "width: 200px;",
-                    placeholder: "(defaults to name)",
-                    value: "{draft().display_text.clone().unwrap_or_default()}",
-                    oninput: move |e| {
-                        let mut d = draft();
-                        d.display_text = if e.value().is_empty() { None } else { Some(e.value()) };
-                        draft.set(d);
-                    }
-                }
-            }
-
-            // ─── Increment Trigger ───────────────────────────────────────────
-            div { class: "form-row-hz", style: "align-items: flex-start;",
-                label { style: "padding-top: 6px;", "Increment On" }
-                ComposableTriggerEditor {
-                    trigger: draft().increment_on,
-                    encounter_data: encounter_data.clone(),
-                    on_change: move |t| {
-                        let mut d = draft();
-                        d.increment_on = t;
-                        draft.set(d);
-                    }
-                }
-            }
-
-            // ─── Decrement Trigger (optional) ────────────────────────────────
-            div { class: "form-row-hz", style: "align-items: flex-start;",
-                label { style: "padding-top: 6px;", "Decrement On" }
-                div { class: "flex-col gap-xs",
-                    div { class: "flex items-center gap-xs",
-                        input {
-                            r#type: "checkbox",
-                            checked: draft().decrement_on.is_some(),
-                            onchange: move |_| {
-                                let mut d = draft();
-                                d.decrement_on = if d.decrement_on.is_some() {
-                                    None
-                                } else {
-                                    Some(Trigger::AbilityCast {
-                                        abilities: vec![],
-                                        source: EntityFilter::default(),
-                                        target: EntityFilter::default(),
-                                    })
-                                };
-                                draft.set(d);
-                            }
+                    div { class: "form-card-content",
+                        div { class: "form-row-hz",
+                            label { "Counter ID" }
+                            code { class: "tag-muted text-mono text-xs", "{counter_id_display}" }
                         }
-                        span { class: "text-xs text-muted", "(enable separate decrement trigger)" }
-                    }
-                    if let Some(ref decrement_trigger) = draft().decrement_on {
-                        ComposableTriggerEditor {
-                            trigger: decrement_trigger.clone(),
-                            encounter_data: encounter_data.clone(),
-                            on_change: move |t| {
-                                let mut d = draft();
-                                d.decrement_on = Some(t);
-                                draft.set(d);
-                            }
-                        }
-                    }
-                }
-            }
 
-            // ─── Reset Trigger ───────────────────────────────────────────────
-            div { class: "form-row-hz", style: "align-items: flex-start;",
-                label { style: "padding-top: 6px;", "Reset On" }
-                ComposableTriggerEditor {
-                    trigger: draft().reset_on,
-                    encounter_data: encounter_data.clone(),
-                    on_change: move |t| {
-                        let mut d = draft();
-                        d.reset_on = t;
-                        draft.set(d);
-                    }
-                }
-            }
-
-            // ─── Options ─────────────────────────────────────────────────────
-            div { class: "form-row-hz",
-                label { "Initial Value" }
-                input {
-                    r#type: "number",
-                    min: "0",
-                    class: "input-inline",
-                    style: "width: 70px;",
-                    value: "{draft().initial_value}",
-                    oninput: move |e| {
-                        if let Ok(val) = e.value().parse::<u32>() {
-                            let mut d = draft();
-                            d.initial_value = val;
-                            draft.set(d);
-                        }
-                    }
-                }
-            }
-
-            div { class: "form-row-hz",
-                label { "Set Value" }
-                div { class: "flex items-center gap-xs",
-                    input {
-                        r#type: "checkbox",
-                        checked: draft().set_value.is_some(),
-                        onchange: move |_| {
-                            let mut d = draft();
-                            d.set_value = if d.set_value.is_some() { None } else { Some(1) };
-                            draft.set(d);
-                        }
-                    }
-                    if draft().set_value.is_some() {
-                        input {
-                            r#type: "number",
-                            min: "0",
-                            class: "input-inline",
-                            style: "width: 70px;",
-                            value: "{draft().set_value.unwrap_or(1)}",
-                            oninput: move |e| {
-                                if let Ok(val) = e.value().parse::<u32>() {
+                        div { class: "form-row-hz",
+                            label { "Name" }
+                            input {
+                                class: "input-inline",
+                                style: "width: 200px;",
+                                value: "{draft().name.clone()}",
+                                oninput: move |e| {
                                     let mut d = draft();
-                                    d.set_value = Some(val);
+                                    d.name = e.value();
                                     draft.set(d);
+                                }
+                            }
+                        }
+
+                        div { class: "form-row-hz",
+                            label { "Display Text" }
+                            input {
+                                class: "input-inline",
+                                style: "width: 200px;",
+                                placeholder: "(defaults to name)",
+                                value: "{draft().display_text.clone().unwrap_or_default()}",
+                                oninput: move |e| {
+                                    let mut d = draft();
+                                    d.display_text = if e.value().is_empty() { None } else { Some(e.value()) };
+                                    draft.set(d);
+                                }
+                            }
+                        }
+
+                        // ─── Options subsection ────────────────────────────────
+                        span { class: "text-sm font-bold text-secondary mt-sm", "Options" }
+
+                        div { class: "form-row-hz mt-xs",
+                            label { class: "flex items-center",
+                                "Initial Value"
+                                span {
+                                    class: "help-icon",
+                                    title: "Starting value for this counter when reset",
+                                    "?"
+                                }
+                            }
+                            input {
+                                r#type: "number",
+                                min: "0",
+                                class: "input-inline",
+                                style: "width: 70px;",
+                                value: "{draft().initial_value}",
+                                oninput: move |e| {
+                                    if let Ok(val) = e.value().parse::<u32>() {
+                                        let mut d = draft();
+                                        d.initial_value = val;
+                                        draft.set(d);
+                                    }
+                                }
+                            }
+                        }
+
+                        div { class: "form-row-hz",
+                            label { class: "flex items-center",
+                                "Set Value"
+                                span {
+                                    class: "help-icon",
+                                    title: "Set to a specific value on trigger instead of incrementing by 1",
+                                    "?"
+                                }
+                            }
+                            div { class: "flex items-center gap-xs",
+                                input {
+                                    r#type: "checkbox",
+                                    checked: draft().set_value.is_some(),
+                                    onchange: move |_| {
+                                        let mut d = draft();
+                                        d.set_value = if d.set_value.is_some() { None } else { Some(1) };
+                                        draft.set(d);
+                                    }
+                                }
+                                if draft().set_value.is_some() {
+                                    input {
+                                        r#type: "number",
+                                        min: "0",
+                                        class: "input-inline",
+                                        style: "width: 70px;",
+                                        value: "{draft().set_value.unwrap_or(1)}",
+                                        oninput: move |e| {
+                                            if let Ok(val) = e.value().parse::<u32>() {
+                                                let mut d = draft();
+                                                d.set_value = Some(val);
+                                                draft.set(d);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        label {
+                            class: "flex items-center gap-xs text-sm",
+                            input {
+                                r#type: "checkbox",
+                                checked: draft().decrement,
+                                onchange: move |_| {
+                                    let mut d = draft();
+                                    d.decrement = !d.decrement;
+                                    draft.set(d);
+                                }
+                            }
+                            span { class: "flex items-center",
+                                "Decrement"
+                                span {
+                                    class: "help-icon",
+                                    title: "Count down instead of up on each trigger",
+                                    "?"
                                 }
                             }
                         }
                     }
                 }
-                span { class: "text-xs text-muted", "(set to specific value instead of increment)" }
-            }
 
-            div { class: "form-row-hz",
-                label { "Decrement" }
-                div { class: "flex items-center gap-xs",
-                    input {
-                        r#type: "checkbox",
-                        checked: draft().decrement,
-                        onchange: move |_| {
-                            let mut d = draft();
-                            d.decrement = !d.decrement;
-                            draft.set(d);
+                // ═══ RIGHT: Trigger Card ═════════════════════════════════════
+                div { class: "form-card",
+                    div { class: "form-card-header",
+                        i { class: "fa-solid fa-bolt" }
+                        span { "Trigger" }
+                    }
+                    div { class: "form-card-content",
+                        // Increment Trigger
+                        div { class: "form-row-hz", style: "align-items: flex-start;",
+                            label { class: "flex items-center", style: "padding-top: 6px;",
+                                "Increment On"
+                                span {
+                                    class: "help-icon",
+                                    title: "The game event that increments (or sets) this counter",
+                                    "?"
+                                }
+                            }
+                            ComposableTriggerEditor {
+                                trigger: draft().increment_on,
+                                encounter_data: encounter_data.clone(),
+                                on_change: move |t| {
+                                    let mut d = draft();
+                                    d.increment_on = t;
+                                    draft.set(d);
+                                }
+                            }
+                        }
+
+                        // Decrement Trigger (optional)
+                        div { class: "form-row-hz", style: "align-items: flex-start;",
+                            label { class: "flex items-center", style: "padding-top: 6px;",
+                                "Decrement On"
+                                span {
+                                    class: "help-icon",
+                                    title: "Optional separate trigger that decrements the counter",
+                                    "?"
+                                }
+                            }
+                            div { class: "flex-col gap-xs",
+                                div { class: "flex items-center gap-xs",
+                                    input {
+                                        r#type: "checkbox",
+                                        checked: draft().decrement_on.is_some(),
+                                        onchange: move |_| {
+                                            let mut d = draft();
+                                            d.decrement_on = if d.decrement_on.is_some() {
+                                                None
+                                            } else {
+                                                Some(Trigger::AbilityCast {
+                                                    abilities: vec![],
+                                                    source: EntityFilter::default(),
+                                                    target: EntityFilter::default(),
+                                                })
+                                            };
+                                            draft.set(d);
+                                        }
+                                    }
+                                    span { class: "text-xs text-muted", "(enable separate decrement trigger)" }
+                                }
+                                if let Some(ref decrement_trigger) = draft().decrement_on {
+                                    ComposableTriggerEditor {
+                                        trigger: decrement_trigger.clone(),
+                                        encounter_data: encounter_data.clone(),
+                                        on_change: move |t| {
+                                            let mut d = draft();
+                                            d.decrement_on = Some(t);
+                                            draft.set(d);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Reset Trigger
+                        div { class: "form-row-hz", style: "align-items: flex-start;",
+                            label { class: "flex items-center", style: "padding-top: 6px;",
+                                "Reset On"
+                                span {
+                                    class: "help-icon",
+                                    title: "The game event that resets this counter to its initial value",
+                                    "?"
+                                }
+                            }
+                            ComposableTriggerEditor {
+                                trigger: draft().reset_on,
+                                encounter_data: encounter_data.clone(),
+                                on_change: move |t| {
+                                    let mut d = draft();
+                                    d.reset_on = t;
+                                    draft.set(d);
+                                }
+                            }
                         }
                     }
-                    span { class: "text-xs text-muted", "(count down instead of up)" }
                 }
             }
 

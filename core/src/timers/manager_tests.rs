@@ -18,6 +18,7 @@ fn make_timer(id: &str, name: &str, trigger: TimerTrigger, duration: f32) -> Tim
         trigger,
         duration_secs: duration,
         is_alert: false,
+        alert_on: Default::default(),
         color: [200, 200, 200, 255],
         enabled: true,
         can_be_refreshed: false,

@@ -261,146 +261,193 @@ fn PhaseEditForm(
 
     rsx! {
         div { class: "phase-edit-form",
-            // ─── Identity ────────────────────────────────────────────────────
-            div { class: "form-row-hz",
-                label { "Phase ID" }
-                code { class: "tag-muted text-mono text-xs", "{phase_id_display}" }
-            }
-
-            div { class: "form-row-hz",
-                label { "Name" }
-                input {
-                    class: "input-inline",
-                    style: "width: 200px;",
-                    value: "{draft().name}",
-                    oninput: move |e| {
-                        let mut d = draft();
-                        d.name = e.value();
-                        draft.set(d);
+            div { class: "encounter-item-grid",
+                // ═══ LEFT: Identity Card ═════════════════════════════════════
+                div { class: "form-card",
+                    div { class: "form-card-header",
+                        i { class: "fa-solid fa-tag" }
+                        span { "Identity" }
                     }
-                }
-            }
+                    div { class: "form-card-content",
+                        div { class: "form-row-hz",
+                            label { "Phase ID" }
+                            code { class: "tag-muted text-mono text-xs", "{phase_id_display}" }
+                        }
 
-            div { class: "form-row-hz",
-                label { "Display Text" }
-                input {
-                    class: "input-inline",
-                    style: "width: 200px;",
-                    placeholder: "(defaults to name)",
-                    value: "{draft().display_text.clone().unwrap_or_default()}",
-                    oninput: move |e| {
-                        let mut d = draft();
-                        d.display_text = if e.value().is_empty() { None } else { Some(e.value()) };
-                        draft.set(d);
-                    }
-                }
-            }
-
-            // ─── Start Trigger ───────────────────────────────────────────────
-            div { class: "form-row-hz", style: "align-items: flex-start;",
-                label { style: "padding-top: 6px;", "Trigger" }
-                ComposableTriggerEditor {
-                    trigger: draft().start_trigger,
-                    encounter_data: encounter_data.clone(),
-                    on_change: move |t| {
-                        let mut d = draft();
-                        d.start_trigger = t;
-                        draft.set(d);
-                    }
-                }
-            }
-
-            // ─── End Trigger (Optional) ──────────────────────────────────────
-            div { class: "form-row-hz", style: "align-items: flex-start;",
-                label { style: "padding-top: 6px;", "End On" }
-                if let Some(end) = draft().end_trigger.clone() {
-                    div { class: "flex-col gap-xs",
-                        ComposableTriggerEditor {
-                            trigger: end,
-                            encounter_data: encounter_data.clone(),
-                            on_change: move |t| {
-                                let mut d = draft();
-                                d.end_trigger = Some(t);
-                                draft.set(d);
+                        div { class: "form-row-hz",
+                            label { "Name" }
+                            input {
+                                class: "input-inline",
+                                style: "width: 200px;",
+                                value: "{draft().name}",
+                                oninput: move |e| {
+                                    let mut d = draft();
+                                    d.name = e.value();
+                                    draft.set(d);
+                                }
                             }
                         }
-                        button {
-                            class: "btn btn-sm",
-                            style: "width: fit-content;",
-                            onclick: move |_| {
-                                let mut d = draft();
-                                d.end_trigger = None;
-                                draft.set(d);
-                            },
-                            "Remove End Trigger"
-                        }
-                    }
-                } else {
-                    div { class: "flex-col gap-xs",
-                        span { class: "text-muted text-sm", "(ends when another phase starts)" }
-                        button {
-                            class: "btn btn-sm",
-                            onclick: move |_| {
-                                let mut d = draft();
-                                d.end_trigger = Some(Trigger::CombatStart);
-                                draft.set(d);
-                            },
-                            "+ Add End Trigger"
-                        }
-                    }
-                }
-            }
 
-            // ─── Guards ──────────────────────────────────────────────────────
-            div { class: "form-row-hz",
-                label { "Preceded By" }
-                {
-                    let selected_phase = draft().preceded_by.clone().unwrap_or_default();
-                    rsx! {
-                        select {
-                            class: "select",
-                            style: "width: 180px;",
-                            onchange: move |e| {
-                                let mut d = draft();
-                                d.preceded_by = if e.value().is_empty() { None } else { Some(e.value()) };
-                                draft.set(d);
-                            },
-                            option { value: "", selected: selected_phase.is_empty(), "(none)" }
-                            for phase_id in &phase_ids {
-                                option {
-                                    value: "{phase_id}",
-                                    selected: phase_id == &selected_phase,
-                                    "{phase_id}"
+                        div { class: "form-row-hz",
+                            label { "Display Text" }
+                            input {
+                                class: "input-inline",
+                                style: "width: 200px;",
+                                placeholder: "(defaults to name)",
+                                value: "{draft().display_text.clone().unwrap_or_default()}",
+                                oninput: move |e| {
+                                    let mut d = draft();
+                                    d.display_text = if e.value().is_empty() { None } else { Some(e.value()) };
+                                    draft.set(d);
+                                }
+                            }
+                        }
+
+                        // ─── Conditions subsection ─────────────────────────────
+                        span { class: "text-sm font-bold text-secondary mt-sm", "Conditions" }
+
+                        div { class: "form-row-hz mt-xs",
+                            label { class: "flex items-center",
+                                "Preceded By"
+                                span {
+                                    class: "help-icon",
+                                    title: "This phase can only start if the specified phase was the most recent active phase",
+                                    "?"
+                                }
+                            }
+                            {
+                                let selected_phase = draft().preceded_by.clone().unwrap_or_default();
+                                rsx! {
+                                    select {
+                                        class: "select",
+                                        style: "width: 180px;",
+                                        onchange: move |e| {
+                                            let mut d = draft();
+                                            d.preceded_by = if e.value().is_empty() { None } else { Some(e.value()) };
+                                            draft.set(d);
+                                        },
+                                        option { value: "", selected: selected_phase.is_empty(), "(none)" }
+                                        for phase_id in &phase_ids {
+                                            option {
+                                                value: "{phase_id}",
+                                                selected: phase_id == &selected_phase,
+                                                "{phase_id}"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        div { class: "form-row-hz",
+                            label { class: "flex items-center",
+                                "Counter"
+                                span {
+                                    class: "help-icon",
+                                    title: "Only activate when the specified counter meets this condition",
+                                    "?"
+                                }
+                            }
+                            CounterConditionEditor {
+                                condition: draft().counter_condition.clone(),
+                                counters: encounter_data.counter_ids(),
+                                on_change: move |cond| {
+                                    let mut d = draft();
+                                    d.counter_condition = cond;
+                                    draft.set(d);
+                                }
+                            }
+                        }
+
+                        div { class: "form-row-hz", style: "align-items: flex-start;",
+                            label { class: "flex items-center", style: "padding-top: 6px;",
+                                "Resets"
+                                span {
+                                    class: "help-icon",
+                                    title: "Counters to reset when this phase starts",
+                                    "?"
+                                }
+                            }
+                            CounterListEditor {
+                                counters: draft().resets_counters.clone(),
+                                available_counters: encounter_data.counter_ids(),
+                                on_change: move |counters| {
+                                    let mut d = draft();
+                                    d.resets_counters = counters;
+                                    draft.set(d);
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            div { class: "form-row-hz",
-                label { "Counter" }
-                CounterConditionEditor {
-                    condition: draft().counter_condition.clone(),
-                    counters: encounter_data.counter_ids(),
-                    on_change: move |cond| {
-                        let mut d = draft();
-                        d.counter_condition = cond;
-                        draft.set(d);
+                // ═══ RIGHT: Trigger Card (2-column: Start / End) ═════════════
+                div { class: "form-card",
+                    div { class: "form-card-header",
+                        i { class: "fa-solid fa-bolt" }
+                        span { "Trigger" }
                     }
-                }
-            }
+                    div { class: "form-card-content",
+                        div { class: "trigger-two-col",
+                            // ─── Start Trigger (left) ──────────────────────
+                            div {
+                                span { class: "text-sm font-bold text-secondary", "Start On" }
+                                div { style: "margin-top: 6px;",
+                                    ComposableTriggerEditor {
+                                        trigger: draft().start_trigger,
+                                        encounter_data: encounter_data.clone(),
+                                        on_change: move |t| {
+                                            let mut d = draft();
+                                            d.start_trigger = t;
+                                            draft.set(d);
+                                        }
+                                    }
+                                }
+                            }
 
-            // ─── Resets Counters ─────────────────────────────────────────────
-            div { class: "form-row-hz", style: "align-items: flex-start;",
-                label { style: "padding-top: 6px;", "Resets" }
-                CounterListEditor {
-                    counters: draft().resets_counters.clone(),
-                    available_counters: encounter_data.counter_ids(),
-                    on_change: move |counters| {
-                        let mut d = draft();
-                        d.resets_counters = counters;
-                        draft.set(d);
+                            // ─── End Trigger (right) ───────────────────────
+                            div {
+                                span { class: "text-sm font-bold text-secondary", "End On" }
+                                div { style: "margin-top: 6px;",
+                                    if let Some(end) = draft().end_trigger.clone() {
+                                        div { class: "flex-col gap-xs",
+                                            ComposableTriggerEditor {
+                                                trigger: end,
+                                                encounter_data: encounter_data.clone(),
+                                                on_change: move |t| {
+                                                    let mut d = draft();
+                                                    d.end_trigger = Some(t);
+                                                    draft.set(d);
+                                                }
+                                            }
+                                            button {
+                                                class: "btn btn-sm",
+                                                style: "width: fit-content;",
+                                                onclick: move |_| {
+                                                    let mut d = draft();
+                                                    d.end_trigger = None;
+                                                    draft.set(d);
+                                                },
+                                                "Remove End Trigger"
+                                            }
+                                        }
+                                    } else {
+                                        div { class: "flex-col gap-xs",
+                                            span { class: "text-muted text-sm", "(ends when another phase starts)" }
+                                            button {
+                                                class: "btn btn-sm",
+                                                onclick: move |_| {
+                                                    let mut d = draft();
+                                                    d.end_trigger = Some(Trigger::CombatStart);
+                                                    draft.set(d);
+                                                },
+                                                "+ Add End Trigger"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

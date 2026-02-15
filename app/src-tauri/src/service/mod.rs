@@ -1649,6 +1649,9 @@ impl CombatService {
         let overlay_tx = self.overlay_tx.clone();
         let audio_tx = self.audio_tx.clone();
         let icon_cache = self.icon_cache.clone();
+        // Capture the current time so we can suppress audio for alerts that originated
+        // before we started tailing (i.e. recovered from a stale encounter).
+        let tailing_started_at = chrono::Local::now().naive_local();
         let effects_handle = tokio::spawn(async move {
             // Track previous state to avoid redundant updates
             let mut last_raid_effect_count: usize = 0;
@@ -1862,16 +1865,18 @@ impl CombatService {
                             }
                         }
 
-                        // Send alerts to overlay (before audio consumes them)
-                        if !alerts.is_empty() {
-                            if overlay_tx.try_send(OverlayUpdate::AlertsFired(alerts.clone())).is_err() {
+                        // Send text alerts to overlay (only those with alert_text_enabled)
+                        let text_alerts: Vec<_> = alerts.iter().filter(|a| a.alert_text_enabled).cloned().collect();
+                        if !text_alerts.is_empty() {
+                            if overlay_tx.try_send(OverlayUpdate::AlertsFired(text_alerts)).is_err() {
                                 warn!("Overlay channel full, dropped timer alerts");
                             }
                         }
 
                         // Send alert audio events (only if audio_enabled for that alert)
+                        // Skip alerts from before we started tailing (stale encounter recovery)
                         for alert in alerts {
-                            if alert.audio_enabled {
+                            if alert.audio_enabled && alert.timestamp >= tailing_started_at {
                                 let _ = audio_tx.try_send(AudioEvent::Alert {
                                     text: alert.text,
                                     custom_sound: alert.audio_file,
@@ -2412,6 +2417,7 @@ async fn process_effect_audio(shared: &std::sync::Arc<SharedState>) -> EffectAud
                 text,
                 color: Some(effect.color),
                 timestamp: chrono::Local::now().naive_local(),
+                alert_text_enabled: true,
                 audio_enabled: false,
                 audio_file: None,
             });

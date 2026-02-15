@@ -7,6 +7,9 @@ use tiny_skia::Color;
 use crate::frame::OverlayFrame;
 use crate::widgets::colors;
 
+/// Offset in pixels for text drop shadow
+const SHADOW_OFFSET: f32 = 1.0;
+
 /// A row displaying a label and right-aligned value
 #[derive(Debug, Clone)]
 pub struct LabeledValue {
@@ -45,17 +48,40 @@ impl LabeledValue {
     /// * `width` - Total width available
     /// * `font_size` - Font size for both label and value
     pub fn render(&self, frame: &mut OverlayFrame, x: f32, y: f32, width: f32, font_size: f32) {
-        // Draw label on left
-        frame.draw_text(&self.label, x, y, font_size, self.label_color);
+        let shadow = colors::text_shadow();
 
-        // Draw value on right (right-aligned)
+        // Draw label on left (shadow + bold for readability)
+        frame.draw_text_styled(
+            &self.label,
+            x + SHADOW_OFFSET,
+            y + SHADOW_OFFSET,
+            font_size,
+            shadow,
+            true,
+            false,
+        );
+        frame.draw_text_styled(&self.label, x, y, font_size, self.label_color, true, false);
+
+        // Draw value on right (right-aligned, shadow + bold for readability)
         let (text_width, _) = frame.measure_text(&self.value, font_size);
-        frame.draw_text(
+        let value_x = x + width - text_width;
+        frame.draw_text_styled(
             &self.value,
-            x + width - text_width,
+            value_x + SHADOW_OFFSET,
+            y + SHADOW_OFFSET,
+            font_size,
+            shadow,
+            true,
+            false,
+        );
+        frame.draw_text_styled(
+            &self.value,
+            value_x,
             y,
             font_size,
             self.value_color,
+            true,
+            false,
         );
     }
 

@@ -55,6 +55,12 @@ pub struct ActiveTimer {
     /// Whether the alert has been fired for this timer instance
     pub alert_fired: bool,
 
+    /// Whether to fire an alert when the timer expires (from alert_on == OnExpire)
+    pub alert_on_expire: bool,
+
+    /// Custom alert text (from definition, None = use timer name)
+    pub alert_text: Option<String>,
+
     // ─── Display (cached from definition) ───────────────────────────────────
     /// RGBA color for display
     pub color: [u8; 4],
@@ -110,6 +116,8 @@ impl ActiveTimer {
         show_at_secs: f32,
         audio: &AudioConfig,
         display_target: crate::timers::TimerDisplayTarget,
+        alert_on_expire: bool,
+        alert_text: Option<String>,
     ) -> Self {
         // Calculate lag compensation: how far behind was the game event from system time?
         // This accounts for file I/O delay, processing time, etc.
@@ -137,6 +145,8 @@ impl ActiveTimer {
             repeat_count: 0,
             max_repeats,
             alert_fired: false,
+            alert_on_expire,
+            alert_text,
             color,
             triggers_timer,
             show_on_raid_frames,

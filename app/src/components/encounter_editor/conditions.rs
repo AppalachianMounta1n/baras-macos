@@ -14,7 +14,10 @@ pub fn CounterConditionEditor(
     counters: Vec<String>, // Available counter IDs
     on_change: EventHandler<Option<CounterCondition>>,
 ) -> Element {
-    let cond = condition.clone().unwrap_or(CounterCondition {
+    // Normalize: treat Some with empty counter_id as None
+    let effective_condition = condition.clone().filter(|c| !c.counter_id.is_empty());
+
+    let cond = effective_condition.clone().unwrap_or(CounterCondition {
         counter_id: String::new(),
         operator: ComparisonOp::Eq,
         value: 1,
@@ -29,18 +32,24 @@ pub fn CounterConditionEditor(
         ComparisonOp::Ne => "ne",
     };
 
-    let selected_counter = cond.counter_id.clone();
+    // Use a sentinel for the "none" option so that Dioxus value matching works reliably
+    let selected_value = if cond.counter_id.is_empty() {
+        "__none__".to_string()
+    } else {
+        cond.counter_id.clone()
+    };
 
     rsx! {
         div { class: "flex items-center gap-xs",
-            // Counter ID selector (empty = no condition)
+            // Counter ID selector (__none__ = no condition)
             select {
                 class: "select",
                 style: "width: 140px;",
+                value: "{selected_value}",
                 onchange: {
                     let cond_clone = cond.clone();
                     move |e| {
-                        if e.value().is_empty() {
+                        if e.value() == "__none__" {
                             on_change.call(None);
                         } else {
                             on_change.call(Some(CounterCondition {
@@ -51,21 +60,20 @@ pub fn CounterConditionEditor(
                         }
                     }
                 },
-                option { value: "", selected: selected_counter.is_empty(), "(none)" }
+                option { value: "__none__", "(none)" }
                 if counters.is_empty() {
-                    option { value: "", disabled: true, "No counters defined" }
+                    option { value: "__none__", disabled: true, "No counters defined" }
                 }
                 for counter_id in &counters {
                     option {
                         value: "{counter_id}",
-                        selected: counter_id == &selected_counter,
                         "{counter_id}"
                     }
                 }
             }
 
             // Only show operator/value if a counter is selected
-            if condition.is_some() {
+            if effective_condition.is_some() {
                 // Operator
                 select {
                     class: "select",

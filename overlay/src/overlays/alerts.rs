@@ -11,6 +11,7 @@ use super::{Overlay, OverlayConfigUpdate, OverlayData};
 use crate::frame::OverlayFrame;
 use crate::platform::{OverlayConfig, PlatformError};
 use crate::utils::color_from_rgba;
+use crate::widgets::colors;
 
 /// A single alert entry for display
 #[derive(Debug, Clone)]
@@ -158,9 +159,29 @@ impl AlertsOverlay {
             let mut color = entry.color;
             color[3] = (color[3] as f32 * opacity) as u8;
 
-            // Draw alert text
-            self.frame
-                .draw_text(&entry.text, padding, y, font_size, color_from_rgba(color));
+            // Apply opacity to shadow color
+            let mut shadow = colors::text_shadow();
+            shadow.set_alpha(shadow.alpha() * opacity);
+
+            // Draw shadow (offset +1, +1) then bold text on top
+            self.frame.draw_text_styled(
+                &entry.text,
+                padding + 1.0,
+                y + 1.0,
+                font_size,
+                shadow,
+                true,
+                false,
+            );
+            self.frame.draw_text_styled(
+                &entry.text,
+                padding,
+                y,
+                font_size,
+                color_from_rgba(color),
+                true,
+                false,
+            );
 
             y += line_height + entry_spacing;
         }

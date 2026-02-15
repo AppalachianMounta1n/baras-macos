@@ -8,7 +8,7 @@ use super::{Overlay, OverlayConfigUpdate, OverlayData};
 use crate::frame::OverlayFrame;
 use crate::platform::{OverlayConfig, PlatformError};
 use crate::utils::color_from_rgba;
-use crate::widgets::{ProgressBar, colors};
+use crate::widgets::{colors, ProgressBar};
 
 /// A single timer entry for display
 #[derive(Debug, Clone)]
@@ -152,6 +152,7 @@ impl TimerOverlay {
                 .with_bg_color(colors::dps_bar_bg())
                 .with_text_color(font_color)
                 .with_right_text(time_text)
+                .with_bold_text()
                 .render(
                     &mut self.frame,
                     padding,

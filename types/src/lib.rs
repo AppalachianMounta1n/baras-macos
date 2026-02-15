@@ -576,6 +576,34 @@ impl RefreshAbility {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Alert Types (shared across effects and timers)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// When to trigger an alert notification.
+///
+/// Used by both the effect and timer systems to control when alert text
+/// is displayed. For effects: OnApply = effect starts, OnExpire = effect ends.
+/// For timers: OnApply = timer starts, OnExpire = timer expires.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AlertTrigger {
+    /// No alert
+    #[default]
+    None,
+    /// Alert on start (effect applied / timer started)
+    OnApply,
+    /// Alert on end (effect expired / timer expired)
+    OnExpire,
+}
+
+impl AlertTrigger {
+    /// Returns all variants for UI dropdowns.
+    pub fn all() -> &'static [AlertTrigger] {
+        &[Self::None, Self::OnApply, Self::OnExpire]
+    }
+}
+
 /// Selector for entities - can match by NPC ID, roster alias, or name.
 /// Uses untagged serde: numbers as IDs, strings as roster alias or name.
 /// Priority when matching: Roster Alias → NPC ID → Name (resolved at runtime).

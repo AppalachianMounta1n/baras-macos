@@ -267,213 +267,237 @@ fn ChallengeEditForm(
 
     rsx! {
         div { class: "challenge-edit-form",
-            // ─── ID (read-only) ─────────────────────────────────────────────
-            div { class: "form-row-hz",
-                label { "Challenge ID" }
-                code { class: "tag-muted text-mono text-xs", "{challenge_id_display}" }
-            }
-
-            // ─── Name ────────────────────────────────────────────────────────
-            div { class: "form-row-hz",
-                label { "Name" }
-                input {
-                    class: "input-inline",
-                    style: "width: 300px;",
-                    value: "{draft().name}",
-                    oninput: move |e| {
-                        let mut d = draft();
-                        d.name = e.value();
-                        draft.set(d);
+            div { class: "encounter-item-grid",
+                // ═══ LEFT: Identity Card ═════════════════════════════════════
+                div { class: "form-card",
+                    div { class: "form-card-header",
+                        i { class: "fa-solid fa-tag" }
+                        span { "Identity" }
                     }
-                }
-            }
-
-            // ─── Display Text ────────────────────────────────────────────────
-            div { class: "form-row-hz",
-                label { "Display Text" }
-                input {
-                    class: "input-inline",
-                    style: "width: 300px;",
-                    placeholder: "(defaults to name)",
-                    value: "{draft().display_text.clone().unwrap_or_default()}",
-                    oninput: move |e| {
-                        let mut d = draft();
-                        d.display_text = if e.value().is_empty() { None } else { Some(e.value()) };
-                        draft.set(d);
-                    }
-                }
-            }
-
-            // ─── Description ─────────────────────────────────────────────────
-            div { class: "form-row-hz",
-                label { "Description" }
-                input {
-                    class: "input-inline",
-                    style: "width: 400px;",
-                    placeholder: "(optional)",
-                    value: "{draft().description.clone().unwrap_or_default()}",
-                    oninput: move |e| {
-                        let mut d = draft();
-                        d.description = if e.value().is_empty() { None } else { Some(e.value()) };
-                        draft.set(d);
-                    }
-                }
-            }
-
-            // ─── Metric ──────────────────────────────────────────────────────
-            div { class: "form-row-hz",
-                label { "Metric" }
-                select {
-                    class: "input-inline",
-                    value: "{draft().metric:?}",
-                    onchange: move |e| {
-                        let mut d = draft();
-                        d.metric = match e.value().as_str() {
-                            "Damage" => ChallengeMetric::Damage,
-                            "Healing" => ChallengeMetric::Healing,
-                            "DamageTaken" => ChallengeMetric::DamageTaken,
-                            "HealingTaken" => ChallengeMetric::HealingTaken,
-                            "AbilityCount" => ChallengeMetric::AbilityCount,
-                            "EffectCount" => ChallengeMetric::EffectCount,
-                            "Deaths" => ChallengeMetric::Deaths,
-                            "Threat" => ChallengeMetric::Threat,
-                            _ => ChallengeMetric::Damage,
-                        };
-                        draft.set(d);
-                    },
-                    for metric in ChallengeMetric::all() {
-                        option {
-                            value: "{metric:?}",
-                            selected: draft().metric == *metric,
-                            "{metric.label()}"
+                    div { class: "form-card-content",
+                        div { class: "form-row-hz",
+                            label { "Challenge ID" }
+                            code { class: "tag-muted text-mono text-xs", "{challenge_id_display}" }
                         }
-                    }
-                }
-            }
 
-            // ─── Display Settings ────────────────────────────────────────────
-            div { class: "form-row-hz",
-                label { "Enabled" }
-                input {
-                    r#type: "checkbox",
-                    checked: draft().enabled,
-                    onchange: move |e| {
-                        let mut d = draft();
-                        d.enabled = e.checked();
-                        draft.set(d);
-                    }
-                }
-                span { class: "text-muted text-sm", style: "margin-left: 8px;", "(show in overlay)" }
-            }
-
-            div { class: "form-row-hz",
-                label { "Columns" }
-                select {
-                    class: "input-inline",
-                    value: match draft().columns {
-                        ChallengeColumns::TotalPercent => "total_percent",
-                        ChallengeColumns::TotalPerSecond => "total_per_second",
-                        ChallengeColumns::PerSecondPercent => "per_second_percent",
-                        ChallengeColumns::TotalOnly => "total_only",
-                        ChallengeColumns::PerSecondOnly => "per_second_only",
-                        ChallengeColumns::PercentOnly => "percent_only",
-                    },
-                    onchange: move |e| {
-                        let mut d = draft();
-                        d.columns = match e.value().as_str() {
-                            "total_per_second" => ChallengeColumns::TotalPerSecond,
-                            "per_second_percent" => ChallengeColumns::PerSecondPercent,
-                            "total_only" => ChallengeColumns::TotalOnly,
-                            "per_second_only" => ChallengeColumns::PerSecondOnly,
-                            "percent_only" => ChallengeColumns::PercentOnly,
-                            _ => ChallengeColumns::TotalPercent,
-                        };
-                        draft.set(d);
-                    },
-                    option { value: "total_percent", selected: matches!(draft().columns, ChallengeColumns::TotalPercent), "Total + Percent" }
-                    option { value: "total_per_second", selected: matches!(draft().columns, ChallengeColumns::TotalPerSecond), "Total + Per Second" }
-                    option { value: "per_second_percent", selected: matches!(draft().columns, ChallengeColumns::PerSecondPercent), "Per Second + Percent" }
-                    option { value: "total_only", selected: matches!(draft().columns, ChallengeColumns::TotalOnly), "Total Only" }
-                    option { value: "per_second_only", selected: matches!(draft().columns, ChallengeColumns::PerSecondOnly), "Per Second Only" }
-                    option { value: "percent_only", selected: matches!(draft().columns, ChallengeColumns::PercentOnly), "Percent Only" }
-                }
-            }
-
-            {
-                let current_color = draft().color;
-                let color_hex = current_color
-                    .map(|c| format!("#{:02x}{:02x}{:02x}", c[0], c[1], c[2]))
-                    .unwrap_or_else(|| "#4a90d9".to_string()); // Default blue
-
-                rsx! {
-                    div { class: "form-row-hz",
-                        label { "Bar Color" }
-                        div { class: "flex-row gap-sm",
+                        div { class: "form-row-hz",
+                            label { "Name" }
                             input {
-                                r#type: "color",
-                                class: "color-picker",
-                                value: "{color_hex}",
+                                class: "input-inline",
+                                style: "width: 220px;",
+                                value: "{draft().name}",
                                 oninput: move |e| {
-                                    if let Some(color) = parse_hex_color(&e.value()) {
-                                        let mut d = draft();
-                                        d.color = Some([color[0], color[1], color[2], color[3]]);
-                                        draft.set(d);
+                                    let mut d = draft();
+                                    d.name = e.value();
+                                    draft.set(d);
+                                }
+                            }
+                        }
+
+                        div { class: "form-row-hz",
+                            label { "Display Text" }
+                            input {
+                                class: "input-inline",
+                                style: "width: 220px;",
+                                placeholder: "(defaults to name)",
+                                value: "{draft().display_text.clone().unwrap_or_default()}",
+                                oninput: move |e| {
+                                    let mut d = draft();
+                                    d.display_text = if e.value().is_empty() { None } else { Some(e.value()) };
+                                    draft.set(d);
+                                }
+                            }
+                        }
+
+                        div { class: "form-row-hz",
+                            label { "Description" }
+                            input {
+                                class: "input-inline",
+                                style: "width: 220px;",
+                                placeholder: "(optional)",
+                                value: "{draft().description.clone().unwrap_or_default()}",
+                                oninput: move |e| {
+                                    let mut d = draft();
+                                    d.description = if e.value().is_empty() { None } else { Some(e.value()) };
+                                    draft.set(d);
+                                }
+                            }
+                        }
+
+                        // ─── Display Settings ──────────────────────────────────
+                        span { class: "text-sm font-bold text-secondary mt-sm", "Display" }
+
+                        div { class: "form-row-hz mt-xs",
+                            label { class: "flex items-center",
+                                "Metric"
+                                span {
+                                    class: "help-icon",
+                                    title: "What combat metric to track for this challenge",
+                                    "?"
+                                }
+                            }
+                            select {
+                                class: "input-inline",
+                                value: "{draft().metric:?}",
+                                onchange: move |e| {
+                                    let mut d = draft();
+                                    d.metric = match e.value().as_str() {
+                                        "Damage" => ChallengeMetric::Damage,
+                                        "Healing" => ChallengeMetric::Healing,
+                                        "DamageTaken" => ChallengeMetric::DamageTaken,
+                                        "HealingTaken" => ChallengeMetric::HealingTaken,
+                                        "AbilityCount" => ChallengeMetric::AbilityCount,
+                                        "EffectCount" => ChallengeMetric::EffectCount,
+                                        "Deaths" => ChallengeMetric::Deaths,
+                                        "Threat" => ChallengeMetric::Threat,
+                                        _ => ChallengeMetric::Damage,
+                                    };
+                                    draft.set(d);
+                                },
+                                for metric in ChallengeMetric::all() {
+                                    option {
+                                        value: "{metric:?}",
+                                        selected: draft().metric == *metric,
+                                        "{metric.label()}"
                                     }
                                 }
                             }
-                            if current_color.is_some() {
-                                button {
-                                    class: "btn btn-sm",
-                                    title: "Use default color",
-                                    onclick: move |_| {
-                                        let mut d = draft();
-                                        d.color = None;
-                                        draft.set(d);
-                                    },
-                                    i { class: "fa-solid fa-rotate-left" }
+                        }
+
+                        div { class: "form-row-hz",
+                            label { class: "flex items-center",
+                                "Columns"
+                                span {
+                                    class: "help-icon",
+                                    title: "Which data columns to show in the challenge overlay",
+                                    "?"
                                 }
                             }
-                            if current_color.is_none() {
-                                span { class: "text-muted text-sm", "(using default)" }
+                            select {
+                                class: "input-inline",
+                                value: match draft().columns {
+                                    ChallengeColumns::TotalPercent => "total_percent",
+                                    ChallengeColumns::TotalPerSecond => "total_per_second",
+                                    ChallengeColumns::PerSecondPercent => "per_second_percent",
+                                    ChallengeColumns::TotalOnly => "total_only",
+                                    ChallengeColumns::PerSecondOnly => "per_second_only",
+                                    ChallengeColumns::PercentOnly => "percent_only",
+                                },
+                                onchange: move |e| {
+                                    let mut d = draft();
+                                    d.columns = match e.value().as_str() {
+                                        "total_per_second" => ChallengeColumns::TotalPerSecond,
+                                        "per_second_percent" => ChallengeColumns::PerSecondPercent,
+                                        "total_only" => ChallengeColumns::TotalOnly,
+                                        "per_second_only" => ChallengeColumns::PerSecondOnly,
+                                        "percent_only" => ChallengeColumns::PercentOnly,
+                                        _ => ChallengeColumns::TotalPercent,
+                                    };
+                                    draft.set(d);
+                                },
+                                option { value: "total_percent", selected: matches!(draft().columns, ChallengeColumns::TotalPercent), "Total + Percent" }
+                                option { value: "total_per_second", selected: matches!(draft().columns, ChallengeColumns::TotalPerSecond), "Total + Per Second" }
+                                option { value: "per_second_percent", selected: matches!(draft().columns, ChallengeColumns::PerSecondPercent), "Per Second + Percent" }
+                                option { value: "total_only", selected: matches!(draft().columns, ChallengeColumns::TotalOnly), "Total Only" }
+                                option { value: "per_second_only", selected: matches!(draft().columns, ChallengeColumns::PerSecondOnly), "Per Second Only" }
+                                option { value: "percent_only", selected: matches!(draft().columns, ChallengeColumns::PercentOnly), "Percent Only" }
+                            }
+                        }
+
+                        {
+                            let current_color = draft().color;
+                            let color_hex = current_color
+                                .map(|c| format!("#{:02x}{:02x}{:02x}", c[0], c[1], c[2]))
+                                .unwrap_or_else(|| "#4a90d9".to_string());
+
+                            rsx! {
+                                div { class: "form-row-hz",
+                                    label { "Bar Color" }
+                                    div { class: "flex-row gap-sm",
+                                        input {
+                                            r#type: "color",
+                                            class: "color-picker",
+                                            value: "{color_hex}",
+                                            oninput: move |e| {
+                                                if let Some(color) = parse_hex_color(&e.value()) {
+                                                    let mut d = draft();
+                                                    d.color = Some([color[0], color[1], color[2], color[3]]);
+                                                    draft.set(d);
+                                                }
+                                            }
+                                        }
+                                        if current_color.is_some() {
+                                            button {
+                                                class: "btn btn-sm",
+                                                title: "Use default color",
+                                                onclick: move |_| {
+                                                    let mut d = draft();
+                                                    d.color = None;
+                                                    draft.set(d);
+                                                },
+                                                i { class: "fa-solid fa-rotate-left" }
+                                            }
+                                        }
+                                        if current_color.is_none() {
+                                            span { class: "text-muted text-sm", "(using default)" }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        div { class: "form-row-hz",
+                            label { "Enabled" }
+                            input {
+                                r#type: "checkbox",
+                                checked: draft().enabled,
+                                onchange: move |e| {
+                                    let mut d = draft();
+                                    d.enabled = e.checked();
+                                    draft.set(d);
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            // ─── Conditions ──────────────────────────────────────────────────
-            div { class: "form-row-hz", style: "align-items: flex-start;",
-                label { style: "padding-top: 6px;", "Conditions" }
-                div { class: "flex-col gap-xs",
-                    if draft().conditions.is_empty() {
-                        span { class: "text-sm text-muted", "(matches all events)" }
-                    } else {
-                        for (idx, condition) in draft().conditions.iter().enumerate() {
-                            ChallengeConditionRow {
-                                condition: condition.clone(),
-                                available_phases: encounter_data.phase_ids(),
-                                on_change: move |updated| {
-                                    let mut d = draft();
-                                    d.conditions[idx] = updated;
-                                    draft.set(d);
-                                },
-                                on_remove: move |_| {
-                                    let mut d = draft();
-                                    d.conditions.remove(idx);
-                                    draft.set(d);
-                                },
+                // ═══ RIGHT: Conditions Card ══════════════════════════════════
+                div { class: "form-card",
+                    div { class: "form-card-header",
+                        i { class: "fa-solid fa-filter" }
+                        span { "Conditions" }
+                    }
+                    div { class: "form-card-content",
+                        if draft().conditions.is_empty() {
+                            span { class: "text-sm text-muted", "(matches all events)" }
+                        } else {
+                            for (idx, condition) in draft().conditions.iter().enumerate() {
+                                ChallengeConditionRow {
+                                    condition: condition.clone(),
+                                    available_phases: encounter_data.phase_ids(),
+                                    on_change: move |updated| {
+                                        let mut d = draft();
+                                        d.conditions[idx] = updated;
+                                        draft.set(d);
+                                    },
+                                    on_remove: move |_| {
+                                        let mut d = draft();
+                                        d.conditions.remove(idx);
+                                        draft.set(d);
+                                    },
+                                }
                             }
                         }
-                    }
-                    button {
-                        class: "btn btn-sm",
-                        style: "width: fit-content;",
-                        onclick: move |_| {
-                            let mut d = draft();
-                            d.conditions.push(ChallengeCondition::Phase { phase_ids: vec![] });
-                            draft.set(d);
-                        },
-                        "+ Add Condition"
+                        button {
+                            class: "btn btn-sm",
+                            style: "width: fit-content;",
+                            onclick: move |_| {
+                                let mut d = draft();
+                                d.conditions.push(ChallengeCondition::Phase { phase_ids: vec![] });
+                                draft.set(d);
+                            },
+                            "+ Add Condition"
+                        }
                     }
                 }
             }
@@ -549,8 +573,8 @@ fn ChallengeConditionRow(
                 option { value: "Boss HP Range", "Boss HP Range" }
             }
 
-            // Condition-specific editor (flex-1 to fill space)
-            div { class: "flex-1",
+            // Condition-specific editor
+            div {
                 {
                     match &condition {
                         ChallengeCondition::Phase { phase_ids } => {

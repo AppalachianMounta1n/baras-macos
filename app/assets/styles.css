@@ -5623,6 +5623,24 @@ details[open] .collapsible-summary::before {
   min-width: 60px;
 }
 
+/* ─── Encounter Item Edit 2-Column Grid (phases, counters, challenges) ──────── */
+.encounter-item-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+.encounter-item-grid .form-card {
+  /* Cards fill their column */
+}
+
+/* Two-column trigger layout (e.g. Start / End side by side) */
+.trigger-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
 /* Phase selector dropdown */
 .phase-selector {
   position: relative;

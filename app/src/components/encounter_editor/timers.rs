@@ -7,7 +7,8 @@ use dioxus::prelude::*;
 
 use crate::api;
 use crate::types::{
-    AudioConfig, BossTimerDefinition, BossWithPath, EncounterItem, TimerDisplayTarget, Trigger,
+    AlertTrigger, AudioConfig, BossTimerDefinition, BossWithPath, EncounterItem,
+    TimerDisplayTarget, Trigger, timer_alert_label,
 };
 use crate::utils::parse_hex_color;
 
@@ -29,6 +30,7 @@ fn default_timer(name: String) -> BossTimerDefinition {
         trigger: Trigger::CombatStart,
         duration_secs: 30.0,
         is_alert: false,
+        alert_on: AlertTrigger::default(),
         alert_text: None,
         color: [255, 128, 0, 255], // Orange
         phases: vec![],
@@ -403,231 +405,313 @@ fn TimerEditForm(
         div { class: "list-item-body",
             // ─── Two Column Layout ─────────────────────────────────────────────
             div { class: "timer-edit-grid",
-                // ═══ LEFT COLUMN: Main Timer Settings ═══════════════════════════
+                // ═══ LEFT COLUMN: Identity, Trigger ════════════════════════════
                 div { class: "timer-edit-left",
-                    div { class: "form-row-hz",
-                        label { "Timer ID" }
-                        code { class: "tag-muted text-mono text-xs", "{timer_display.id}" }
-                    }
 
-                    div { class: "form-row-hz",
-                        label { "Name" }
-                        input {
-                            class: "input-inline",
-                            r#type: "text",
-                            style: "width: 200px;",
-                            value: "{draft().name}",
-                            oninput: move |e| {
-                                let mut d = draft();
-                                d.name = e.value();
-                                draft.set(d);
-                            }
+                    // ─── Identity Card ─────────────────────────────────────────
+                    div { class: "form-card",
+                        div { class: "form-card-header",
+                            i { class: "fa-solid fa-tag" }
+                            span { "Identity" }
                         }
-                    }
-
-                    // Display Text only for countdown timers
-                    if !draft().is_alert {
-                        div { class: "form-row-hz",
-                            label { "Display Text" }
-                            input {
-                                class: "input-inline",
-                                r#type: "text",
-                                style: "width: 200px;",
-                                placeholder: "(defaults to name)",
-                                value: "{draft().display_text.clone().unwrap_or_default()}",
-                                oninput: move |e| {
-                                    let mut d = draft();
-                                    d.display_text = if e.value().is_empty() { None } else { Some(e.value()) };
-                                    draft.set(d);
-                                }
+                        div { class: "form-card-content",
+                            div { class: "form-row-hz",
+                                label { "Timer ID" }
+                                code { class: "tag-muted text-mono text-xs", "{timer_display.id}" }
                             }
-                        }
-                    }
 
-                    div { class: "form-row-hz",
-                        label { "Difficulties" }
-                        div { class: "flex gap-xs",
-                            for diff in ["story", "veteran", "master"] {
-                                {
-                                    let diff_str = diff.to_string();
-                                    let is_active = draft().difficulties.contains(&diff_str);
-                                    let diff_clone = diff_str.clone();
-
-                                    rsx! {
-                                        button {
-                                            class: if is_active { "toggle-btn active" } else { "toggle-btn" },
-                                            onclick: move |_| {
-                                                let mut d = draft();
-                                                if d.difficulties.contains(&diff_clone) {
-                                                    d.difficulties.retain(|x| x != &diff_clone);
-                                                } else {
-                                                    d.difficulties.push(diff_clone.clone());
-                                                }
-                                                draft.set(d);
-                                            },
-                                            "{diff}"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Type toggle - prominent position
-                    div { class: "form-row-hz",
-                        label { "Type" }
-                        label { class: "flex items-center gap-xs text-sm",
-                            input {
-                                r#type: "checkbox",
-                                checked: draft().is_alert,
-                                onchange: move |e| {
-                                    let mut d = draft();
-                                    d.is_alert = e.checked();
-                                    draft.set(d);
-                                }
-                            }
-                            "Instant Alert Only"
-                        }
-                    }
-
-                    // Duration only for countdown timers
-                    if !draft().is_alert {
-                        div { class: "form-row-hz",
-                            label { "Duration" }
-                            input {
-                                class: "input-inline",
-                                r#type: "number",
-                                step: "any",
-                                min: "0",
-                                style: "width: 70px;",
-                                value: "{draft().duration_secs}",
-                                oninput: move |e| {
-                                    if let Ok(val) = e.value().parse::<f32>() {
+                            div { class: "form-row-hz",
+                                label { "Name" }
+                                input {
+                                    class: "input-inline",
+                                    r#type: "text",
+                                    style: "width: 200px;",
+                                    value: "{draft().name}",
+                                    oninput: move |e| {
                                         let mut d = draft();
-                                        d.duration_secs = val;
+                                        d.name = e.value();
                                         draft.set(d);
                                     }
                                 }
                             }
-                            span { class: "text-muted", "sec" }
-                        }
-                    }
 
-                    div { class: "form-row-hz", style: "align-items: flex-start;",
-                        label { style: "padding-top: 6px;", "Trigger" }
-                        ComposableTriggerEditor {
-                            trigger: draft().trigger.clone(),
-                            encounter_data: encounter_data.clone(),
-                            on_change: move |t| {
-                                let mut d = draft();
-                                d.trigger = t;
-                                draft.set(d);
-                            }
-                        }
-                    }
-
-                    // Note: Source/Target filtering is now handled within the trigger conditions
-                    // via the ComposableTriggerEditor component
-
-                    // Timer-specific options (only for countdown timers)
-                    if !draft().is_alert {
-                        div { class: "form-row-hz",
-                            label { "Options" }
-                            div { class: "flex gap-md flex-wrap",
-                                label { class: "flex items-center gap-xs text-sm",
-                                    input {
-                                        r#type: "checkbox",
-                                        checked: draft().can_be_refreshed,
-                                        onchange: move |e| {
-                                            let mut d = draft();
-                                            d.can_be_refreshed = e.checked();
-                                            draft.set(d);
+                            if !draft().is_alert {
+                                div { class: "form-row-hz",
+                                    label { class: "flex items-center",
+                                        "Display Text"
+                                        span {
+                                            class: "help-icon",
+                                            title: "Text shown on the overlay timer bar. Defaults to timer name.",
+                                            "?"
                                         }
                                     }
-                                    "Can Refresh"
-                                }
-                                div { class: "flex items-center gap-xs",
-                                    span { class: "text-sm text-secondary", "Repeats" }
                                     input {
                                         class: "input-inline",
-                                        r#type: "number",
-                                        min: "0",
-                                        max: "255",
-                                        style: "width: 50px;",
-                                        value: "{draft().repeats}",
+                                        r#type: "text",
+                                        style: "width: 200px;",
+                                        placeholder: "(defaults to name)",
+                                        value: "{draft().display_text.clone().unwrap_or_default()}",
                                         oninput: move |e| {
-                                            if let Ok(val) = e.value().parse::<u8>() {
-                                                let mut d = draft();
-                                                d.repeats = val;
-                                                draft.set(d);
+                                            let mut d = draft();
+                                            d.display_text = if e.value().is_empty() { None } else { Some(e.value()) };
+                                            draft.set(d);
+                                        }
+                                    }
+                                }
+                            }
+
+                            div { class: "form-row-hz",
+                                label { "Difficulties" }
+                                div { class: "flex gap-xs",
+                                    for diff in ["story", "veteran", "master"] {
+                                        {
+                                            let diff_str = diff.to_string();
+                                            let is_active = draft().difficulties.contains(&diff_str);
+                                            let diff_clone = diff_str.clone();
+
+                                            rsx! {
+                                                button {
+                                                    class: if is_active { "toggle-btn active" } else { "toggle-btn" },
+                                                    onclick: move |_| {
+                                                        let mut d = draft();
+                                                        if d.difficulties.contains(&diff_clone) {
+                                                            d.difficulties.retain(|x| x != &diff_clone);
+                                                        } else {
+                                                            d.difficulties.push(diff_clone.clone());
+                                                        }
+                                                        draft.set(d);
+                                                    },
+                                                    "{diff}"
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
-                        }
 
-                        div { class: "form-row-hz",
-                            label { "Chains To" }
-                            {
-                                let selected_timer = draft().chains_to.clone().unwrap_or_default();
-                                rsx! {
+                            // ─── Display fields ────────────────────────────────
+                            div { class: "form-row-hz mt-sm",
+                                label { "Color" }
+                                input {
+                                    class: "color-picker",
+                                    r#type: "color",
+                                    value: "{color_hex}",
+                                    oninput: move |e| {
+                                        if let Some(color) = parse_hex_color(&e.value()) {
+                                            let mut d = draft();
+                                            d.color = color;
+                                            draft.set(d);
+                                        }
+                                    }
+                                }
+                            }
+
+                            div { class: "form-row-hz",
+                                label { "Timer Enabled" }
+                                input {
+                                    r#type: "checkbox",
+                                    checked: draft().enabled,
+                                    onchange: move |e| {
+                                        let mut d = draft();
+                                        d.enabled = e.checked();
+                                        draft.set(d);
+                                    }
+                                }
+                            }
+
+                            if !draft().is_alert {
+                                div { class: "form-row-hz",
+                                    label { class: "flex items-center",
+                                        "Display Target"
+                                        span {
+                                            class: "help-icon",
+                                            title: "Sets which overlay displays this timer when triggered",
+                                            "?"
+                                        }
+                                    }
                                     select {
                                         class: "select",
-                                        style: "width: 160px;",
+                                        style: "width: 120px;",
                                         onchange: move |e| {
                                             let mut d = draft();
-                                            d.chains_to = if e.value().is_empty() { None } else { Some(e.value()) };
+                                            d.display_target = match e.value().as_str() {
+                                                "timers_b" => TimerDisplayTarget::TimersB,
+                                                "none" => TimerDisplayTarget::None,
+                                                _ => TimerDisplayTarget::TimersA,
+                                            };
                                             draft.set(d);
                                         },
-                                        option { value: "", selected: selected_timer.is_empty(), "(none)" }
-                                        for tid in &other_timer_ids {
-                                            option {
-                                                value: "{tid}",
-                                                selected: tid == &selected_timer,
-                                                "{tid}"
+                                        for target in TimerDisplayTarget::all() {
+                                            {
+                                                let value = match target {
+                                                    TimerDisplayTarget::TimersA => "timers_a",
+                                                    TimerDisplayTarget::TimersB => "timers_b",
+                                                    TimerDisplayTarget::None => "none",
+                                                };
+                                                let is_selected = draft().display_target == *target;
+                                                rsx! {
+                                                    option {
+                                                        value: "{value}",
+                                                        selected: is_selected,
+                                                        "{target.label()}"
+                                                    }
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
                         }
+                    }
 
-                        div { class: "form-row-hz", style: "align-items: flex-start;",
-                            label { style: "padding-top: 6px;", "Cancel On" }
-                            if let Some(cancel) = draft().cancel_trigger.clone() {
-                                div { class: "flex-col gap-xs",
-                                    ComposableTriggerEditor {
-                                        trigger: cancel.clone(),
-                                        encounter_data: encounter_data.clone(),
-                                        on_change: move |t| {
-                                            let mut d = draft();
-                                            d.cancel_trigger = Some(t);
-                                            draft.set(d);
-                                        }
-                                    }
-                                    button {
-                                        class: "btn btn-sm",
-                                        style: "width: fit-content;",
-                                        onclick: move |_| {
-                                            let mut d = draft();
-                                            d.cancel_trigger = None;
-                                            draft.set(d);
-                                        },
-                                        "Remove Cancel Trigger"
+                    // ─── Trigger Card ──────────────────────────────────────────
+                    div { class: "form-card",
+                        div { class: "form-card-header",
+                            i { class: "fa-solid fa-bolt" }
+                            span { "Trigger" }
+                        }
+                        div { class: "form-card-content",
+                            div { class: "form-row-hz", style: "align-items: flex-start;",
+                                label { class: "flex items-center", style: "padding-top: 6px;",
+                                    "Trigger"
+                                    span {
+                                        class: "help-icon",
+                                        title: "The game event that starts this timer",
+                                        "?"
                                     }
                                 }
-                            } else {
-                                div { class: "flex-col gap-xs",
-                                    span { class: "text-muted text-sm", "(default: combat end)" }
-                                    button {
-                                        class: "btn btn-sm",
-                                        onclick: move |_| {
-                                            let mut d = draft();
-                                            d.cancel_trigger = Some(Trigger::CombatStart);
-                                            draft.set(d);
-                                        },
-                                        "+ Add Cancel Trigger"
+                                ComposableTriggerEditor {
+                                    trigger: draft().trigger.clone(),
+                                    encounter_data: encounter_data.clone(),
+                                    on_change: move |t| {
+                                        let mut d = draft();
+                                        d.trigger = t;
+                                        draft.set(d);
+                                    }
+                                }
+                            }
+
+                            if !draft().is_alert {
+                                div { class: "form-row-hz",
+                                    label { class: "flex items-center",
+                                        "Chains To"
+                                        span {
+                                            class: "help-icon",
+                                            title: "Starts another timer when this one expires",
+                                            "?"
+                                        }
+                                    }
+                                    {
+                                        let selected_timer = draft().chains_to.clone().unwrap_or_default();
+                                        rsx! {
+                                            select {
+                                                class: "select",
+                                                style: "width: 160px;",
+                                                onchange: move |e| {
+                                                    let mut d = draft();
+                                                    d.chains_to = if e.value().is_empty() { None } else { Some(e.value()) };
+                                                    draft.set(d);
+                                                },
+                                                option { value: "", selected: selected_timer.is_empty(), "(none)" }
+                                                for tid in &other_timer_ids {
+                                                    option {
+                                                        value: "{tid}",
+                                                        selected: tid == &selected_timer,
+                                                        "{tid}"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                div { class: "form-row-hz", style: "align-items: flex-start;",
+                                    label { class: "flex items-center", style: "padding-top: 6px;",
+                                        "Cancel On"
+                                        span {
+                                            class: "help-icon",
+                                            title: "Cancels this timer when the trigger fires. Default: combat end",
+                                            "?"
+                                        }
+                                    }
+                                    if let Some(cancel) = draft().cancel_trigger.clone() {
+                                        div { class: "flex-col gap-xs",
+                                            ComposableTriggerEditor {
+                                                trigger: cancel.clone(),
+                                                encounter_data: encounter_data.clone(),
+                                                on_change: move |t| {
+                                                    let mut d = draft();
+                                                    d.cancel_trigger = Some(t);
+                                                    draft.set(d);
+                                                }
+                                            }
+                                            button {
+                                                class: "btn btn-sm",
+                                                style: "width: fit-content;",
+                                                onclick: move |_| {
+                                                    let mut d = draft();
+                                                    d.cancel_trigger = None;
+                                                    draft.set(d);
+                                                },
+                                                "Remove Cancel Trigger"
+                                            }
+                                        }
+                                    } else {
+                                        div { class: "flex-col gap-xs",
+                                            span { class: "text-muted text-sm", "(default: combat end)" }
+                                            button {
+                                                class: "btn btn-sm",
+                                                onclick: move |_| {
+                                                    let mut d = draft();
+                                                    d.cancel_trigger = Some(Trigger::CombatStart);
+                                                    draft.set(d);
+                                                },
+                                                "+ Add Cancel Trigger"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // ─── Conditions subsection ─────────────────────────
+                            span { class: "text-sm font-bold text-secondary mt-sm", "Conditions" }
+
+                            div { class: "form-row-hz mt-xs",
+                                label { class: "flex items-center",
+                                    "Phases"
+                                    span {
+                                        class: "help-icon",
+                                        title: "Only active during these encounter phases. Empty = all phases",
+                                        "?"
+                                    }
+                                }
+                                PhaseSelector {
+                                    selected: draft().phases.clone(),
+                                    available: encounter_data.phase_ids(),
+                                    on_change: move |p| {
+                                        let mut d = draft();
+                                        d.phases = p;
+                                        draft.set(d);
+                                    }
+                                }
+                            }
+
+                            div { class: "form-row-hz",
+                                label { class: "flex items-center",
+                                    "Counter"
+                                    span {
+                                        class: "help-icon",
+                                        title: "Only active when the specified counter meets this condition",
+                                        "?"
+                                    }
+                                }
+                                CounterConditionEditor {
+                                    condition: draft().counter_condition.clone(),
+                                    counters: encounter_data.counter_ids(),
+                                    on_change: move |c| {
+                                        let mut d = draft();
+                                        d.counter_condition = c;
+                                        draft.set(d);
                                     }
                                 }
                             }
@@ -635,288 +719,390 @@ fn TimerEditForm(
                     }
                 }
 
-                // ═══ RIGHT COLUMN: Conditions & Audio ═══════════════════════════
+                // ═══ RIGHT COLUMN: Timing, Alerts, Audio ═══════════════════════
                 div { class: "timer-edit-right",
-                    // ─── Color & Enabled ────────────────────────────────────────
-                    div { class: "flex items-center gap-md mb-md",
-                        div { class: "flex items-center gap-xs",
-                            label { class: "text-sm text-secondary", "Color" }
-                            input {
-                                class: "color-picker",
-                                r#type: "color",
-                                value: "{color_hex}",
-                                oninput: move |e| {
-                                    if let Some(color) = parse_hex_color(&e.value()) {
+
+                    // ─── Timing Card ───────────────────────────────────────────
+                    div { class: "form-card",
+                        div { class: "form-card-header",
+                            i { class: "fa-solid fa-clock" }
+                            span { "Timing" }
+                        }
+                        div { class: "form-card-content",
+                            div { class: "form-row-hz",
+                                label { class: "flex items-center",
+                                    "Instant Alert Only"
+                                    span {
+                                        class: "help-icon",
+                                        title: "Shows a brief alert notification instead of a countdown timer bar",
+                                        "?"
+                                    }
+                                }
+                                input {
+                                    r#type: "checkbox",
+                                    checked: draft().is_alert,
+                                    onchange: move |e| {
                                         let mut d = draft();
-                                        d.color = color;
+                                        d.is_alert = e.checked();
                                         draft.set(d);
                                     }
                                 }
                             }
-                        }
-                        div { class: "flex items-center gap-xs",
-                            label { class: "text-sm text-secondary", "Enabled" }
-                            input {
-                                r#type: "checkbox",
-                                checked: draft().enabled,
-                                onchange: move |e| {
-                                    let mut d = draft();
-                                    d.enabled = e.checked();
-                                    draft.set(d);
-                                }
-                            }
-                        }
-                    }
 
-                    // ─── Show At (only for countdown timers) ─────────────────────
-                    if !draft().is_alert {
-                        div { class: "form-row-hz",
-                            label { "Show at" }
-                            input {
-                                r#type: "number",
-                                class: "input-inline",
-                                style: "width: 60px;",
-                                step: "any",
-                                min: "0",
-                                max: "{draft().duration_secs}",
-                                value: "{draft().show_at_secs}",
-                                oninput: move |e| {
-                                    if let Ok(val) = e.value().parse::<f32>() {
-                                        let mut d = draft();
-                                        // Clamp to duration
-                                        d.show_at_secs = val.min(d.duration_secs).max(0.0);
-                                        draft.set(d);
-                                    }
-                                }
-                            }
-                            span { class: "text-sm text-secondary", "sec remaining (0 = always)" }
-                        }
-                    }
-
-                    // ─── Display Target (only for countdown timers) ──────────────
-                    if !draft().is_alert {
-                        div { class: "form-row-hz",
-                            label { "Display Target" }
-                            select {
-                                class: "select",
-                                style: "width: 120px;",
-                                onchange: move |e| {
-                                    let mut d = draft();
-                                    d.display_target = match e.value().as_str() {
-                                        "timers_b" => TimerDisplayTarget::TimersB,
-                                        "none" => TimerDisplayTarget::None,
-                                        _ => TimerDisplayTarget::TimersA,
-                                    };
-                                    draft.set(d);
-                                },
-                                for target in TimerDisplayTarget::all() {
-                                    {
-                                        let value = match target {
-                                            TimerDisplayTarget::TimersA => "timers_a",
-                                            TimerDisplayTarget::TimersB => "timers_b",
-                                            TimerDisplayTarget::None => "none",
-                                        };
-                                        let is_selected = draft().display_target == *target;
-                                        rsx! {
-                                            option {
-                                                value: "{value}",
-                                                selected: is_selected,
-                                                "{target.label()}"
-                                            }
+                            if !draft().is_alert {
+                                div { class: "form-row-hz",
+                                    label { class: "flex items-center",
+                                        "Duration"
+                                        span {
+                                            class: "help-icon",
+                                            title: "How long the countdown timer runs in seconds",
+                                            "?"
                                         }
                                     }
-                                }
-                            }
-                        }
-                    }
-
-                    // ─── Conditions ──────────────────────────────────────────────
-                    span { class: "text-sm font-bold text-secondary", "Conditions" }
-
-                    div { class: "form-row-hz mt-xs",
-                        label { "Phases" }
-                        PhaseSelector {
-                            selected: draft().phases.clone(),
-                            available: encounter_data.phase_ids(),
-                            on_change: move |p| {
-                                let mut d = draft();
-                                d.phases = p;
-                                draft.set(d);
-                            }
-                        }
-                    }
-
-                    div { class: "form-row-hz",
-                        label { "Counter" }
-                        CounterConditionEditor {
-                            condition: draft().counter_condition.clone(),
-                            counters: encounter_data.counter_ids(),
-                            on_change: move |c| {
-                                let mut d = draft();
-                                d.counter_condition = c;
-                                draft.set(d);
-                            }
-                        }
-                    }
-
-                    // ─── Alert (only for instant alerts) ─────────────────────────
-                    if draft().is_alert {
-                        span { class: "text-sm font-bold text-secondary mt-md", "Alert" }
-                        div { class: "form-row-hz mt-xs",
-                            label { "Alert Text" }
-                            input {
-                                class: "input-inline",
-                                r#type: "text",
-                                style: "width: 140px;",
-                                placeholder: "(timer name)",
-                                value: "{draft().alert_text.clone().unwrap_or_default()}",
-                                oninput: move |e| {
-                                    let mut d = draft();
-                                    d.alert_text = if e.value().is_empty() { None } else { Some(e.value()) };
-                                    draft.set(d);
-                                }
-                            }
-                        }
-                    }
-
-                    // ─── Audio ────────────────────────────────────────────────────
-                    span { class: "text-sm font-bold text-secondary mt-md", "Audio" }
-                    div { class: "form-row-hz",
-                        label { "Enable Audio" }
-                        input {
-                            r#type: "checkbox",
-                            checked: draft().audio.enabled,
-                            onchange: move |e| {
-                                let mut d = draft();
-                                d.audio.enabled = e.checked();
-                                draft.set(d);
-                            }
-                        }
-                    }
-
-                    div { class: "form-row-hz",
-                        label { "Sound" }
-                        div { class: "flex items-center gap-xs",
-                            select {
-                                class: "select-inline",
-                                style: "width: 140px;",
-                                value: "{draft().audio.file.clone().unwrap_or_default()}",
-                                onchange: move |e| {
-                                    let mut d = draft();
-                                    d.audio.file = if e.value().is_empty() { None } else { Some(e.value()) };
-                                    draft.set(d);
-                                },
-                                option { value: "", "(none)" }
-                                for name in sound_files().iter() {
-                                    option { key: "{name}", value: "{name}", "{name}" }
-                                }
-                                // Show custom path if set and not in the bundled list
-                                if let Some(ref path) = draft().audio.file {
-                                    if !path.is_empty() && !sound_files().contains(path) {
-                                        option { value: "{path}", selected: true, "{path} (custom)" }
-                                    }
-                                }
-                            }
-                            button {
-                                class: "btn btn-sm",
-                                r#type: "button",
-                                onclick: move |_| {
-                                    spawn(async move {
-                                        if let Some(path) = api::pick_audio_file().await {
-                                            // Validate extension
-                                            let lower = path.to_lowercase();
-                                            if lower.ends_with(".mp3") || lower.ends_with(".wav") {
+                                    input {
+                                        class: "input-inline",
+                                        r#type: "number",
+                                        step: "any",
+                                        min: "0",
+                                        style: "width: 70px;",
+                                        value: "{draft().duration_secs}",
+                                        oninput: move |e| {
+                                            if let Ok(val) = e.value().parse::<f32>() {
                                                 let mut d = draft();
-                                                d.audio.file = Some(path);
+                                                d.duration_secs = val;
                                                 draft.set(d);
                                             }
                                         }
-                                    });
-                                },
-                                "Browse"
-                            }
-                            if draft().audio.file.is_some() {
-                                button {
-                                    class: "btn btn-sm",
-                                    r#type: "button",
-                                    title: "Preview sound",
-                                    onclick: move |_| {
-                                        if let Some(ref file) = draft().audio.file {
-                                            let file = file.clone();
-                                            spawn(async move {
-                                                api::preview_sound(&file).await;
-                                            });
+                                    }
+                                    span { class: "text-muted", "sec" }
+                                }
+
+                                div { class: "form-row-hz",
+                                    label { class: "flex items-center",
+                                        "Show at"
+                                        span {
+                                            class: "help-icon",
+                                            title: "Only show the timer when this many seconds remain. 0 = always visible",
+                                            "?"
                                         }
-                                    },
-                                    "Play"
+                                    }
+                                    input {
+                                        r#type: "number",
+                                        class: "input-inline",
+                                        style: "width: 60px;",
+                                        step: "any",
+                                        min: "0",
+                                        max: "{draft().duration_secs}",
+                                        value: "{draft().show_at_secs}",
+                                        oninput: move |e| {
+                                            if let Ok(val) = e.value().parse::<f32>() {
+                                                let mut d = draft();
+                                                d.show_at_secs = val.min(d.duration_secs).max(0.0);
+                                                draft.set(d);
+                                            }
+                                        }
+                                    }
+                                    span { class: "text-sm text-secondary", "sec remaining" }
+                                }
+
+                                div { class: "form-row-hz",
+                                    label { "Options" }
+                                    div { class: "flex gap-md flex-wrap",
+                                        label { class: "flex items-center gap-xs text-sm",
+                                            input {
+                                                r#type: "checkbox",
+                                                checked: draft().can_be_refreshed,
+                                                onchange: move |e| {
+                                                    let mut d = draft();
+                                                    d.can_be_refreshed = e.checked();
+                                                    draft.set(d);
+                                                }
+                                            }
+                                            span { class: "flex items-center",
+                                                "Can Refresh"
+                                                span {
+                                                    class: "help-icon",
+                                                    title: "Resets the timer duration if triggered again while already running",
+                                                    "?"
+                                                }
+                                            }
+                                        }
+                                        div { class: "flex items-center gap-xs",
+                                            span { class: "text-sm text-secondary flex items-center",
+                                                "Repeats"
+                                                span {
+                                                    class: "help-icon",
+                                                    title: "Number of times this timer auto-restarts after expiring. 0 = no repeat",
+                                                    "?"
+                                                }
+                                            }
+                                            input {
+                                                class: "input-inline",
+                                                r#type: "number",
+                                                min: "0",
+                                                max: "255",
+                                                style: "width: 50px;",
+                                                value: "{draft().repeats}",
+                                                oninput: move |e| {
+                                                    if let Ok(val) = e.value().parse::<u8>() {
+                                                        let mut d = draft();
+                                                        d.repeats = val;
+                                                        draft.set(d);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
 
-                    // Audio timing options (only for countdown timers)
-                    if !draft().is_alert {
-                        div { class: "form-row-hz",
-                            label { "Audio Offset" }
-                            div { class: "flex items-center gap-md",
-                                select {
-                                    class: "select-inline",
-                                    style: "width: 120px;",
-                                    value: "{draft().audio.offset}",
-                                    onchange: move |e| {
-                                        if let Ok(val) = e.value().parse::<u8>() {
-                                            let mut d = draft();
-                                            d.audio.offset = val;
-                                            draft.set(d);
+                    // ─── Alerts Card ────────────────────────────────────────────
+                    div { class: "form-card",
+                        div { class: "form-card-header",
+                            i { class: "fa-solid fa-bell" }
+                            span { "Alerts" }
+                        }
+                        div { class: "form-card-content",
+                            div { class: "form-row-hz",
+                                label { class: "flex items-center",
+                                    "Alert Text"
+                                    span {
+                                        class: "help-icon",
+                                        title: "Text shown in the alert notification. Defaults to timer name",
+                                        "?"
+                                    }
+                                }
+                                input {
+                                    class: "input-inline",
+                                    r#type: "text",
+                                    style: "width: 220px;",
+                                    placeholder: "(timer name)",
+                                    value: "{draft().alert_text.clone().unwrap_or_default()}",
+                                    oninput: move |e| {
+                                        let mut d = draft();
+                                        d.alert_text = if e.value().is_empty() { None } else { Some(e.value()) };
+                                        draft.set(d);
+                                    }
+                                }
+                            }
+
+                            if draft().is_alert {
+                                // Instant alerts always fire on trigger — no choice needed
+                                div { class: "form-row-hz",
+                                    label { class: "flex items-center",
+                                        "Alert On"
+                                        span {
+                                            class: "help-icon",
+                                            title: "Instant alerts always fire when triggered",
+                                            "?"
                                         }
-                                    },
-                                    option { value: "0", "On expiration" }
-                                    option { value: "1", "1s before" }
-                                    option { value: "2", "2s before" }
-                                    option { value: "3", "3s before" }
-                                    option { value: "4", "4s before" }
-                                    option { value: "5", "5s before" }
-                                    option { value: "6", "6s before" }
-                                    option { value: "7", "7s before" }
-                                    option { value: "8", "8s before" }
-                                    option { value: "9", "9s before" }
-                                    option { value: "10", "10s before" }
+                                    }
+                                    span { class: "text-muted text-sm", "On trigger (instant)" }
+                                }
+                            } else {
+                                div { class: "form-row-hz",
+                                    label { class: "flex items-center",
+                                        "Alert On"
+                                        span {
+                                            class: "help-icon",
+                                            title: "When to show the alert text: on timer start, on timer end, or never",
+                                            "?"
+                                        }
+                                    }
+                                    select {
+                                        class: "select-inline",
+                                        value: "{timer_alert_label(&draft().alert_on)}",
+                                        onchange: move |e| {
+                                            let mut d = draft();
+                                            d.alert_on = match e.value().as_str() {
+                                                "Timer Start" => AlertTrigger::OnApply,
+                                                "Timer End" => AlertTrigger::OnExpire,
+                                                _ => AlertTrigger::None,
+                                            };
+                                            draft.set(d);
+                                        },
+                                        for trigger in AlertTrigger::all() {
+                                            {
+                                                let label = timer_alert_label(trigger);
+                                                rsx! {
+                                                    option {
+                                                        value: "{label}",
+                                                        selected: *trigger == draft().alert_on,
+                                                        "{label}"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
+                    }
 
-                        div { class: "form-row-hz",
-                            label { "Voice" }
-                            div { class: "flex items-center gap-md",
-                                select {
-                                    class: "select-inline",
-                                    style: "width: 80px;",
-                                    value: "{draft().audio.countdown_start}",
-                                    onchange: move |e| {
-                                        if let Ok(val) = e.value().parse::<u8>() {
-                                            let mut d = draft();
-                                            d.audio.countdown_start = val;
-                                            draft.set(d);
-                                        }
-                                    },
-                                    option { value: "0", "Off" }
-                                    option { value: "3", "3s" }
-                                    option { value: "5", "5s" }
-                                    option { value: "10", "10s" }
-                                }
-                                select {
-                                    class: "select-inline",
-                                    style: "width: 100px;",
-                                    value: "{draft().audio.countdown_voice.clone().unwrap_or_else(|| \"Amy\".to_string())}",
+                    // ─── Audio Card ─────────────────────────────────────────────
+                    div { class: "form-card",
+                        div { class: "form-card-header",
+                            i { class: "fa-solid fa-volume-up" }
+                            span { "Audio" }
+                        }
+                        div { class: "form-card-content",
+                            label { class: "flex items-center gap-xs text-sm",
+                                input {
+                                    r#type: "checkbox",
+                                    checked: draft().audio.enabled,
                                     onchange: move |e| {
                                         let mut d = draft();
-                                        d.audio.countdown_voice = if e.value() == "Amy" { None } else { Some(e.value()) };
+                                        d.audio.enabled = e.checked();
                                         draft.set(d);
-                                    },
-                                    option { value: "Amy", "Amy" }
-                                    option { value: "Jim", "Jim" }
-                                    option { value: "Yolo", "Yolo" }
-                                    option { value: "Nerevar", "Nerevar" }
+                                    }
+                                }
+                                "Enable Audio"
+                            }
+
+                            if draft().audio.enabled {
+                                div { class: "form-row-hz mt-sm",
+                                    label { "Sound" }
+                                    div { class: "flex items-center gap-xs",
+                                        select {
+                                            class: "select-inline",
+                                            style: "width: 140px;",
+                                            value: "{draft().audio.file.clone().unwrap_or_default()}",
+                                            onchange: move |e| {
+                                                let mut d = draft();
+                                                d.audio.file = if e.value().is_empty() { None } else { Some(e.value()) };
+                                                draft.set(d);
+                                            },
+                                            option { value: "", selected: draft().audio.file.is_none(), "(none)" }
+                                            for name in sound_files().iter() {
+                                                {
+                                                    let is_selected = draft().audio.file.as_deref() == Some(name.as_str());
+                                                    rsx! {
+                                                        option { key: "{name}", value: "{name}", selected: is_selected, "{name}" }
+                                                    }
+                                                }
+                                            }
+                                            if let Some(ref path) = draft().audio.file {
+                                                if !path.is_empty() && !sound_files().contains(path) {
+                                                    option { value: "{path}", selected: true, "{path} (custom)" }
+                                                }
+                                            }
+                                        }
+                                        button {
+                                            class: "btn btn-sm",
+                                            r#type: "button",
+                                            onclick: move |_| {
+                                                spawn(async move {
+                                                    if let Some(path) = api::pick_audio_file().await {
+                                                        let lower = path.to_lowercase();
+                                                        if lower.ends_with(".mp3") || lower.ends_with(".wav") {
+                                                            let mut d = draft();
+                                                            d.audio.file = Some(path);
+                                                            draft.set(d);
+                                                        }
+                                                    }
+                                                });
+                                            },
+                                            "Browse"
+                                        }
+                                        if draft().audio.file.is_some() {
+                                            button {
+                                                class: "btn btn-sm",
+                                                r#type: "button",
+                                                title: "Preview sound",
+                                                onclick: move |_| {
+                                                    if let Some(ref file) = draft().audio.file {
+                                                        let file = file.clone();
+                                                        spawn(async move {
+                                                            api::preview_sound(&file).await;
+                                                        });
+                                                    }
+                                                },
+                                                "Play"
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Audio timing options (only for countdown timers)
+                                if !draft().is_alert {
+                                    div { class: "form-row-hz",
+                                        label { class: "flex items-center",
+                                            "Audio Offset"
+                                            span {
+                                                class: "help-icon",
+                                                title: "When to play the sound relative to timer expiration",
+                                                "?"
+                                            }
+                                        }
+                                        select {
+                                            class: "select-inline",
+                                            style: "width: 120px;",
+                                            value: "{draft().audio.offset}",
+                                            onchange: move |e| {
+                                                if let Ok(val) = e.value().parse::<u8>() {
+                                                    let mut d = draft();
+                                                    d.audio.offset = val;
+                                                    draft.set(d);
+                                                }
+                                            },
+                                            option { value: "0", "On expiration" }
+                                            option { value: "1", "1s before" }
+                                            option { value: "2", "2s before" }
+                                            option { value: "3", "3s before" }
+                                            option { value: "4", "4s before" }
+                                            option { value: "5", "5s before" }
+                                            option { value: "6", "6s before" }
+                                            option { value: "7", "7s before" }
+                                            option { value: "8", "8s before" }
+                                            option { value: "9", "9s before" }
+                                            option { value: "10", "10s before" }
+                                        }
+                                    }
+
+                                    div { class: "form-row-hz",
+                                        label { class: "flex items-center",
+                                            "Voice"
+                                            span {
+                                                class: "help-icon",
+                                                title: "Voice countdown starting at the specified seconds remaining",
+                                                "?"
+                                            }
+                                        }
+                                        div { class: "flex items-center gap-md",
+                                            select {
+                                                class: "select-inline",
+                                                style: "width: 80px;",
+                                                value: "{draft().audio.countdown_start}",
+                                                onchange: move |e| {
+                                                    if let Ok(val) = e.value().parse::<u8>() {
+                                                        let mut d = draft();
+                                                        d.audio.countdown_start = val;
+                                                        draft.set(d);
+                                                    }
+                                                },
+                                                option { value: "0", "Off" }
+                                                option { value: "3", "3s" }
+                                                option { value: "5", "5s" }
+                                                option { value: "10", "10s" }
+                                            }
+                                            select {
+                                                class: "select-inline",
+                                                style: "width: 100px;",
+                                                value: "{draft().audio.countdown_voice.clone().unwrap_or_else(|| \"Amy\".to_string())}",
+                                                onchange: move |e| {
+                                                    let mut d = draft();
+                                                    d.audio.countdown_voice = if e.value() == "Amy" { None } else { Some(e.value()) };
+                                                    draft.set(d);
+                                                },
+                                                option { value: "Amy", "Amy" }
+                                                option { value: "Jim", "Jim" }
+                                                option { value: "Yolo", "Yolo" }
+                                                option { value: "Nerevar", "Nerevar" }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -993,7 +1179,7 @@ pub fn PhaseSelector(
             // Dropdown trigger
             button {
                 class: "select",
-                style: "width: 160px; text-align: left;",
+                style: "min-width: 160px; text-align: left;",
                 onclick: move |e| {
                     if !dropdown_open() {
                         // Use element_coordinates to find offset within button,
