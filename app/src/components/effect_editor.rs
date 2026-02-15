@@ -17,6 +17,7 @@ use crate::api;
 use crate::types::{
     AbilitySelector, AlertTrigger, AudioConfig, DisplayTarget, EffectImportPreview,
     EffectListItem, EffectSelector, EntityFilter, RefreshAbility, Trigger, UiSessionState,
+    effect_alert_label,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1467,7 +1468,7 @@ fn EffectEditForm(
                             }
                             select {
                                 class: "select-inline",
-                                value: "{draft().alert_on.label()}",
+                                value: "{effect_alert_label(&draft().alert_on)}",
                                 onchange: move |e| {
                                     let mut d = draft();
                                     d.alert_on = match e.value().as_str() {
@@ -1478,10 +1479,15 @@ fn EffectEditForm(
                                     draft.set(d);
                                 },
                                 for trigger in AlertTrigger::all() {
-                                    option {
-                                        value: "{trigger.label()}",
-                                        selected: *trigger == draft().alert_on,
-                                        "{trigger.label()}"
+                                    {
+                                        let label = effect_alert_label(trigger);
+                                        rsx! {
+                                            option {
+                                                value: "{label}",
+                                                selected: *trigger == draft().alert_on,
+                                                "{label}"
+                                            }
+                                        }
                                     }
                                 }
                             }

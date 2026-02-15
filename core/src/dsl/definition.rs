@@ -10,6 +10,7 @@ use super::{
     ChallengeDefinition, CounterCondition, CounterDefinition, CounterTrigger, PhaseDefinition,
 };
 use crate::dsl::audio::AudioConfig;
+use baras_types::AlertTrigger;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Root Config Structure
@@ -265,6 +266,10 @@ pub struct BossTimerDefinition {
     #[serde(default, skip_serializing_if = "crate::serde_defaults::is_false")]
     pub is_alert: bool,
 
+    /// When to fire an alert: on timer start, on timer expire, or never
+    #[serde(default)]
+    pub alert_on: AlertTrigger,
+
     /// Custom alert text (None = use timer name)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub alert_text: Option<String>,
@@ -361,6 +366,7 @@ impl BossTimerDefinition {
             show_on_raid_frames: self.show_on_raid_frames,
             show_at_secs: self.show_at_secs,
             display_target: self.display_target,
+            alert_on: self.alert_on,
             alert_at_secs: self.alert_at_secs,
             alert_text: self.alert_text.clone(),
             audio: self.audio.clone(),

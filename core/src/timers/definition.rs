@@ -10,6 +10,7 @@ use crate::dsl::CounterCondition;
 use crate::dsl::EntityDefinition;
 use crate::dsl::Trigger;
 use crate::game_data::Difficulty;
+use baras_types::AlertTrigger;
 
 // Re-export Trigger as TimerTrigger for backward compatibility during migration
 pub use crate::dsl::Trigger as TimerTrigger;
@@ -85,6 +86,11 @@ pub struct TimerDefinition {
     pub display_target: TimerDisplayTarget,
 
     // ─── Alerts ─────────────────────────────────────────────────────────────
+    /// When to fire an alert: on timer start, on timer expire, or never.
+    /// For instant alerts (is_alert=true), this defaults to OnApply behavior.
+    #[serde(default)]
+    pub alert_on: AlertTrigger,
+
     /// Alert when this many seconds remain (None = no alert)
     pub alert_at_secs: Option<f32>,
 

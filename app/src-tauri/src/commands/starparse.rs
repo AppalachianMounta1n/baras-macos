@@ -326,6 +326,7 @@ fn convert_to_boss_timer(xml: &XmlConfigTimer) -> BossTimerDefinition {
         trigger,
         duration_secs: xml.interval.unwrap_or(0.0),
         is_alert,
+        alert_on: Default::default(),
         alert_text: None,
         color,
         phases: Vec::new(),

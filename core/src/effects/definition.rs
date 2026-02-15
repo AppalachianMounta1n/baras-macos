@@ -12,24 +12,11 @@ use crate::game_data::Discipline;
 // Re-export from shared modules
 pub use crate::dsl::EntityFilter;
 pub use crate::dsl::{AbilitySelector, EffectSelector};
-pub use baras_types::{RefreshAbility, RefreshTrigger};
+pub use baras_types::{AlertTrigger, RefreshAbility, RefreshTrigger};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Effect Definitions
 // ═══════════════════════════════════════════════════════════════════════════
-
-/// When to trigger an alert for this effect
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AlertTrigger {
-    /// No alert
-    #[default]
-    None,
-    /// Alert when effect is applied/starts
-    OnApply,
-    /// Alert when effect expires/ends
-    OnExpire,
-}
 
 /// Default RGBA color for effects without explicit color
 const DEFAULT_EFFECT_COLOR: [u8; 4] = [128, 128, 128, 255];

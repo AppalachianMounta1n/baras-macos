@@ -617,6 +617,7 @@ fn test_bestia_complete_encounter() {
             trigger: bt.trigger.clone(),
             duration_secs: bt.duration_secs,
             is_alert: bt.is_alert,
+            alert_on: bt.alert_on,
             can_be_refreshed: bt.can_be_refreshed,
             triggers_timer: bt.chains_to.clone(),
             cancel_trigger: bt.cancel_trigger.clone(),

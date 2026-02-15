@@ -498,8 +498,12 @@ impl TimerManager {
         let audio_enabled = self.preferences.is_audio_enabled(def);
         let audio_file = self.preferences.get_audio_file(def);
 
-        // Alerts are ephemeral notifications, not countdown timers
-        if def.is_alert {
+        // Determine if we should fire an alert on start
+        let should_alert_on_start = def.is_alert
+            || matches!(def.alert_on, baras_types::AlertTrigger::OnApply);
+
+        // Fire start alert if needed (instant alerts always fire, or alert_on == OnApply)
+        if should_alert_on_start {
             let raw_text = def.alert_text.clone().unwrap_or_else(|| def.name.clone());
             let text = self.format_alert_text(&raw_text, timestamp);
             self.fired_alerts.push(FiredAlert {
@@ -509,10 +513,12 @@ impl TimerManager {
                 color: Some(color),
                 timestamp,
                 audio_enabled,
-                audio_file,
+                audio_file: audio_file.clone(),
             });
+        }
 
-            // Track alert firing for counter triggers and cancel other timers
+        // Instant alerts are ephemeral - no countdown timer created
+        if def.is_alert {
             self.started_this_tick.push(def.id.clone());
             self.cancel_timers_on_start(&def.id);
             return;
@@ -543,6 +549,7 @@ impl TimerManager {
         };
 
         // Create new timer
+        let alert_on_expire = matches!(def.alert_on, baras_types::AlertTrigger::OnExpire);
         let timer = ActiveTimer::new(
             def.id.clone(),
             def.name.clone(),
@@ -556,6 +563,8 @@ impl TimerManager {
             def.show_at_secs,
             &audio_with_prefs,
             def.display_target,
+            alert_on_expire,
+            def.alert_text.clone(),
         );
 
         self.active_timers.insert(key, timer);
@@ -683,12 +692,16 @@ impl TimerManager {
             } else if let Some(mut timer) = self.active_timers.remove(&key) {
                 // Record expiration (move from key since we're done with it)
                 self.expired_this_tick.push(key.definition_id);
-                // Timer exhausted repeats - fire expiration alert if audio is configured
-                // Only fire on expiration if audio_offset == 0 (otherwise it already played at offset)
-                // Skip if audio_enabled == false
+                // Fire expiration alert if:
+                // 1. Audio is configured with offset=0 (play sound on expire), OR
+                // 2. alert_on_expire is true (alert text notification on expire)
                 let has_chain = timer.triggers_timer.is_some();
-                if timer.audio_enabled && timer.audio_file.is_some() && timer.audio_offset == 0 {
-                    let text = self.format_alert_text(&timer.name, current_time);
+                let should_fire_audio = timer.audio_enabled && timer.audio_file.is_some() && timer.audio_offset == 0;
+                let should_fire_expire_alert = timer.alert_on_expire;
+
+                if should_fire_audio || should_fire_expire_alert {
+                    let raw_text = timer.alert_text.as_deref().unwrap_or(&timer.name);
+                    let text = self.format_alert_text(raw_text, current_time);
                     // Move fields from timer since we own it and are done with it (unless chaining)
                     let (id, name, audio_file) = if has_chain {
                         // Need to clone since timer is still used for chain
@@ -711,7 +724,7 @@ impl TimerManager {
                         text,
                         color: Some(timer.color),
                         timestamp: current_time,
-                        audio_enabled: true, // Already checked above
+                        audio_enabled: should_fire_audio,
                         audio_file,
                     });
                 }

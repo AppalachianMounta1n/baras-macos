@@ -355,6 +355,8 @@ pub struct BossTimerDefinition {
     #[serde(default)]
     pub is_alert: bool,
     #[serde(default)]
+    pub alert_on: AlertTrigger,
+    #[serde(default)]
     pub alert_text: Option<String>,
     #[serde(default = "default_timer_color")]
     pub color: [u8; 4],
@@ -546,27 +548,24 @@ impl DisplayTarget {
     }
 }
 
-/// When to trigger an alert for this effect
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AlertTrigger {
-    #[default]
-    None,
-    OnApply,
-    OnExpire,
+// Re-export AlertTrigger from shared types crate
+pub use baras_types::AlertTrigger;
+
+/// Context-specific labels for AlertTrigger in effect UIs.
+pub fn effect_alert_label(trigger: &AlertTrigger) -> &'static str {
+    match trigger {
+        AlertTrigger::None => "None",
+        AlertTrigger::OnApply => "Effect Start",
+        AlertTrigger::OnExpire => "Effect End",
+    }
 }
 
-impl AlertTrigger {
-    pub fn label(&self) -> &'static str {
-        match self {
-            Self::None => "None",
-            Self::OnApply => "Effect Start",
-            Self::OnExpire => "Effect End",
-        }
-    }
-
-    pub fn all() -> &'static [AlertTrigger] {
-        &[Self::None, Self::OnApply, Self::OnExpire]
+/// Context-specific labels for AlertTrigger in timer UIs.
+pub fn timer_alert_label(trigger: &AlertTrigger) -> &'static str {
+    match trigger {
+        AlertTrigger::None => "None",
+        AlertTrigger::OnApply => "Timer Start",
+        AlertTrigger::OnExpire => "Timer End",
     }
 }
 
