@@ -17,6 +17,8 @@ pub struct LogFileMetaData {
     pub session_number: u32,
     pub is_empty: bool,
     pub file_size: u64,
+    /// Timestamp of the last event in the log file (parsed from the last line)
+    pub last_event_time: Option<NaiveDateTime>,
 }
 
 impl LogFileMetaData {
@@ -92,6 +94,12 @@ impl DirectoryIndex {
             None
         };
 
+        let last_event_time = if !is_empty {
+            extract_last_event_time(path, created_at).ok().flatten()
+        } else {
+            None
+        };
+
         let session_number =
             self.compute_session_number(character_name.as_deref().unwrap_or("Unknown"), date);
 
@@ -104,6 +112,7 @@ impl DirectoryIndex {
             session_number,
             is_empty,
             file_size,
+            last_event_time,
         })
     }
 
@@ -190,6 +199,11 @@ impl DirectoryIndex {
 
     pub fn newest_file(&self) -> Option<&LogFileMetaData> {
         self.entries.values().max_by_key(|e| e.created_at)
+    }
+
+    /// Look up metadata for a specific file by path
+    pub fn file_metadata(&self, path: &Path) -> Option<&LogFileMetaData> {
+        self.entries.get(path)
     }
 
     /// Get entry count
@@ -352,6 +366,47 @@ pub fn extract_character_name(path: &Path, session_date: NaiveDateTime) -> Resul
             && event.effect.type_id == effect_type_id::DISCIPLINECHANGED
         {
             return Ok(Some(resolve(event.source_entity.name).to_string()));
+        }
+    }
+    Ok(None)
+}
+
+/// Read the last line of a log file and extract its timestamp.
+/// Used to detect stale sessions at startup (files with no recent activity).
+/// Reads only the last 2KB of the file to minimize I/O.
+const TAIL_READ_SIZE: usize = 2048;
+
+pub fn extract_last_event_time(
+    path: &Path,
+    session_date: NaiveDateTime,
+) -> Result<Option<NaiveDateTime>> {
+    use std::io::{Read, Seek, SeekFrom};
+
+    let mut file = fs::File::open(path)?;
+    let file_len = file.metadata()?.len();
+    if file_len == 0 {
+        return Ok(None);
+    }
+
+    // Read last 2KB — a single log line is ~200-500 bytes, so this gives plenty of margin
+    let read_size = (file_len as usize).min(TAIL_READ_SIZE);
+    let seek_pos = file_len.saturating_sub(read_size as u64);
+    file.seek(SeekFrom::Start(seek_pos))?;
+
+    let mut buffer = vec![0u8; read_size];
+    let bytes_read = file.read(&mut buffer)?;
+    buffer.truncate(bytes_read);
+
+    let (content, _, _) = WINDOWS_1252.decode(&buffer);
+    let parser = LogParser::new(session_date);
+
+    // Find last non-empty line and parse its timestamp
+    for line in content.lines().rev() {
+        let trimmed = line.trim();
+        if !trimmed.is_empty() {
+            if let Some(event) = parser.parse_line(0, trimmed) {
+                return Ok(Some(event.timestamp));
+            }
         }
     }
     Ok(None)

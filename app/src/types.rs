@@ -75,6 +75,9 @@ pub struct SessionInfo {
     pub session_end: Option<String>,
     /// Duration formatted as short form (e.g., "47m" or "1h 23m")
     pub duration_formatted: Option<String>,
+    /// True if the log file's last event is older than 30 minutes (no active session)
+    #[serde(default)]
+    pub stale_session: bool,
 }
 
 /// Overlay status response from backend

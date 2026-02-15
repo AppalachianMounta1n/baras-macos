@@ -45,6 +45,10 @@ impl EventProcessor {
         // 1b. Entity lifecycle (death/revive)
         signals.extend(self.handle_entity_lifecycle(&event, cache));
 
+        // 1b'. Synthetic death from 0 HP observation (handles missing death events
+        // in 16-man and other content where SWTOR doesn't log entity death events)
+        signals.extend(self.handle_zero_hp_deaths(&event, cache));
+
         // 1c. Area transitions
         signals.extend(self.handle_area_transition(&event, cache));
 
@@ -227,6 +231,26 @@ impl EventProcessor {
         let mut signals = Vec::new();
 
         if event.effect.effect_id == effect_id::DEATH {
+            // Check if entity was already marked dead (e.g., synthetic death from 0 HP
+            // observation fired on a previous event). If so, skip signal emission to
+            // prevent duplicate EntityDeath signals reaching timers, counters, etc.
+            let already_dead = cache
+                .current_encounter()
+                .map(|enc| match event.target_entity.entity_type {
+                    EntityType::Player => enc
+                        .players
+                        .get(&event.target_entity.log_id)
+                        .map_or(false, |p| p.is_dead),
+                    EntityType::Npc | EntityType::Companion => enc
+                        .npcs
+                        .get(&event.target_entity.log_id)
+                        .map_or(false, |n| n.is_dead),
+                    _ => false,
+                })
+                .unwrap_or(false);
+
+            // Always update state (idempotent) — ensures death_time gets the
+            // authoritative timestamp from the real death event
             if let Some(enc) = cache.current_encounter_mut() {
                 enc.set_entity_death(
                     event.target_entity.log_id,
@@ -236,13 +260,16 @@ impl EventProcessor {
                 enc.check_all_players_dead();
             }
 
-            signals.push(GameSignal::EntityDeath {
-                entity_id: event.target_entity.log_id,
-                entity_type: event.target_entity.entity_type,
-                npc_id: event.target_entity.class_id,
-                entity_name: resolve(event.target_entity.name).to_string(),
-                timestamp: event.timestamp,
-            });
+            // Only emit signal if not already dead (prevents duplicate signals)
+            if !already_dead {
+                signals.push(GameSignal::EntityDeath {
+                    entity_id: event.target_entity.log_id,
+                    entity_type: event.target_entity.entity_type,
+                    npc_id: event.target_entity.class_id,
+                    entity_name: resolve(event.target_entity.name).to_string(),
+                    timestamp: event.timestamp,
+                });
+            }
         } else if event.effect.effect_id == effect_id::REVIVED {
             if let Some(enc) = cache.current_encounter_mut() {
                 // Don't process revives after a definitive wipe (all players dead)
@@ -286,6 +313,88 @@ impl EventProcessor {
                         enc.local_player_revive_immunity_time = Some(event.timestamp);
                     }
                 }
+            }
+        }
+
+        signals
+    }
+
+    /// Detect entity deaths from 0 HP when no explicit death event was logged.
+    ///
+    /// SWTOR sometimes fails to log death events, particularly in 16-man content.
+    /// This checks every entity on every event: if an entity has 0 current HP with
+    /// a valid max HP and is tracked but not yet marked dead, we emit a synthetic
+    /// `EntityDeath` signal. The `is_dead` flag acts as a latch — once set on the
+    /// first 0 HP observation, all subsequent events with that entity at 0 HP are
+    /// no-ops, preventing repeated signal firing.
+    fn handle_zero_hp_deaths(
+        &self,
+        event: &CombatEvent,
+        cache: &mut SessionCache,
+    ) -> Vec<GameSignal> {
+        let mut signals = Vec::new();
+
+        for entity in [&event.source_entity, &event.target_entity] {
+            // Must have 0 current HP with a valid max HP (not an empty/uninitialized entity)
+            if entity.health.0 != 0 || entity.health.1 <= 0 {
+                continue;
+            }
+
+            // Must have a valid entity ID
+            if entity.log_id == 0 {
+                continue;
+            }
+
+            match entity.entity_type {
+                EntityType::Npc | EntityType::Companion => {
+                    let Some(enc) = cache.current_encounter_mut() else {
+                        continue;
+                    };
+                    let Some(npc) = enc.npcs.get(&entity.log_id) else {
+                        continue;
+                    };
+                    if npc.is_dead {
+                        continue;
+                    }
+
+                    let npc_id = npc.class_id;
+                    let entity_name = resolve(npc.name).to_string();
+
+                    enc.set_entity_death(entity.log_id, &entity.entity_type, event.timestamp);
+
+                    signals.push(GameSignal::EntityDeath {
+                        entity_id: entity.log_id,
+                        entity_type: entity.entity_type,
+                        npc_id,
+                        entity_name,
+                        timestamp: event.timestamp,
+                    });
+                }
+                EntityType::Player => {
+                    let Some(enc) = cache.current_encounter_mut() else {
+                        continue;
+                    };
+                    let Some(player) = enc.players.get(&entity.log_id) else {
+                        continue;
+                    };
+                    if player.is_dead {
+                        continue;
+                    }
+
+                    let entity_name = resolve(player.name).to_string();
+
+                    enc.set_entity_death(entity.log_id, &entity.entity_type, event.timestamp);
+                    enc.check_all_players_dead();
+
+                    signals.push(GameSignal::EntityDeath {
+                        entity_id: entity.log_id,
+                        entity_type: entity.entity_type,
+                        npc_id: 0,
+                        entity_name,
+                        timestamp: event.timestamp,
+                    });
+                }
+                _ => {}
             }
         }
 

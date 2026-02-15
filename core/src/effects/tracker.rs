@@ -405,9 +405,9 @@ pub struct EffectTracker {
     /// Count of active (non-removed) effects for O(1) has_ticking_effects() check
     ticking_count: usize,
 
-    /// Current target for each entity (source_id -> (target_id, target_name))
+    /// Current target for each entity (source_id -> (target_id, target_name, entity_type))
     /// Used as fallback when encounter doesn't have target info (e.g., outside combat)
-    current_targets: HashMap<i64, (i64, IStr)>,
+    current_targets: HashMap<i64, (i64, IStr, EntityType)>,
 
     /// Recent ability casts by local player: (ability_id, target_id) -> timestamp
     /// Used to validate DotTracker ApplyEffect signals and reject lingering effects
@@ -906,6 +906,7 @@ impl EffectTracker {
         source_name: IStr,
         target_id: i64,
         target_name: IStr,
+        target_entity_type: EntityType,
         timestamp: NaiveDateTime,
         encounter: Option<&crate::encounter::CombatEncounter>,
         trigger_type: RefreshTrigger,
@@ -919,10 +920,10 @@ impl EffectTracker {
             return;
         }
 
-        // Only register actual players on raid frames (not companions or NPCs)
-        let is_player = encounter
-            .map(|e| e.players.contains_key(&target_id))
-            .unwrap_or(true);
+        // Use the entity type from the combat log signal rather than the encounter
+        // roster, which may be incomplete (players who haven't generated combat events
+        // yet won't appear in encounter.players)
+        let is_player = target_entity_type == EntityType::Player;
 
         // Single-target case: refresh effect on specific target
         let action_name_str = crate::context::resolve(action_name);
@@ -1201,7 +1202,7 @@ impl EffectTracker {
 
         let entities = get_entities(encounter);
         let current_target_id =
-            local_player_id.and_then(|id| self.current_targets.get(&id).map(|(tid, _)| *tid));
+            local_player_id.and_then(|id| self.current_targets.get(&id).map(|(tid, _, _)| *tid));
         for def in matching_defs {
             // Check discipline filter
             if !def.matches_discipline(self.local_player_discipline.as_ref()) {
@@ -1507,7 +1508,7 @@ impl EffectTracker {
         // Get local player ID from self, boss entity IDs from encounter
         let local_player_id = self.local_player_id;
         let current_target_id =
-            local_player_id.and_then(|id| self.current_targets.get(&id).map(|(tid, _)| *tid));
+            local_player_id.and_then(|id| self.current_targets.get(&id).map(|(tid, _, _)| *tid));
         let boss_ids = get_boss_ids(encounter);
 
         let entities = get_entities(encounter);
@@ -1701,13 +1702,13 @@ impl SignalHandler for EffectTracker {
                 let local_player_id = self.local_player_id;
                 if local_player_id == Some(*source_id) {
                     let is_self_or_empty = *target_id == 0 || *target_id == *source_id;
-                    let (resolved_target, resolved_target_name) = if is_self_or_empty {
+                    let (resolved_target, resolved_target_name, resolved_entity_type) = if is_self_or_empty {
                         // Query encounter for caster's current target, fall back to cached target,
                         // finally default to self (game casts on caster when no target)
-                        if let Some((target, name)) =
+                        if let Some((target, name, etype)) =
                             self.current_targets.get(source_id).copied()
                         {
-                            (target, name)
+                            (target, name, etype)
                         } else if let Some(target) =
                             encounter.and_then(|e| e.get_current_target(*source_id))
                         {
@@ -1716,13 +1717,13 @@ impl SignalHandler for EffectTracker {
                                 .and_then(|e| e.players.get(&target))
                                 .map(|p| p.name)
                                 .unwrap_or(*source_name);
-                            (target, name)
+                            (target, name, EntityType::Player)
                         } else {
-                            // No target info - default to self
-                            (*source_id, *source_name)
+                            // No target info - default to self (always a player)
+                            (*source_id, *source_name, EntityType::Player)
                         }
                     } else {
-                        (*target_id, *target_name)
+                        (*target_id, *target_name, *target_entity_type)
                     };
 
                     // Record cast for DotTracker validation (prevents lingering effect issues)
@@ -1736,6 +1737,7 @@ impl SignalHandler for EffectTracker {
                         *source_name,
                         resolved_target,
                         resolved_target_name,
+                        resolved_entity_type,
                         *timestamp,
                         encounter,
                         RefreshTrigger::Activation,
@@ -1765,6 +1767,7 @@ impl SignalHandler for EffectTracker {
                 source_id,
                 source_name,
                 target_id,
+                target_entity_type,
                 target_name,
                 timestamp,
                 ..
@@ -1778,6 +1781,7 @@ impl SignalHandler for EffectTracker {
                         *source_name,
                         *target_id,
                         *target_name,
+                        *target_entity_type,
                         *timestamp,
                         encounter,
                         RefreshTrigger::Heal,
@@ -1787,12 +1791,13 @@ impl SignalHandler for EffectTracker {
             GameSignal::TargetChanged {
                 source_id,
                 target_id,
+                target_entity_type,
                 target_name,
                 ..
             } => {
-                // Cache target ID and name for fallback when encounter doesn't have target info
+                // Cache target ID, name, and entity type for fallback
                 self.current_targets
-                    .insert(*source_id, (*target_id, *target_name));
+                    .insert(*source_id, (*target_id, *target_name, *target_entity_type));
             }
             GameSignal::TargetCleared { source_id, .. } => {
                 self.current_targets.remove(source_id);
