@@ -1174,7 +1174,7 @@ pub fn PhaseSelector(
             // Dropdown trigger
             button {
                 class: "select",
-                style: "width: 160px; text-align: left;",
+                style: "min-width: 160px; text-align: left;",
                 onclick: move |e| {
                     if !dropdown_open() {
                         // Use element_coordinates to find offset within button,
