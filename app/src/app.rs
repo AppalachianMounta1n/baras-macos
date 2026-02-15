@@ -789,11 +789,11 @@ pub fn App() -> Element {
                     if let Some(ref info) = session {
                     if has_player {
                         section {
-                            class: if live_tailing && !session_ended() { "session-panel" } else { "session-panel historical" },
+                            class: if live_tailing && !session_ended() && !info.stale_session { "session-panel" } else { "session-panel historical" },
 
                             // Session toolbar: header + upload button
                             div { class: "session-toolbar",
-                                if session_ended() {
+                                if session_ended() || info.stale_session {
                                     h3 { class: "session-header historical",
                                         i { class: "fa-solid fa-clock" }
                                         " Prior Session. Watching for next login..."

@@ -286,6 +286,15 @@ impl ServiceHandle {
             (None, None)
         };
 
+        // Check if this is a stale session (last event >30 min ago).
+        // Only relevant for live-tailing mode — historical sessions are inherently "not live".
+        let active_file_path = session.active_file.clone();
+        let stale_session = if is_live {
+            self.is_session_stale(active_file_path.as_ref(), start_datetime).await
+        } else {
+            false
+        };
+
         Some(SessionInfo {
             player_name: if cache.player_initialized {
                 Some(resolve(cache.player.name).to_string())
@@ -317,7 +326,38 @@ impl ServiceHandle {
             session_start,
             session_end,
             duration_formatted,
+            stale_session,
         })
+    }
+
+    /// Check if a session is stale (no log activity in the last 30 minutes).
+    /// Uses the last event timestamp parsed from the log file's final line,
+    /// falling back to the session start time from the filename.
+    const STALE_SESSION_MINUTES: i64 = 30;
+
+    async fn is_session_stale(
+        &self,
+        active_file: Option<&std::path::PathBuf>,
+        session_start: Option<chrono::NaiveDateTime>,
+    ) -> bool {
+        let Some(path) = active_file else {
+            return false;
+        };
+
+        let index = self.shared.directory_index.read().await;
+        let last_activity = index
+            .file_metadata(path)
+            .and_then(|meta| meta.last_event_time.or(Some(meta.created_at)))
+            .or(session_start);
+
+        match last_activity {
+            Some(last) => {
+                let now = chrono::Local::now().naive_local();
+                let elapsed = now.signed_duration_since(last);
+                elapsed > chrono::Duration::minutes(Self::STALE_SESSION_MINUTES)
+            }
+            None => false,
+        }
     }
 
     /// Get current combat data (unified for all overlays)
