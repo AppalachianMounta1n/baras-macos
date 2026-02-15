@@ -1831,7 +1831,7 @@ pub fn App() -> Element {
                             input {
                                 class: "file-browser-search",
                                 r#type: "text",
-                                placeholder: "Filter by name or date...",
+                                placeholder: "Filter by name, date, day, or operation...",
                                 value: "{file_browser_filter}",
                                 oninput: move |e| file_browser_filter.set(e.value()),
                             }
@@ -1885,7 +1885,15 @@ pub fn App() -> Element {
                                         }
                                         let name = f.character_name.as_deref().unwrap_or("").to_lowercase();
                                         let date = f.date.to_lowercase();
-                                        name.contains(&filter) || date.contains(&filter)
+                                        let day = f.day_of_week.to_lowercase();
+                                        // Also check area names for operation search
+                                        let areas_match = f.areas.as_ref().map_or(false, |areas| {
+                                            areas.iter().any(|a| {
+                                                a.display.to_lowercase().contains(&filter)
+                                                    || a.area_name.to_lowercase().contains(&filter)
+                                            })
+                                        });
+                                        name.contains(&filter) || date.contains(&filter) || day.contains(&filter) || areas_match
                                     }).cloned().collect();
                                     rsx! {
                                         for file in filtered.iter() {
@@ -1894,6 +1902,7 @@ pub fn App() -> Element {
                                         let path_for_upload = file.path.clone();
                                         let char_name = file.character_name.clone().unwrap_or_else(|| "Unknown".to_string());
                                         let date = file.date.clone();
+                                        let day_of_week = file.day_of_week.clone();
                                         let size_str = if file.file_size >= 1024 * 1024 {
                                             format!("{:.1}mb", file.file_size as f64 / (1024.0 * 1024.0))
                                         } else {
@@ -1911,11 +1920,66 @@ pub fn App() -> Element {
                                                     (false, false) => "file-item",
                                                 },
                                                 div { class: "file-info",
-                                                    span { class: "file-date", "{date}" }
+                                                    span { class: "file-date",
+                                                        "{date}"
+                                                        if !day_of_week.is_empty() {
+                                                            span { class: "file-day", " - {day_of_week}" }
+                                                        }
+                                                    }
                                                     div { class: "file-meta",
                                                         span { class: "file-char", "{char_name}" }
                                                         span { class: "file-sep", " • " }
                                                         span { class: "file-size", "{size_str}" }
+                                                    }
+                                                    // Show areas/operations visited in this file
+                                                    // Only show areas with difficulty (actual instances, not open world)
+                                                    {
+                                                        // Helper to get difficulty CSS class from difficulty string
+                                                        fn difficulty_class(difficulty: &str) -> &'static str {
+                                                            let lower = difficulty.to_lowercase();
+                                                            // 4-player content (flashpoints) gets blue
+                                                            if lower.contains("4 player") {
+                                                                "area-tag diff-fp"
+                                                            // 8/16 player operations get colored by difficulty
+                                                            } else if lower.contains("master") {
+                                                                "area-tag diff-nim"
+                                                            } else if lower.contains("veteran") {
+                                                                "area-tag diff-hm"
+                                                            } else if lower.contains("story") {
+                                                                "area-tag diff-sm"
+                                                            } else {
+                                                                "area-tag"
+                                                            }
+                                                        }
+
+                                                        let instanced_areas: Vec<_> = file.areas.as_ref()
+                                                            .map(|areas| areas.iter().filter(|a| !a.difficulty.is_empty()).collect())
+                                                            .unwrap_or_default();
+                                                        let area_count = instanced_areas.len();
+                                                        rsx! {
+                                                            if !instanced_areas.is_empty() {
+                                                                details { class: "file-areas",
+                                                                    summary {
+                                                                        // Show first 3 badges in summary
+                                                                        for area in instanced_areas.iter().take(3) {
+                                                                            span { class: "{difficulty_class(&area.difficulty)}", "{area.display}" }
+                                                                        }
+                                                                        // Show "+N more" if there are more than 3
+                                                                        if area_count > 3 {
+                                                                            span { class: "area-tag area-more", "+{area_count - 3} more" }
+                                                                        }
+                                                                    }
+                                                                    // When expanded, show all areas
+                                                                    if area_count > 3 {
+                                                                        ul { class: "area-list",
+                                                                            for area in instanced_areas.iter() {
+                                                                                li { class: "{difficulty_class(&area.difficulty)}", "{area.display}" }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
                                                     }
                                                     // Show upload result for this file
                                                     if let Some((success, ref msg)) = upload_result {

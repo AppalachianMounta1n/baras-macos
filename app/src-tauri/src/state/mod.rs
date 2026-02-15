@@ -12,7 +12,7 @@ use std::sync::atomic::{AtomicBool, AtomicI64};
 use std::sync::{Arc, Mutex};
 use tokio::sync::RwLock;
 
-use baras_core::context::{AppConfig, DirectoryIndex, ParsingSession};
+use baras_core::context::{AppConfig, DirectoryIndex, LogAreaCache, ParsingSession};
 use baras_core::query::QueryContext;
 
 /// State shared between the combat service and Tauri commands.
@@ -67,6 +67,9 @@ pub struct SharedState {
 
     /// Shared query context for DataFusion queries (reuses SessionContext)
     pub query_context: QueryContext,
+
+    /// Cache of area indexes for log files (persisted to disk)
+    pub area_cache: RwLock<LogAreaCache>,
 }
 
 impl SharedState {
@@ -95,6 +98,8 @@ impl SharedState {
             overlays_visible_before_conversation: AtomicBool::new(false),
             // Shared query context for DataFusion (reuses SessionContext across queries)
             query_context: QueryContext::new(),
+            // Area cache - loaded from disk later in service startup
+            area_cache: RwLock::new(LogAreaCache::new()),
         }
     }
 

@@ -18,7 +18,7 @@ use baras_core::query::{
 };
 use tauri::{AppHandle, Emitter};
 
-use super::{CombatData, LogFileInfo, ServiceCommand, SessionInfo};
+use super::{AreaVisitInfo, CombatData, LogFileInfo, ServiceCommand, SessionInfo};
 use crate::state::SharedState;
 
 /// Handle to communicate with the combat service and query state
@@ -95,16 +95,35 @@ impl ServiceHandle {
     /// Get log file entries for the UI
     pub async fn log_files(&self) -> Vec<LogFileInfo> {
         let index = self.shared.directory_index.read().await;
+        let area_cache = self.shared.area_cache.read().await;
+
         index
             .entries()
             .into_iter()
-            .map(|e| LogFileInfo {
-                path: e.path.clone(),
-                display_name: e.display_name(),
-                character_name: e.character_name.clone(),
-                date: e.formatted_datetime(),
-                is_empty: e.is_empty,
-                file_size: e.file_size,
+            .map(|e| {
+                // Look up areas from the cache
+                let areas = area_cache.get(&e.path).map(|file_index| {
+                    file_index
+                        .areas
+                        .iter()
+                        .map(|a| AreaVisitInfo {
+                            display: a.display_name(),
+                            area_name: a.area_name.clone(),
+                            difficulty: a.difficulty_name.clone(),
+                        })
+                        .collect()
+                });
+
+                LogFileInfo {
+                    path: e.path.clone(),
+                    display_name: e.display_name(),
+                    character_name: e.character_name.clone(),
+                    date: e.formatted_datetime(),
+                    day_of_week: e.day_of_week(),
+                    is_empty: e.is_empty,
+                    file_size: e.file_size,
+                    areas,
+                }
             })
             .collect()
     }

@@ -32,6 +32,11 @@ impl LogFileMetaData {
     pub fn formatted_datetime(&self) -> String {
         self.created_at.format("%Y-%m-%d %-H:%M").to_string()
     }
+
+    /// Day of week for display (e.g., "Sunday")
+    pub fn day_of_week(&self) -> String {
+        self.created_at.format("%A").to_string()
+    }
 }
 
 #[derive(Default)]

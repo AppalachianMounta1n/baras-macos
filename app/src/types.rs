@@ -111,6 +111,17 @@ pub struct OverlayStatus {
     pub rearrange_mode: bool,
 }
 
+/// Area visit info for display in file browser
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct AreaVisitInfo {
+    /// Display string: "AreaName Difficulty" (e.g., "Dxun NiM 8")
+    pub display: String,
+    /// Raw area name
+    pub area_name: String,
+    /// Difficulty string (may be empty)
+    pub difficulty: String,
+}
+
 /// Log file metadata for file browser
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct LogFileInfo {
@@ -118,8 +129,13 @@ pub struct LogFileInfo {
     pub display_name: String,
     pub character_name: Option<String>,
     pub date: String,
+    /// Day of week (e.g., "Sunday")
+    #[serde(default)]
+    pub day_of_week: String,
     pub is_empty: bool,
     pub file_size: u64,
+    /// Areas/operations visited in this file (None if not yet indexed)
+    pub areas: Option<Vec<AreaVisitInfo>>,
 }
 
 /// Update availability info from backend

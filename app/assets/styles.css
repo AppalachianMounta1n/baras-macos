@@ -2621,6 +2621,11 @@ details[open] .collapsible-summary::before {
   font-variant-numeric: tabular-nums;
 }
 
+.file-item .file-day {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
 .file-item .file-meta {
   display: flex;
   align-items: center;
@@ -2728,6 +2733,110 @@ details[open] .collapsible-summary::before {
 .file-item .upload-link:hover {
   color: #aac8fa;
   text-decoration: underline;
+}
+
+/* File Areas (Operations visited) */
+.file-areas {
+  margin-top: 0.4em;
+  font-size: 0.85em;
+}
+
+.file-areas summary {
+  cursor: pointer;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3em;
+  user-select: none;
+  list-style: none; /* Hide default disclosure triangle */
+}
+
+.file-areas summary::-webkit-details-marker {
+  display: none; /* Hide triangle in webkit browsers */
+}
+
+.file-areas[open] summary {
+  display: none; /* Hide summary when expanded, show full list instead */
+}
+
+.file-areas .area-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3em;
+}
+
+.file-areas .area-tag {
+  display: inline-block;
+  background: var(--blue-alpha-15);
+  color: var(--text-secondary);
+  padding: 0.15em 0.5em;
+  border-radius: var(--radius-sm);
+  font-size: 0.9em;
+  border: 1px solid var(--blue-alpha-20);
+}
+
+.file-areas .area-tag:hover {
+  background: var(--blue-alpha-20);
+  color: var(--text-primary);
+}
+
+/* Difficulty-specific colors */
+.file-areas .area-tag.diff-nim {
+  background: rgba(220, 60, 60, 0.2);
+  border-color: rgba(220, 60, 60, 0.4);
+  color: #f08080;
+}
+
+.file-areas .area-tag.diff-nim:hover {
+  background: rgba(220, 60, 60, 0.3);
+  color: #ffa0a0;
+}
+
+.file-areas .area-tag.diff-hm {
+  background: rgba(220, 160, 40, 0.2);
+  border-color: rgba(220, 160, 40, 0.4);
+  color: #e8c060;
+}
+
+.file-areas .area-tag.diff-hm:hover {
+  background: rgba(220, 160, 40, 0.3);
+  color: #f0d080;
+}
+
+.file-areas .area-tag.diff-sm {
+  background: rgba(60, 180, 120, 0.2);
+  border-color: rgba(60, 180, 120, 0.4);
+  color: #70d8a0;
+}
+
+.file-areas .area-tag.diff-sm:hover {
+  background: rgba(60, 180, 120, 0.3);
+  color: #90e8b8;
+}
+
+.file-areas .area-tag.diff-fp {
+  background: rgba(80, 140, 220, 0.2);
+  border-color: rgba(80, 140, 220, 0.4);
+  color: #80b8f0;
+}
+
+.file-areas .area-tag.diff-fp:hover {
+  background: rgba(80, 140, 220, 0.3);
+  color: #a0d0ff;
+}
+
+.file-areas .area-more {
+  background: var(--blue-alpha-10);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.file-areas .area-more:hover {
+  background: var(--blue-alpha-20);
+  color: var(--text-secondary);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

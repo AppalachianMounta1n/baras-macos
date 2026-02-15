@@ -391,6 +391,9 @@ impl CombatService {
         // Initialize icon cache for ability icons
         let icon_cache = Self::init_icon_cache(&app_handle);
 
+        // Clone area_index before moving it into the service (needed for background indexer)
+        let area_index_for_scanner = area_index.clone();
+
         let service = Self {
             app_handle: app_handle.clone(),
             shared: shared.clone(),
@@ -409,7 +412,10 @@ impl CombatService {
             pending_file: None,
         };
 
-        let handle = ServiceHandle { cmd_tx, shared, app_handle };
+        let handle = ServiceHandle { cmd_tx, shared: shared.clone(), app_handle: app_handle.clone() };
+
+        // Spawn background area indexer to populate file area cache
+        Self::spawn_area_indexer(shared, area_index_for_scanner, app_handle);
 
         (service, handle)
     }
@@ -454,6 +460,152 @@ impl CombatService {
         }
 
         index
+    }
+
+    /// Spawn a background task to index areas in log files.
+    /// This scans files that aren't already in the cache (except the newest file).
+    /// Runs silently in background without blocking normal app operations.
+    fn spawn_area_indexer(
+        shared: Arc<SharedState>,
+        area_index: Arc<baras_core::boss::AreaIndex>,
+        app_handle: AppHandle,
+    ) {
+        use baras_core::context::{
+            FileAreaIndex, LogAreaCache, default_cache_path, extract_areas_from_file,
+        };
+        use std::collections::HashSet;
+
+        tauri::async_runtime::spawn(async move {
+            // Small delay to let app finish initializing - don't block startup
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+
+            // Load existing cache from disk
+            let cache_path = match default_cache_path() {
+                Some(p) => p,
+                None => {
+                    warn!("Could not determine area cache path");
+                    return;
+                }
+            };
+
+            let mut cache = LogAreaCache::load_from_disk(&cache_path);
+            debug!(
+                cached_files = cache.len(),
+                "Loaded area cache from disk"
+            );
+
+            // Update shared state with loaded cache (brief write lock)
+            // Don't prune here - stale entries are harmless and pruning is slow
+            {
+                let mut area_cache = shared.area_cache.write().await;
+                *area_cache = cache.clone();
+            }
+            // Don't emit event here - let frontend use its initial load
+
+            // Get known area IDs from boss definitions
+            let known_area_ids: HashSet<i64> = area_index.keys().copied().collect();
+            if known_area_ids.is_empty() {
+                debug!("No area definitions found, skipping area indexing");
+                return;
+            }
+
+            // Collect file paths to scan quickly, then release lock
+            let files_to_scan: Vec<(PathBuf, std::time::SystemTime)> = {
+                let index = shared.directory_index.read().await;
+                let newest_path = index.newest_file().map(|f| f.path.clone());
+                index
+                    .entries()
+                    .iter()
+                    .filter_map(|e| {
+                        // Skip empty files
+                        if e.is_empty {
+                            return None;
+                        }
+                        // Skip the newest file (it's being actively written)
+                        if Some(&e.path) == newest_path.as_ref() {
+                            return None;
+                        }
+                        // Get modification time
+                        let modified = std::fs::metadata(&e.path)
+                            .and_then(|m| m.modified())
+                            .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                        // Check if needs update
+                        if cache.needs_update(&e.path, modified) {
+                            Some((e.path.clone(), modified))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect()
+            };
+            // Lock released here
+
+            if files_to_scan.is_empty() {
+                debug!("All files already indexed, nothing to scan");
+                return;
+            }
+
+            debug!(
+                files_to_scan = files_to_scan.len(),
+                "Starting background area indexing"
+            );
+
+            // Scan files without holding any locks
+            let mut scanned = 0;
+            for (path, modified) in files_to_scan {
+                let modified_secs = modified
+                    .duration_since(std::time::SystemTime::UNIX_EPOCH)
+                    .map(|d| d.as_secs())
+                    .unwrap_or(0);
+
+                match extract_areas_from_file(&path, &known_area_ids) {
+                    Ok(areas) => {
+                        cache.insert(
+                            path.clone(),
+                            FileAreaIndex {
+                                modified_secs,
+                                areas,
+                            },
+                        );
+                        scanned += 1;
+                    }
+                    Err(e) => {
+                        debug!(path = %path.display(), error = %e, "Failed to extract areas from file");
+                    }
+                }
+
+                // Yield periodically to avoid starving other tasks
+                if scanned % 10 == 0 {
+                    tokio::task::yield_now().await;
+                }
+            }
+
+            // Prune entries for deleted files (lazy cleanup)
+            let cache_size_before = cache.len();
+            cache.prune_missing();
+            let pruned = cache_size_before - cache.len();
+            if pruned > 0 {
+                debug!(pruned, "Pruned stale entries from area cache");
+            }
+
+            // Save updated cache and notify frontend if anything changed
+            if scanned > 0 || pruned > 0 {
+                // Brief write lock to update shared state
+                {
+                    let mut area_cache = shared.area_cache.write().await;
+                    *area_cache = cache.clone();
+                }
+
+                if let Err(e) = cache.save_to_disk(&cache_path) {
+                    warn!(error = %e, "Failed to save area cache to disk");
+                } else {
+                    info!(scanned, pruned, "Area indexing complete, cache saved");
+                }
+
+                // Notify frontend that area data is now available
+                let _ = app_handle.emit("log-files-changed", ());
+            }
+        });
     }
 
     /// Load boss definitions for a specific area, merging with custom overlays
@@ -871,6 +1023,14 @@ impl CombatService {
             let mut index = self.shared.directory_index.write().await;
             index.add_file(&path);
         }
+
+        // Trigger area indexer to scan any files that aren't indexed yet
+        // (the previous "newest" file is now complete and should be indexed)
+        Self::spawn_area_indexer(
+            self.shared.clone(),
+            self.area_index.clone(),
+            self.app_handle.clone(),
+        );
 
         // Notify frontend that file list changed
         let _ = self.app_handle.emit("log-files-changed", ());
@@ -2623,14 +2783,29 @@ async fn build_dot_tracker_data(
 // DTOs for Tauri IPC
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Area visit info for display in file browser
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct AreaVisitInfo {
+    /// Display string: "AreaName Difficulty" (e.g., "Dxun NiM 8")
+    pub display: String,
+    /// Raw area name
+    pub area_name: String,
+    /// Difficulty string (may be empty)
+    pub difficulty: String,
+}
+
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct LogFileInfo {
     pub path: PathBuf,
     pub display_name: String,
     pub character_name: Option<String>,
     pub date: String,
+    /// Day of week (e.g., "Sunday")
+    pub day_of_week: String,
     pub is_empty: bool,
     pub file_size: u64,
+    /// Areas/operations visited in this file (None if not yet indexed)
+    pub areas: Option<Vec<AreaVisitInfo>>,
 }
 
 /// Unified combat data for metric overlays
