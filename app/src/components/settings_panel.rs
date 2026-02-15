@@ -1471,6 +1471,7 @@ pub fn SettingsPanel(
                                     for c in [1u8, 2, 3, 4, 5, 6] {
                                         option {
                                             value: "{c}",
+                                            selected: cols == c,
                                             disabled: c as u16 * rows as u16 > 24,
                                             "{c}"
                                         }
@@ -1492,11 +1493,30 @@ pub fn SettingsPanel(
                                     for r in [1u8, 2, 4, 8, 12, 16, 20, 24] {
                                         option {
                                             value: "{r}",
+                                            selected: rows == r,
                                             disabled: cols as u16 * r as u16 > 24,
                                             "{r}"
                                         }
                                     }
                                 }
+                            }
+
+                            div { class: "setting-row",
+                                label { "Frame Spacing" }
+                                input {
+                                    r#type: "range",
+                                    min: "0",
+                                    max: "20",
+                                    value: "{current_settings.raid_overlay.frame_spacing as i32}",
+                                    oninput: move |e| {
+                                        if let Ok(val) = e.value().parse::<f32>() {
+                                            let mut new_settings = draft_settings();
+                                            new_settings.raid_overlay.frame_spacing = val.clamp(0.0, 20.0);
+                                            update_draft(new_settings);
+                                        }
+                                    }
+                                }
+                                span { class: "value", "{current_settings.raid_overlay.frame_spacing:.0}px" }
                             }
 
                             div { class: "setting-row",

@@ -395,6 +395,9 @@ pub struct RaidOverlayConfig {
     pub effect_fill_opacity: u8,
     /// Whether to render effect icons (true) or colored squares (false)
     pub show_effect_icons: bool,
+    /// Spacing between raid frames in the grid (before scaling)
+    /// Clamped to [0.0, 20.0]
+    pub frame_spacing: f32,
 }
 
 impl Default for RaidOverlayConfig {
@@ -408,6 +411,7 @@ impl Default for RaidOverlayConfig {
             effect_vertical_offset: EFFECT_OFFSET_DEFAULT,
             effect_fill_opacity: 255, // Fully opaque when no icons
             show_effect_icons: false,
+            frame_spacing: BASE_GAP,
         }
     }
 }
@@ -436,6 +440,7 @@ impl From<baras_core::context::RaidOverlaySettings> for RaidOverlayConfig {
             effect_vertical_offset: settings.effect_vertical_offset,
             effect_fill_opacity: settings.effect_fill_opacity,
             show_effect_icons: settings.show_effect_icons,
+            frame_spacing: settings.frame_spacing.clamp(0.0, 20.0),
         }
     }
 }
@@ -527,7 +532,7 @@ impl RaidOverlay {
     }
 
     fn gap(&self) -> f32 {
-        self.frame.scaled(BASE_GAP)
+        self.frame.scaled(self.config.frame_spacing)
     }
 
     /// Calculate frame width based on container size and column count

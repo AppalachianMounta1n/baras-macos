@@ -1099,6 +1099,8 @@ pub struct RaidOverlaySettings {
     pub effect_fill_opacity: u8,
     #[serde(default)]
     pub show_effect_icons: bool,
+    #[serde(default = "default_frame_spacing")]
+    pub frame_spacing: f32,
 }
 
 fn default_grid_columns() -> u8 {
@@ -1122,6 +1124,9 @@ fn default_frame_bg() -> Color {
 fn default_effect_fill_opacity() -> u8 {
     255
 }
+fn default_frame_spacing() -> f32 {
+    4.0
+}
 
 impl Default for RaidOverlaySettings {
     fn default() -> Self {
@@ -1135,6 +1140,7 @@ impl Default for RaidOverlaySettings {
             show_role_icons: true,
             effect_fill_opacity: 255,
             show_effect_icons: false,
+            frame_spacing: 4.0,
         }
     }
 }
