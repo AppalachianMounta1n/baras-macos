@@ -615,7 +615,7 @@ impl CombatService {
         let entry = self.area_index.get(&area_id)?;
 
         // User custom directory for overlay files
-        let user_dir = dirs::config_dir().map(|p| p.join("baras").join("encounters"));
+        let user_dir = dirs::config_dir().map(|p| p.join("baras").join("definitions").join("encounters"));
 
         match load_bosses_with_custom(&entry.file_path, user_dir.as_deref()) {
             Ok(bosses) => Some(bosses),
