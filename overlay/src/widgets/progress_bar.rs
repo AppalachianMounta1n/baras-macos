@@ -44,6 +44,8 @@ pub struct ProgressBar {
     pub split_color: Option<Color>,
     /// Optional offset for label text start position (for icon space)
     pub label_offset: f32,
+    /// Whether to render text in bold (default: false)
+    pub bold_text: bool,
 }
 
 impl ProgressBar {
@@ -59,12 +61,19 @@ impl ProgressBar {
             split_progress: None,
             split_color: None,
             label_offset: 0.0,
+            bold_text: false,
         }
     }
 
     /// Set offset for label text (to make room for icon)
     pub fn with_label_offset(mut self, offset: f32) -> Self {
         self.label_offset = offset;
+        self
+    }
+
+    /// Enable bold text rendering
+    pub fn with_bold_text(mut self) -> Self {
+        self.bold_text = true;
         self
     }
 
@@ -226,28 +235,55 @@ impl ProgressBar {
             (width - text_padding * 2.0, x, x)
         };
 
+        let bold = self.bold_text;
+
         // Draw label on the left (truncated to fit, with optional offset for icon)
         let label_start = x + text_padding + self.label_offset;
         let available_for_label = name_width - text_padding * 2.0 - self.label_offset;
         let display_label =
             self.truncate_label_to_width(frame, available_for_label.max(0.0), effective_font_size);
-        frame.draw_text(
+        // Shadow for readability on any bar color
+        frame.draw_text_styled(
+            &display_label,
+            label_start + 1.0,
+            text_y + 1.0,
+            effective_font_size,
+            colors::text_shadow(),
+            bold,
+            false,
+        );
+        frame.draw_text_styled(
             &display_label,
             label_start,
             text_y,
             effective_font_size,
             self.text_color,
+            bold,
+            false,
         );
 
         // Draw right text (rightmost position)
         if let Some(ref right) = self.right_text {
             let (text_width, _) = frame.measure_text(right, effective_font_size);
-            frame.draw_text(
+            let right_x = x + width - text_width - text_padding;
+            // Shadow for readability on any bar color
+            frame.draw_text_styled(
                 right,
-                x + width - text_width - text_padding,
+                right_x + 1.0,
+                text_y + 1.0,
+                effective_font_size,
+                colors::text_shadow(),
+                bold,
+                false,
+            );
+            frame.draw_text_styled(
+                right,
+                right_x,
                 text_y,
                 effective_font_size,
                 self.text_color,
+                bold,
+                false,
             );
         }
 
@@ -257,22 +293,47 @@ impl ProgressBar {
                 // In 3-column mode, position center text right-aligned within its column
                 let (center_width, _) = frame.measure_text(center, effective_font_size);
                 let center_x = right_start - center_width - text_padding;
-                frame.draw_text(
+                // Shadow for readability on any bar color
+                frame.draw_text_styled(
+                    center,
+                    center_x + 1.0,
+                    text_y + 1.0,
+                    effective_font_size,
+                    colors::text_shadow(),
+                    bold,
+                    false,
+                );
+                frame.draw_text_styled(
                     center,
                     center_x,
                     text_y,
                     effective_font_size,
                     self.text_color,
+                    bold,
+                    false,
                 );
             } else {
                 // In 2-column mode (center only), right-align it
                 let (center_width, _) = frame.measure_text(center, effective_font_size);
-                frame.draw_text(
+                let center_pos = x + width - center_width - text_padding;
+                // Shadow for readability on any bar color
+                frame.draw_text_styled(
                     center,
-                    x + width - center_width - text_padding,
+                    center_pos + 1.0,
+                    text_y + 1.0,
+                    effective_font_size,
+                    colors::text_shadow(),
+                    bold,
+                    false,
+                );
+                frame.draw_text_styled(
+                    center,
+                    center_pos,
                     text_y,
                     effective_font_size,
                     self.text_color,
+                    bold,
+                    false,
                 );
             }
         }

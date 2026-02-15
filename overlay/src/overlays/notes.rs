@@ -72,7 +72,7 @@ struct NotesLine {
     /// Whether this is a horizontal divider
     is_divider: bool,
     /// Indent level (for bullet points/numbered lists)
-    indent: u8,
+    _indent: u8,
 }
 
 impl NotesOverlay {
@@ -129,7 +129,7 @@ impl NotesOverlay {
                     spans: vec![],
                     is_header: false,
                     is_divider: false,
-                    indent: 0,
+                    _indent: 0,
                 });
                 continue;
             }
@@ -140,7 +140,7 @@ impl NotesOverlay {
                     spans: vec![],
                     is_header: false,
                     is_divider: true,
-                    indent: 0,
+                    _indent: 0,
                 });
                 continue;
             }
@@ -156,7 +156,7 @@ impl NotesOverlay {
                     }],
                     is_header: true,
                     is_divider: false,
-                    indent: 0,
+                    _indent: 0,
                 });
                 continue;
             }
@@ -175,7 +175,7 @@ impl NotesOverlay {
                     spans,
                     is_header: false,
                     is_divider: false,
-                    indent: 1,
+                    _indent: 1,
                 });
                 continue;
             }
@@ -196,7 +196,7 @@ impl NotesOverlay {
                     spans,
                     is_header: false,
                     is_divider: false,
-                    indent: 1,
+                    _indent: 1,
                 });
                 continue;
             }
@@ -215,7 +215,7 @@ impl NotesOverlay {
                     spans,
                     is_header: false,
                     is_divider: false,
-                    indent: 2,
+                    _indent: 2,
                 });
                 continue;
             }
@@ -226,7 +226,7 @@ impl NotesOverlay {
                 spans,
                 is_header: false,
                 is_divider: false,
-                indent: 0,
+                _indent: 0,
             });
         }
     }

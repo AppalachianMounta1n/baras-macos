@@ -104,11 +104,6 @@ impl Renderer {
         }
     }
 
-    /// Find cached entry by borrowed key (avoids String allocation on hit)
-    fn find_cached(&mut self, text: &str, font_size_key: u32) -> Option<&mut CachedText> {
-        self.find_cached_styled(text, font_size_key, false, false)
-    }
-
     /// Find cached entry with style options
     fn find_cached_styled(
         &mut self,
@@ -193,10 +188,6 @@ impl Renderer {
     }
 
     /// Get cached glyphs for drawing. Must call ensure_cached first.
-    fn get_cached_glyphs(&mut self, text: &str, font_size: f32) -> Vec<LayoutGlyph> {
-        self.get_cached_glyphs_styled(text, font_size, false, false)
-    }
-
     fn get_cached_glyphs_styled(
         &mut self,
         text: &str,
