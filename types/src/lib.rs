@@ -1127,6 +1127,8 @@ pub struct RaidOverlaySettings {
     pub frame_bg_color: Color,
     #[serde(default = "default_true")]
     pub show_role_icons: bool,
+    #[serde(default)]
+    pub show_class_icons: bool,
     #[serde(default = "default_effect_fill_opacity")]
     pub effect_fill_opacity: u8,
     #[serde(default)]
@@ -1170,6 +1172,7 @@ impl Default for RaidOverlaySettings {
             effect_vertical_offset: 3.0,
             frame_bg_color: overlay_colors::FRAME_BG,
             show_role_icons: true,
+            show_class_icons: false,
             effect_fill_opacity: 255,
             show_effect_icons: false,
             frame_spacing: 4.0,

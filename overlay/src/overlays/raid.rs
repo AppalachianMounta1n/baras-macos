@@ -182,6 +182,8 @@ pub struct RaidFrame {
     pub hp_percent: f32,
     /// Player's role
     pub role: PlayerRole,
+    /// Class icon filename (e.g., "assassin.png") for class icon display
+    pub class_icon: Option<String>,
     /// Active effects on this player
     pub effects: Vec<RaidEffect>,
     /// Is this the local player?
@@ -197,6 +199,7 @@ impl RaidFrame {
             name: String::new(),
             hp_percent: 0.0,
             role: PlayerRole::Dps,
+            class_icon: None,
             effects: Vec::new(),
             is_self: false,
         }
@@ -213,6 +216,7 @@ impl RaidFrame {
         self.name.clear();
         self.hp_percent = 0.0;
         self.role = PlayerRole::Dps;
+        self.class_icon = None;
         self.effects.clear();
         self.is_self = false;
     }
@@ -375,6 +379,8 @@ pub const EFFECT_OFFSET_DEFAULT: f32 = 3.0;
 pub struct RaidOverlayConfig {
     /// Show role icons (tank shield, healer cross)
     pub show_role_icons: bool,
+    /// Show class icons (white silhouette of the player's class)
+    pub show_class_icons: bool,
     /// Maximum effects to display per frame
     pub max_effects_per_frame: u8,
     /// Frame background color (only visible in move mode)
@@ -404,6 +410,7 @@ impl Default for RaidOverlayConfig {
     fn default() -> Self {
         Self {
             show_role_icons: true,
+            show_class_icons: false,
             max_effects_per_frame: 4,
             frame_bg_color: [40, 40, 40, 200],
             selection_color: [80, 120, 180, 220],
@@ -433,6 +440,7 @@ impl From<baras_core::context::RaidOverlaySettings> for RaidOverlayConfig {
     fn from(settings: baras_core::context::RaidOverlaySettings) -> Self {
         Self {
             show_role_icons: settings.show_role_icons,
+            show_class_icons: settings.show_class_icons,
             max_effects_per_frame: settings.max_effects_per_frame,
             frame_bg_color: settings.frame_bg_color,
             selection_color: [80, 120, 180, 220], // Keep hardcoded for now
@@ -821,15 +829,43 @@ impl RaidOverlay {
         // Effect indicators (TOP-LEFT, to match SWTOR's debuff placement)
         let effect_size = self.render_effects(raid_frame, x, y);
 
-        // Role icon (BOTTOM-LEFT, below effects row)
-        if self.config.show_role_icons {
-            self.render_role_icon(raid_frame.role, x, y, h, effect_size);
+        // Role & class icons (BOTTOM-LEFT, below effects row)
+        let show_role = self.config.show_role_icons;
+        let show_class = self.config.show_class_icons;
+        if show_role || show_class {
+            self.render_role_and_class_icons(
+                raid_frame.role,
+                raid_frame.class_icon.as_deref(),
+                x,
+                y,
+                h,
+                effect_size,
+                show_role,
+                show_class,
+            );
         }
     }
 
-    /// Render the role icon at bottom-left, below the effects row
-    fn render_role_icon(&mut self, role: PlayerRole, x: f32, y: f32, h: f32, effect_size: f32) {
-        let icon_size = (self.frame_height() * 0.3).clamp(10.0, 16.0);
+    /// Render role and/or class icons at bottom-left, below the effects row.
+    ///
+    /// Layout:
+    /// - Role icon only: role glyph PNG at bottom-left
+    /// - Class icon only: white class silhouette at bottom-left
+    /// - Both: role glyph + class icon side by side (2px gap)
+    /// - DPS has no role icon, so class icon shifts to the role icon position
+    #[allow(clippy::too_many_arguments)]
+    fn render_role_and_class_icons(
+        &mut self,
+        role: PlayerRole,
+        class_icon_name: Option<&str>,
+        x: f32,
+        y: f32,
+        h: f32,
+        effect_size: f32,
+        show_role: bool,
+        show_class: bool,
+    ) {
+        let icon_size = (self.frame_height() * 0.3).clamp(10.0, 20.0);
         let icon_x = x + 3.0;
         // Position below effects row: y + effect_row_height + small gap
         let icon_y = y + effect_size + 6.0;
@@ -839,49 +875,56 @@ impl RaidOverlay {
             return;
         }
 
-        match role {
-            PlayerRole::Tank => {
-                // Blue shield
-                self.frame.fill_rounded_rect(
-                    icon_x,
+        let mut cursor_x = icon_x;
+
+        // Render role icon glyph (tank/healer only)
+        let role_rendered = if show_role && role != PlayerRole::Dps {
+            let role_icon_name = match role {
+                PlayerRole::Tank => "icon_tank",
+                PlayerRole::Healer => "icon_heal",
+                PlayerRole::Dps => unreachable!(),
+            };
+            if let Some(icon) = crate::class_icons::get_role_icon(role_icon_name) {
+                self.frame.draw_image(
+                    &icon.rgba,
+                    icon.width,
+                    icon.height,
+                    cursor_x,
                     icon_y,
                     icon_size,
                     icon_size,
-                    2.0,
-                    colors::role_tank(),
                 );
-                // "T" label centered in the icon
-                // Note: draw_text y is baseline, so add font_size to push text down into box
-                let icon_font = icon_size * 0.7;
-                let text_x = icon_x + icon_size * 0.25;
-                let text_y = icon_y + icon_size * 0.75; // Baseline near bottom of icon
-                self.frame
-                    .draw_text("T", text_x, text_y, icon_font, colors::white());
+                cursor_x += icon_size + 2.0; // Advance past role icon + gap
+                true
+            } else {
+                false
             }
-            PlayerRole::Healer => {
-                // Green cross
-                let bar_w = icon_size * 0.35;
-                // Vertical bar
-                self.frame.fill_rect(
-                    icon_x + (icon_size - bar_w) / 2.0,
-                    icon_y,
-                    bar_w,
-                    icon_size,
-                    colors::role_healer(),
-                );
-                // Horizontal bar
-                self.frame.fill_rect(
-                    icon_x,
-                    icon_y + (icon_size - bar_w) / 2.0,
-                    icon_size,
-                    bar_w,
-                    colors::role_healer(),
-                );
-            }
-            PlayerRole::Dps => {
-                // No icon for DPS
+        } else {
+            false
+        };
+
+        // Render class icon (white silhouette with drop shadow) if enabled
+        if show_class {
+            if let Some(name) = class_icon_name {
+                // Check width: don't overflow the frame
+                if cursor_x + icon_size <= x + self.frame_width() - 2.0 {
+                    if let Some(icon) = crate::class_icons::get_white_class_icon(name) {
+                        self.frame.draw_image_with_shadow(
+                            &icon.rgba,
+                            icon.width,
+                            icon.height,
+                            cursor_x,
+                            icon_y,
+                            icon_size,
+                            icon_size,
+                        );
+                    }
+                }
             }
         }
+
+        // Suppress unused variable warning when only class icons shown with no role icon
+        let _ = role_rendered;
     }
 
     /// Render a single placeholder effect indicator in move mode

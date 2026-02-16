@@ -2248,10 +2248,12 @@ async fn build_raid_frame_data(
             // Sort effects by effect_id for stable visual ordering
             effects.sort_by_key(|e| e.effect_id);
 
-            // Map discipline to role (defaults to DPS if unknown)
-            let role = player
+            // Map discipline to role and class icon (defaults to DPS if unknown)
+            let discipline = player
                 .discipline_id
-                .and_then(Discipline::from_guid)
+                .and_then(Discipline::from_guid);
+
+            let role = discipline
                 .map(|d| match d.role() {
                     Role::Tank => PlayerRole::Tank,
                     Role::Healer => PlayerRole::Healer,
@@ -2259,12 +2261,16 @@ async fn build_raid_frame_data(
                 })
                 .unwrap_or(PlayerRole::Dps);
 
+            let class_icon = discipline
+                .map(|d| d.class().icon_name().to_string());
+
             frames.push(RaidFrame {
                 slot,
                 player_id: Some(player.entity_id),
                 name: player.name.clone(),
                 hp_percent: 1.0,
                 role,
+                class_icon,
                 effects,
                 is_self: player.entity_id == local_player_id,
             });
