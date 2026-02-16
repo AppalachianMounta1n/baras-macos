@@ -1606,6 +1606,7 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                 th { class: "section-header", colspan: "3", "Damage Taken" }
                                                 th { class: "section-header", colspan: "4", "Healing" }
                                                 th { class: "section-header", colspan: "2", "Shielding" }
+                                                th { class: "section-header", colspan: "1", "Activity" }
                                             }
                                             tr { class: "sub-header",
                                                 th {}
@@ -1622,6 +1623,7 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                 th { class: "num", "EHPS" }
                                                 th { class: "num", "Total" }
                                                 th { class: "num", "SPS" }
+                                                th { class: "num", "APM" }
                                             }
                                         }
                                         tbody {
@@ -1669,6 +1671,7 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                     td { class: "num heal", "{format_number(row.ehps)}" }
                                                     td { class: "num shield", "{format_number(row.shielding_given_total)}" }
                                                     td { class: "num shield", "{format_number(row.sps)}" }
+                                                    td { class: "num apm", "{row.apm:.1}" }
                                                 }
                                             }
                                         }
@@ -1688,6 +1691,7 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                 td { class: "num heal", "{format_number(table_data.total_ehps)}" }
                                                 td { class: "num shield", "{format_number(table_data.total_shielding)}" }
                                                 td { class: "num shield", "{format_number(table_data.total_sps)}" }
+                                                td { class: "num apm" }
                                             }
                                         }
                                     }
@@ -2027,7 +2031,11 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                     onclick: sort_click(SortColumn::Total, false),
                                                     "Total"
                                                 }
-                                                th { class: "col-bar" }
+                                                th {
+                                                    class: "num col-pct col-pct-bar {sort_class(SortColumn::Percent)}",
+                                                    onclick: sort_click(SortColumn::Percent, false),
+                                                    "%"
+                                                }
                                                 if is_healing_tab {
                                                     th {
                                                         class: "num col-val {sort_class(SortColumn::Effective)}",
@@ -2039,11 +2047,6 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                         onclick: sort_click(SortColumn::EffectivePct, false),
                                                         "Eff%"
                                                     }
-                                                }
-                                                th {
-                                                    class: "num col-pct {sort_class(SortColumn::Percent)}",
-                                                    onclick: sort_click(SortColumn::Percent, false),
-                                                    "%"
                                                 }
                                                 th {
                                                     class: "num col-val {sort_class(SortColumn::Rate)}",
@@ -2140,12 +2143,16 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                         }
                                                         td { class: "num group-stat", "{stats.hits}" }
                                                         td { class: "num group-stat col-val", "{format_number(stats.total)}" }
-                                                        td { class: "col-bar" }
+                                                        td { class: "num group-stat col-pct col-pct-bar",
+                                                            div { class: "pct-bar-track",
+                                                                span { class: "pct-bar-fill", style: "width: {stats.percent}%;" }
+                                                                span { class: "pct-text", "{format_pct(stats.percent)}" }
+                                                            }
+                                                        }
                                                         if is_healing_tab {
                                                             td { class: "num group-stat col-val", "{format_number(stats.effective_total)}" }
                                                             td { class: "num group-stat col-pct", "{format_pct(group_eff_pct(stats))}" }
                                                         }
-                                                        td { class: "num group-stat col-pct", "{format_pct(stats.percent)}" }
                                                         td { class: "num group-stat col-val", "{format_number(stats.rate)}" }
                                                         if is_healing_tab {
                                                             td { class: "num group-stat col-val",
@@ -2228,15 +2235,17 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                             td { class: "num", "{ability.hit_count}" }
                                                             // Total with inline bar
                                                             td { class: "num col-val", "{format_number(ability.total_value)}" }
-                                                            td { class: "col-bar",
-                                                                span { class: "inline-bar", style: "width: {(ability.percent_of_total * 0.8).min(80.0)}px;" }
+                                                            // %
+                                                            td { class: "num col-pct col-pct-bar",
+                                                                div { class: "pct-bar-track",
+                                                                    span { class: "pct-bar-fill", style: "width: {ability.percent_of_total}%;" }
+                                                                    span { class: "pct-text", "{format_pct(ability.percent_of_total)}" }
+                                                                }
                                                             }
                                                             if is_healing_tab {
                                                                 td { class: "num col-val", "{format_number(ability.effective_total)}" }
                                                                 td { class: "num col-pct", "{format_pct(ability_eff_pct(ability))}" }
                                                             }
-                                                            // %
-                                                            td { class: "num col-pct", "{format_pct(ability.percent_of_total)}" }
                                                             td { class: "num col-val", "{format_number(ability.dps)}" }
                                                             if is_healing_tab {
                                                                 td { class: "num col-val",
@@ -2359,12 +2368,11 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                         }
                                                         td { class: "num", "{total_hits}" }
                                                         td { class: "num col-val", "{format_number(total_val)}" }
-                                                        td { class: "col-bar" }
+                                                        td { class: "num col-pct col-pct-bar" }
                                                         if is_healing_tab {
                                                             td { class: "num col-val", "{format_number(total_eff)}" }
                                                             td { class: "num col-pct", "{format_pct(eff_pct)}" }
                                                         }
-                                                        td { class: "num col-pct" }
                                                         td { class: "num col-val", "{format_number(total_rate)}" }
                                                         if is_healing_tab {
                                                             td { class: "num col-val", "{format_number(ehps)}" }

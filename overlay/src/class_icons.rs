@@ -82,6 +82,15 @@ static ICON_DATA: &[(&str, &[u8])] = &[
 
 static DECODED_ICONS: OnceLock<HashMap<String, ClassIcon>> = OnceLock::new();
 
+// Embed role icons at compile time
+static ROLE_ICON_DATA: &[(&str, &[u8])] = &[
+    ("icon_tank", include_bytes!("../assets/role/icon_tank.png")),
+    ("icon_heal", include_bytes!("../assets/role/icon_heal.png")),
+    ("icon_dps", include_bytes!("../assets/role/icon_dps.png")),
+];
+
+static DECODED_ROLE_ICONS: OnceLock<HashMap<String, ClassIcon>> = OnceLock::new();
+
 /// Get decoded class icons (lazily initialized)
 fn get_icons() -> &'static HashMap<String, ClassIcon> {
     DECODED_ICONS.get_or_init(|| {
@@ -102,6 +111,25 @@ pub fn get_class_icon(name: &str) -> Option<&'static ClassIcon> {
     get_icons().get(key)
 }
 
+/// Get decoded role icons (lazily initialized)
+fn get_role_icons() -> &'static HashMap<String, ClassIcon> {
+    DECODED_ROLE_ICONS.get_or_init(|| {
+        let mut map = HashMap::new();
+        for (name, data) in ROLE_ICON_DATA {
+            if let Some(icon) = decode_png(data) {
+                map.insert((*name).to_string(), icon);
+            }
+        }
+        map
+    })
+}
+
+/// Get a role icon by name (e.g., "icon_tank", "icon_heal", or "icon_tank.png")
+pub fn get_role_icon(name: &str) -> Option<&'static ClassIcon> {
+    let key = name.strip_suffix(".png").unwrap_or(name);
+    get_role_icons().get(key)
+}
+
 /// Get a class icon with role-based tinting applied
 pub fn get_tinted_class_icon(name: &str, role: Role) -> Option<ClassIcon> {
     let base = get_class_icon(name)?;
@@ -119,6 +147,28 @@ pub fn get_tinted_class_icon(name: &str, role: Role) -> Option<ClassIcon> {
 
     Some(ClassIcon {
         rgba: tinted,
+        width: base.width,
+        height: base.height,
+    })
+}
+
+/// Get a class icon as a role-colored silhouette (preserves alpha, all visible pixels
+/// set to the role's light tint color). Useful for overlays where icons sit on colored bars.
+pub fn get_role_colored_class_icon(name: &str, role: Role) -> Option<ClassIcon> {
+    let base = get_class_icon(name)?;
+    let (r, g, b) = role.tint_color();
+
+    let mut result = base.rgba.clone();
+    for chunk in result.chunks_exact_mut(4) {
+        if chunk[3] > 0 {
+            chunk[0] = r;
+            chunk[1] = g;
+            chunk[2] = b;
+        }
+    }
+
+    Some(ClassIcon {
+        rgba: result,
         width: base.width,
         height: base.height,
     })

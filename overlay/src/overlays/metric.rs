@@ -391,13 +391,19 @@ impl MetricOverlay {
             );
 
             // Draw class icon on top of bar if enabled and available
+            // Use role-colored tint when role is known, otherwise white
             if has_icon {
                 if let Some(icon_name) = &entry.class_icon {
-                    if let Some(icon) = crate::class_icons::get_white_class_icon(icon_name) {
+                    let icon = if let Some(role) = entry.role {
+                        crate::class_icons::get_role_colored_class_icon(icon_name, role)
+                    } else {
+                        crate::class_icons::get_white_class_icon(icon_name)
+                    };
+                    if let Some(icon) = icon {
                         let icon_x = padding + icon_padding;
                         let icon_y = y + icon_padding;
 
-                        self.frame.draw_image(
+                        self.frame.draw_image_with_shadow(
                             &icon.rgba,
                             icon.width,
                             icon.height,

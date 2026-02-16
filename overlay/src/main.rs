@@ -17,17 +17,17 @@ use std::time::{Duration, Instant};
 
 mod examples {
     use super::*;
-    use baras_core::OverlayHealthEntry;
     use baras_core::context::BossHealthConfig;
     use baras_core::context::{
         ChallengeColumns, ChallengeLayout, ChallengeOverlayConfig, OverlayAppearanceConfig,
         TimerOverlayConfig,
     };
+    use baras_core::OverlayHealthEntry;
     use baras_overlay::{
-        BossHealthData, BossHealthOverlay, ChallengeData, ChallengeEntry, ChallengeOverlay, Color,
-        InteractionMode, MetricEntry, MetricOverlay, Overlay, OverlayConfig, PlayerContribution,
-        PlayerRole, RaidEffect, RaidFrame, RaidGridLayout, RaidOverlay, RaidOverlayConfig,
-        TimerData, TimerEntry, TimerOverlay, colors,
+        colors, BossHealthData, BossHealthOverlay, ChallengeData, ChallengeEntry, ChallengeOverlay,
+        Color, InteractionMode, MetricEntry, MetricOverlay, Overlay, OverlayConfig,
+        PlayerContribution, PlayerRole, RaidEffect, RaidFrame, RaidGridLayout, RaidOverlay,
+        RaidOverlayConfig, TimerData, TimerEntry, TimerOverlay,
     };
 
     pub fn run_metric_overlay() {
@@ -475,10 +475,9 @@ mod examples {
                 name: "Tanky McTank".to_string(),
                 hp_percent: 0.0,
                 role: PlayerRole::Tank,
-                effects: vec![
-                    RaidEffect::new(100, "Guard")
-                        .with_color(tiny_skia::Color::from_rgba8(100, 150, 220, 255)),
-                ],
+                class_icon: Some("juggernaut.png".to_string()),
+                effects: vec![RaidEffect::new(100, "Guard")
+                    .with_color(tiny_skia::Color::from_rgba8(100, 150, 220, 255))],
                 is_self: true,
             },
             // Slot 1: Healer
@@ -488,11 +487,10 @@ mod examples {
                 name: "Healz4Days".to_string(),
                 hp_percent: 0.0,
                 role: PlayerRole::Healer,
-                effects: vec![
-                    RaidEffect::new(200, "Resurgence")
-                        .with_color(tiny_skia::Color::from_rgba8(100, 220, 100, 255))
-                        .with_charges(2),
-                ],
+                class_icon: Some("sorcerer.png".to_string()),
+                effects: vec![RaidEffect::new(200, "Resurgence")
+                    .with_color(tiny_skia::Color::from_rgba8(100, 220, 100, 255))
+                    .with_charges(2)],
                 is_self: false,
             },
             // Slot 2: DPS
@@ -502,6 +500,7 @@ mod examples {
                 name: "PewPewLazors".to_string(),
                 hp_percent: 0.0,
                 role: PlayerRole::Dps,
+                class_icon: Some("sniper.png".to_string()),
                 effects: vec![
                     RaidEffect::new(300, "Kolto Probe")
                         .with_color(tiny_skia::Color::from_rgba8(150, 255, 150, 255)),
@@ -517,6 +516,7 @@ mod examples {
                 name: "StabbySith".to_string(),
                 hp_percent: 0.0,
                 role: PlayerRole::Dps,
+                class_icon: Some("assassin.png".to_string()),
                 effects: vec![],
                 is_self: false,
             },
@@ -527,10 +527,9 @@ mod examples {
                 name: "OffTankOT".to_string(),
                 hp_percent: 0.0,
                 role: PlayerRole::Tank,
-                effects: vec![
-                    RaidEffect::new(400, "Saber Ward")
-                        .with_color(tiny_skia::Color::from_rgba8(255, 200, 100, 255)),
-                ],
+                class_icon: Some("powertech.png".to_string()),
+                effects: vec![RaidEffect::new(400, "Saber Ward")
+                    .with_color(tiny_skia::Color::from_rgba8(255, 200, 100, 255))],
                 is_self: false,
             },
             // Slot 5: Healer (no effects)
@@ -540,6 +539,7 @@ mod examples {
                 name: "HoTsOnYou".to_string(),
                 hp_percent: 0.0,
                 role: PlayerRole::Healer,
+                class_icon: Some("operative.png".to_string()),
                 effects: vec![],
                 is_self: false,
             },
@@ -550,11 +550,10 @@ mod examples {
                 name: "StandInFire".to_string(),
                 hp_percent: 0.0,
                 role: PlayerRole::Dps,
-                effects: vec![
-                    RaidEffect::new(500, "Burning")
-                        .with_color(tiny_skia::Color::from_rgba8(255, 100, 50, 255))
-                        .with_is_buff(false),
-                ],
+                class_icon: Some("marauder.png".to_string()),
+                effects: vec![RaidEffect::new(500, "Burning")
+                    .with_color(tiny_skia::Color::from_rgba8(255, 100, 50, 255))
+                    .with_is_buff(false)],
                 is_self: false,
             },
             // Slot 7: Empty slot
@@ -750,6 +749,7 @@ mod examples {
                     name: player_names[slot].to_string(),
                     hp_percent: 1.0,
                     role: roles[slot],
+                    class_icon: None,
                     effects: vec![effect1, effect2],
                     is_self: slot == 0,
                 }

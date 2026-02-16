@@ -40,7 +40,8 @@ pub mod widgets;
 
 // Re-export commonly used types
 pub use class_icons::{
-    ClassIcon, Role, get_class_icon, get_tinted_class_icon, get_white_class_icon,
+    ClassIcon, Role, get_class_icon, get_role_colored_class_icon, get_role_icon,
+    get_tinted_class_icon, get_white_class_icon,
 };
 pub use frame::OverlayFrame;
 pub use manager::OverlayWindow;

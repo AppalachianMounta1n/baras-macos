@@ -357,10 +357,25 @@ pub async fn load_profile(
     handle: State<'_, ServiceHandle>,
     overlay_state: State<'_, SharedOverlayState>,
 ) -> Result<(), String> {
-    let mut config = handle.config().await;
+    let old_config = handle.config().await;
+    let old_slots = old_config.overlay_settings.raid_overlay.total_slots();
+
+    let mut config = old_config;
     config.load_profile(&name).map_err(|e| e.to_string())?;
+    let new_slots = config.overlay_settings.raid_overlay.total_slots();
+
     *handle.shared.config.write().await = config.clone();
     config.save().map_err(|e| e.to_string())?;
+
+    // Update raid registry max slots if grid size changed between profiles
+    if new_slots != old_slots {
+        handle
+            .shared
+            .raid_registry
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .set_max_slots(new_slots);
+    }
 
     // Reset move mode on profile switch
     let txs: Vec<_> = {
@@ -417,8 +432,8 @@ pub struct ChangelogResponse {
     pub version: String,
 }
 
-/// Embedded changelog content (located at app/src-tauri/CHANGELOG.md)
-const CHANGELOG_MD: &str = include_str!("../../CHANGELOG.md");
+/// Embedded changelog content (located at CHANGELOG.md in repo root)
+const CHANGELOG_MD: &str = include_str!("../../../../CHANGELOG.md");
 
 /// Check if changelog should be shown and return rendered HTML.
 /// Compares current app version with last viewed version in config.

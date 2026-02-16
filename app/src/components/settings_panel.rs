@@ -1605,6 +1605,19 @@ pub fn SettingsPanel(
                             }
 
                             div { class: "setting-row",
+                                label { "Show Class Icons" }
+                                input {
+                                    r#type: "checkbox",
+                                    checked: current_settings.raid_overlay.show_class_icons,
+                                    onchange: move |e: Event<FormData>| {
+                                        let mut new_settings = draft_settings();
+                                        new_settings.raid_overlay.show_class_icons = e.checked();
+                                        update_draft(new_settings);
+                                    }
+                                }
+                            }
+
+                            div { class: "setting-row",
                                 label { "Show Effect Icons" }
                                 input {
                                     r#type: "checkbox",

@@ -4,8 +4,9 @@
 
 use std::collections::HashMap;
 
+use baras_core::game_data::Role as GameRole;
 use baras_core::PlayerMetrics;
-use baras_overlay::{Color, MetricEntry};
+use baras_overlay::{Color, MetricEntry, Role as OverlayRole};
 
 use super::types::MetricType;
 
@@ -100,18 +101,23 @@ pub fn create_entries_for_type(
         .map(|m| {
             let v = extract_values(m, overlay_type);
             let class_icon = m.class_icon.clone();
-            (m.name.clone(), v, class_icon)
+            let role = m.discipline.map(|d| match d.role() {
+                GameRole::Tank => OverlayRole::Tank,
+                GameRole::Healer => OverlayRole::Healer,
+                GameRole::Dps => OverlayRole::Damage,
+            });
+            (m.name.clone(), v, class_icon, role)
         })
         .collect();
 
     // Sort by rate value descending (highest first)
     values.sort_by(|a, b| b.1.rate.cmp(&a.1.rate));
 
-    let max_value = values.iter().map(|(_, v, _)| v.rate).max().unwrap_or(1);
+    let max_value = values.iter().map(|(_, v, _, _)| v.rate).max().unwrap_or(1);
 
     values
         .into_iter()
-        .map(|(name, v, class_icon)| {
+        .map(|(name, v, class_icon, role)| {
             let mut entry = MetricEntry::new(&name, v.rate, max_value).with_total(v.total);
             if let (Some(sr), Some(st)) = (v.split_rate, v.split_total) {
                 entry = entry.with_split(sr, st);
@@ -120,7 +126,11 @@ pub fn create_entries_for_type(
                 }
             }
             if let Some(icon) = class_icon {
-                entry = entry.with_icon(icon);
+                if let Some(role) = role {
+                    entry = entry.with_class_icon(icon, role);
+                } else {
+                    entry = entry.with_icon(icon);
+                }
             }
             entry
         })

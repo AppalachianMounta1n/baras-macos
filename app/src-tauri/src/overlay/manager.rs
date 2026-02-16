@@ -851,6 +851,13 @@ impl OverlayManager {
             was_running
         };
 
+        // Brief delay after shutting down old raid overlay before spawning the new one.
+        // On Wayland (Hyprland), two layer-shell surfaces with the same namespace
+        // coexisting briefly causes the compositor to misposition the new surface.
+        if raid_was_running {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+
         // Only respawn raid if global visibility is on
         let raid_respawned = if globally_visible
             && (raid_was_running || raid_enabled)

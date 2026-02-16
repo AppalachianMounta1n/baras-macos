@@ -30,7 +30,7 @@ id = "propagator_lethal_strike_rc"
 name = "Lethal Strike After Recovery"
 display_text = "Lethal Strike"
 trigger = { type = "effect_removed", effects = [4832241934926105] }
-duration_secs = 13.0
+duration_secs = 23.0
 color = [237, 33, 33, 255]
 
 [[boss.timer]]

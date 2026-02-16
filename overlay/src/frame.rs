@@ -205,6 +205,35 @@ impl OverlayFrame {
             .draw_text_styled(text, x, y, font_size, color, bold, italic);
     }
 
+    /// Draw styled text with a full surrounding dark glow for readability.
+    /// Renders text at all 8 cardinal/diagonal offsets in shadow color, then the real text on top.
+    pub fn draw_text_with_glow(
+        &mut self,
+        text: &str,
+        x: f32,
+        y: f32,
+        font_size: f32,
+        color: Color,
+        bold: bool,
+        italic: bool,
+    ) {
+        let shadow_color = crate::widgets::colors::text_shadow();
+        let d = 1.0_f32;
+        for &(dx, dy) in &[
+            (-d, -d),
+            (0.0, -d),
+            (d, -d),
+            (-d, 0.0),
+            (d, 0.0),
+            (-d, d),
+            (0.0, d),
+            (d, d),
+        ] {
+            self.draw_text_styled(text, x + dx, y + dy, font_size, shadow_color, bold, italic);
+        }
+        self.draw_text_styled(text, x, y, font_size, color, bold, italic);
+    }
+
     /// Draw text with color from RGBA array
     pub fn draw_text_rgba(&mut self, text: &str, x: f32, y: f32, font_size: f32, rgba: [u8; 4]) {
         self.window
@@ -240,6 +269,64 @@ impl OverlayFrame {
         dest_height: f32,
     ) {
         self.window.draw_image(
+            image_data,
+            image_width,
+            image_height,
+            dest_x,
+            dest_y,
+            dest_width,
+            dest_height,
+        );
+    }
+
+    /// Draw an RGBA image with a full surrounding shadow outline for visibility.
+    /// Renders dark semi-transparent copies at all 8 cardinal/diagonal offsets,
+    /// then the original image on top — similar to SWTOR's icon shadow style.
+    pub fn draw_image_with_shadow(
+        &mut self,
+        image_data: &[u8],
+        image_width: u32,
+        image_height: u32,
+        dest_x: f32,
+        dest_y: f32,
+        dest_width: f32,
+        dest_height: f32,
+    ) {
+        // Build shadow version: black with reduced alpha
+        let mut shadow = image_data.to_vec();
+        for chunk in shadow.chunks_exact_mut(4) {
+            let alpha = chunk[3] as u16;
+            chunk[0] = 0;
+            chunk[1] = 0;
+            chunk[2] = 0;
+            chunk[3] = (alpha * 180 / 255) as u8;
+        }
+
+        // Draw shadow at all 8 surrounding offsets for a full 1px outline
+        let d = 1.0_f32;
+        for &(dx, dy) in &[
+            (-d, -d),
+            (0.0, -d),
+            (d, -d),
+            (-d, 0.0),
+            (d, 0.0),
+            (-d, d),
+            (0.0, d),
+            (d, d),
+        ] {
+            self.draw_image(
+                &shadow,
+                image_width,
+                image_height,
+                dest_x + dx,
+                dest_y + dy,
+                dest_width,
+                dest_height,
+            );
+        }
+
+        // Draw the actual image on top
+        self.draw_image(
             image_data,
             image_width,
             image_height,
