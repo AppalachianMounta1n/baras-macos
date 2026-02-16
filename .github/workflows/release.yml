@@ -67,7 +67,7 @@ jobs:
         id: changelog
         run: |
           # Read changelog, skip the "# What's New" header
-          BODY=$(tail -n +3 app/src-tauri/CHANGELOG.md)
+          BODY=$(tail -n +3 CHANGELOG.md)
           # Handle multiline for GitHub Actions
           echo "body<<EOF" >> $GITHUB_OUTPUT
           echo "$BODY" >> $GITHUB_OUTPUT
@@ -122,7 +122,7 @@ jobs:
         shell: bash
         run: |
           # Read changelog, skip the "# What's New" header
-          BODY=$(tail -n +3 app/src-tauri/CHANGELOG.md)
+          BODY=$(tail -n +3 CHANGELOG.md)
           # Handle multiline for GitHub Actions
           echo "body<<EOF" >> $GITHUB_OUTPUT
           echo "$BODY" >> $GITHUB_OUTPUT
@@ -178,7 +178,7 @@ jobs:
         id: changelog
         run: |
           # Read changelog, skip the "# What's New" header
-          BODY=$(tail -n +3 app/src-tauri/CHANGELOG.md)
+          BODY=$(tail -n +3 CHANGELOG.md)
           # Handle multiline for GitHub Actions
           echo "body<<EOF" >> $GITHUB_OUTPUT
           echo "$BODY" >> $GITHUB_OUTPUT
@@ -215,7 +215,7 @@ jobs:
           sleep 10
 
           # Read changelog for notes (first non-empty content line as summary)
-           NOTES=$(sed -n '/^## /,/^## /p' app/src-tauri/CHANGELOG.md | head -1 | sed 's/^## //')
+           NOTES=$(sed -n '/^## /,/^## /p' CHANGELOG.md | head -1 | sed 's/^## //')
 
           # Download signatures
           LINUX_SIG=$(curl -sL "https://github.com/baras-app/baras/releases/download/v${VERSION}/BARAS_${VERSION}_amd64.AppImage.sig")

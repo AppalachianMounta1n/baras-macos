@@ -432,8 +432,8 @@ pub struct ChangelogResponse {
     pub version: String,
 }
 
-/// Embedded changelog content (located at app/src-tauri/CHANGELOG.md)
-const CHANGELOG_MD: &str = include_str!("../../CHANGELOG.md");
+/// Embedded changelog content (located at CHANGELOG.md in repo root)
+const CHANGELOG_MD: &str = include_str!("../../../../CHANGELOG.md");
 
 /// Check if changelog should be shown and return rendered HTML.
 /// Compares current app version with last viewed version in config.
