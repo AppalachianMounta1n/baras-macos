@@ -6693,6 +6693,10 @@ details[open] .collapsible-summary::before {
 
 .ability-table .ability-name-cell {
   font-weight: 400;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ability-table .ability-name-cell .ability-name-inner {
@@ -6737,6 +6741,57 @@ details[open] .collapsible-summary::before {
   color: var(--text-muted);
 }
 
+/* The % column with bar visualization */
+.ability-table .col-pct-bar {
+  min-width: 110px;
+}
+
+.ability-table td.col-pct-bar {
+  height: 1px; /* trick: gives td an explicit height so % children resolve */
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Bar-track container inside the % column */
+.pct-bar-track {
+  position: relative;
+  width: 80%;
+  margin: 0 auto;
+  height: 45%;
+  background: hsla(0, 0%, 50%, 0.2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.pct-bar-fill {
+  position: absolute;
+  inset: 0;
+  right: auto;
+  border-radius: 3px;
+  background: hsla(210, 60%, 55%, 0.5);
+  pointer-events: none;
+}
+
+.ability-table.damage-tab .pct-bar-fill {
+  background: hsla(0, 55%, 60%, 0.55);
+}
+
+.ability-table.healing-tab .pct-bar-fill {
+  background: hsla(120, 45%, 55%, 0.55);
+}
+
+.pct-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: hsla(0, 0%, 100%, 0.9);
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
 /* Average columns group - left border separator */
 .ability-table .col-avg-first {
   border-left: 1px solid var(--border-subtle);
@@ -6758,28 +6813,7 @@ details[open] .collapsible-summary::before {
   color: hsl(30, 60%, 60%);
 }
 
-/* Bar column next to Total */
-.ability-table th.col-bar,
-.ability-table td.col-bar {
-  padding-left: 0;
-  padding-right: 0.5em;
-  width: 80px;
-}
-
-.inline-bar {
-  display: block;
-  height: 10px;
-  border-radius: 3px;
-  background: hsla(210, 60%, 55%, 0.35);
-}
-
-.ability-table.damage-tab .inline-bar {
-  background: hsla(0, 55%, 60%, 0.4);
-}
-
-.ability-table.healing-tab .inline-bar {
-  background: hsla(120, 45%, 55%, 0.4);
-}
+/* (Bar column merged into % column - see .pct-bar-fill above) */
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Toast Notifications

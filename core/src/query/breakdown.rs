@@ -430,12 +430,22 @@ impl EncounterQuery<'_> {
             }
         }
 
-        // Append shield breakdown rows for healing tabs
+        // Append shield breakdown rows for healing tabs, then recalculate
+        // percent_of_total so the denominator includes shield absorption.
         if tab.is_healing() && entity_name.is_some() {
             if let Ok(shields) =
                 self.query_shield_breakdown(entity_name.unwrap(), time_range, duration).await
             {
-                results.extend(shields);
+                if !shields.is_empty() {
+                    results.extend(shields);
+                    // Recalculate percent_of_total across all rows (heals + shields)
+                    let grand_total: f64 = results.iter().map(|r| r.total_value).sum();
+                    if grand_total > 0.0 {
+                        for r in &mut results {
+                            r.percent_of_total = r.total_value / grand_total * 100.0;
+                        }
+                    }
+                }
             }
         }
 
