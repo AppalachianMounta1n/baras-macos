@@ -357,12 +357,15 @@ impl ParsingSession {
             return;
         }
 
-        // Update counters based on timer events
+        // Update counters based on timer events and dispatch the resulting signals
+        // so that counter_reaches triggers can fire from timer-driven counter changes.
         if let Some(cache) = &mut self.session_cache {
             use crate::signal_processor::check_counter_timer_triggers;
-            let _counter_signals =
+            let counter_signals =
                 check_counter_timer_triggers(&expired_ids, &started_ids, cache, timestamp);
-            // Counter state is updated in-place; signals are for logging/debugging
+            if !counter_signals.is_empty() {
+                self.dispatch_signals(&counter_signals);
+            }
         }
     }
 
