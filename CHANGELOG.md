@@ -8,7 +8,7 @@ Significant quality of life improvements and updates to overlay rendering
 - File selector can now filter by area name and day of week
 - UI for encounter and effects editors made clearer
 - Added Audio preview button in editor UI
-- App now detects stale log files and will display a message on the session page
+- App now considers stale files (no updates for 15 minutes) as non-live sessions and indicates this on the session tab
 - Effects editor shows a badge when a default effect has been modified
 
 ## Effects Tracker
