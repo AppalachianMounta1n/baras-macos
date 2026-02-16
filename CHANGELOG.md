@@ -1,44 +1,41 @@
 # v2026.2.15
 
-Overlay visual improvements, raid frame icons, effects tracker upgrades, and bug fixes.
+Significant quality of life improvements and updates to overlay rendering
 
-Features / Improvements:
+## Quality of Life
 
-- Raid frame role icons now render role glyphs (shield/cross) instead of procedural shapes
-- Optional class icons on raid frames — shows player class inline with role icons (off by default)
-- Class icons on metric overlays are now role-colored with dark shadow outline for readability
-- APM column added to data explorer
-- Restyled inline bars in data explorer
-- Area-based file indexing and log file explorer filtering
-- Sound preview button for alert audio
-- Adjustable frame spacing option for raid frames
-- Stale log file detection with visual indicator
-- Death review now filters by source
-- Effects editor shows when a default effect has been modified
-- Discipline-scoping for effects tracker
-- Separate alert text from audio configuration
-- Raid frame grid validation loosened to allow more configurations
+- Old log files now show operation areas entered in the file explorer
+- File selector can now filter by are name and day of week
+- UI for encounter and effects editors made clearer
+- Added Audio preview button in editor UI
+- App now detects stale log files and will display a message on the session page
+- Effects editor shows a badge when a default effect has been modified
 
-Overlay Visual Improvements:
+## Effects Tracker
 
-- Text shadow on all overlay types (metrics, boss health, challenges, alerts) for better readability
-- Bold text on alerts overlay
-- Improved phase, challenges, counters, and effects formatting
+- Effects can now be scoped to specific disciplines
+- Op Healer: Medical probe and Kolto infusion only refresh Kolto probe at 2 stacks (delete any custom entry for Kolto probe)
+- Op Healer: Kolto infusion only refreshes Kolto probe after cast complete
+- Improve DoT tracker for Virulence sniper
+- Effects should now fall off correctly for Madness shock and when entities die
 
-Timers and Definitions:
+## Timers
 
-- Added new timers and phase definitions
-- Updated Dxun Holding Pen droid counters
-- Updated AoE refresh dot ability IDs
+- Alert text can now be added to fire at the start/end of timers that aren't pure alerts
+- Fixed issue where editing default timers did not hot-reload them within an area
 
-Fixes:
+## Raid Frames
 
-- Fix custom timers failing to hot-reload within area
-- Fix stale alerts firing on application start
-- Fix combat time updating during grace window
-- Fix Kolto Probe refresh timing and stack tracking
-- Fix Virulence effect logging edge case
-- Fix raid registry slot config not reloading on profile switch
-- Fix effect refresh registration
-- Entities logged at 0 HP are now correctly considered dead
-- Stale session detection threshold changed to 15 minutes
+- Class icons can now be displayed on raid frames
+- SWTOR role icons are used instead of drawing custom icons
+- Raid frames can now select any row/column combination up to 24 slots
+- Fixed issue where raid frame slot count was not updating on profile switch
+
+## Misc
+
+- When triggering timers, phases, or counters, entities are now considered dead when they are logged at 0 HP
+- Added APM column to data explorer overview table
+- The death review now only filters for events where the dead player is the target
+- Healing % total now includes shielding
+- Inline bar formatting in the data explorer tabs improved
+- Various timers added/ tweaked
