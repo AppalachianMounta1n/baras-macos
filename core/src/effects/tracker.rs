@@ -1025,8 +1025,25 @@ impl EffectTracker {
 
         for def in refreshable_defs {
             let key = EffectKey::new(&def.id, target_id);
+            // Fallback: if the resolved target is an NPC, also try source_id.
+            // Handles self-cast abilities (e.g. Dark Ward) where target resolution
+            // resolves to the combat target but the effect is keyed to the caster.
+            // Only for NPC targets — player targets are intentional (e.g. heals).
+            let fallback_key = if target_id != source_id
+                && target_entity_type != EntityType::Player
+            {
+                Some(EffectKey::new(&def.id, source_id))
+            } else {
+                None
+            };
 
-            if let Some(effect) = self.active_effects.get_mut(&key) {
+            let matched_key = if self.active_effects.contains_key(&key) {
+                Some(key.clone())
+            } else {
+                fallback_key.filter(|k| self.active_effects.contains_key(k))
+            };
+
+            if let Some(effect) = matched_key.and_then(|k| self.active_effects.get_mut(&k)) {
                 // Check min_stacks condition if specified
                 if let Some(min_stacks) = def.min_stacks {
                     if effect.stacks < min_stacks {
@@ -1078,7 +1095,7 @@ impl EffectTracker {
                 self.ticking_count += 1;
 
                 // Queue target for raid frame registration (only players)
-                if is_player {
+                if def.display_target == DisplayTarget::RaidFrames && is_player {
                     self.new_targets.push(NewTargetInfo {
                         entity_id: target_id,
                         name: target_name,
