@@ -279,6 +279,16 @@ impl EncounterQuery<'_> {
             .map(|tr| format!("AND {}", tr.sql_filter()))
             .unwrap_or_default();
 
+        // Death/damage events can trail slightly after combat exit; give a 2s buffer
+        let death_time_filter = time_range
+            .map(|tr| {
+                format!(
+                    "AND {}",
+                    TimeRange::new(tr.start, tr.end + 2.0).sql_filter()
+                )
+            })
+            .unwrap_or_default();
+
         let batches = self
             .sql(&format!(
                 r#"
@@ -294,7 +304,7 @@ impl EncounterQuery<'_> {
                        ROW_NUMBER() OVER (PARTITION BY target_id ORDER BY line_number DESC) as rn
                 FROM events
                 WHERE target_entity_type = 'Npc' AND target_max_hp > 0
-                  AND effect_id != {targetset} {time_filter}
+                  AND effect_id != {targetset} {death_time_filter}
             ),
             first_seen AS (
                 SELECT target_id, MIN(combat_time_secs) as first_seen_secs
@@ -306,7 +316,7 @@ impl EncounterQuery<'_> {
             deaths AS (
                 SELECT target_id, MIN(combat_time_secs) as death_time_secs
                 FROM events
-                WHERE target_entity_type = 'Npc' AND effect_id = {death_id} {time_filter}
+                WHERE target_entity_type = 'Npc' AND effect_id = {death_id} {death_time_filter}
                 GROUP BY target_id
             )
             SELECT fh.target_name,
@@ -336,7 +346,8 @@ impl EncounterQuery<'_> {
 
             for i in 0..batch.num_rows() {
                 let max_hp = max_hps[i];
-                let final_hp = hps[i].max(0);
+                // If the NPC has a death record, final HP is 0 regardless of last event
+                let final_hp = if death_times[i].is_some() { 0 } else { hps[i].max(0) };
                 let pct = if max_hp > 0 {
                     (final_hp as f32 / max_hp as f32) * 100.0
                 } else {
