@@ -331,7 +331,7 @@ impl NotesOverlay {
 
         // If no data, show placeholder
         if self.data.text.is_empty() && self.data.boss_name.is_empty() {
-            self.frame.draw_text(
+            self.frame.draw_text_glowed(
                 "No notes",
                 padding,
                 padding + font_size,
@@ -347,7 +347,7 @@ impl NotesOverlay {
         // Draw boss name header if present
         if !self.data.boss_name.is_empty() {
             y += header_font_size;
-            self.frame.draw_text(
+            self.frame.draw_text_glowed(
                 &self.data.boss_name,
                 padding,
                 y,
@@ -369,7 +369,7 @@ impl NotesOverlay {
                     break;
                 }
                 // Draw divider as repeated dash characters
-                self.frame.draw_text(
+                self.frame.draw_text_glowed(
                     "────────────────────────────",
                     padding,
                     y,

@@ -471,16 +471,8 @@ impl ChallengeOverlay {
     ) -> f32 {
         // Draw challenge name
         let title_y = y + header_font_size;
-        // Shadow for readability
-        self.frame.draw_text(
-            &challenge.name,
-            x + 1.0,
-            title_y + 1.0,
-            header_font_size,
-            colors::text_shadow(),
-        );
         self.frame
-            .draw_text(&challenge.name, x, title_y, header_font_size, font_color);
+            .draw_text_glowed(&challenge.name, x, title_y, header_font_size, font_color);
 
         // Draw duration in smaller font on the right if enabled
         if show_duration {
@@ -489,15 +481,7 @@ impl ChallengeOverlay {
             let duration_x = x + width - duration_width;
             // Align baseline with header text (adjust for smaller font)
             let duration_y = title_y - (header_font_size - duration_font_size) * 0.3;
-            // Shadow for readability
-            self.frame.draw_text(
-                &duration_str,
-                duration_x + 1.0,
-                duration_y + 1.0,
-                duration_font_size,
-                colors::text_shadow(),
-            );
-            self.frame.draw_text(
+            self.frame.draw_text_glowed(
                 &duration_str,
                 duration_x,
                 duration_y,

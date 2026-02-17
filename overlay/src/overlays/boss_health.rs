@@ -225,9 +225,7 @@ impl BossHealthOverlay {
 
             // Draw boss name above bar (y is baseline, so offset by font size)
             let name_y = y + actual_font_size;
-            // Shadow for readability
-            self.frame.draw_text(&entry.name, padding + 1.0, name_y + 1.0, actual_font_size, colors::text_shadow());
-            self.frame.draw_text(&entry.name, padding, name_y, actual_font_size, font_color);
+            self.frame.draw_text_glowed(&entry.name, padding, name_y, actual_font_size, font_color);
 
             y += label_height + label_bar_gap;
 
@@ -269,9 +267,7 @@ impl BossHealthOverlay {
                 let (text_width, _) = self.frame.measure_text(&target_text, target_font_size);
                 let target_x = padding + content_width - text_width;
                 let target_y = y + target_font_size + 1.0;
-                // Shadow for readability
-                self.frame.draw_text(&target_text, target_x + 1.0, target_y + 1.0, target_font_size, colors::text_shadow());
-                self.frame.draw_text(&target_text, target_x, target_y, target_font_size, font_color);
+                self.frame.draw_text_glowed(&target_text, target_x, target_y, target_font_size, font_color);
                 y += target_font_size + 2.0;
             }
 

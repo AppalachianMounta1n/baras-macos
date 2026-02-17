@@ -11,7 +11,6 @@
 #![allow(clippy::too_many_arguments)]
 use crate::manager::OverlayWindow;
 use crate::platform::{OverlayConfig, PlatformError};
-use crate::utils::color_from_rgba;
 use crate::widgets::colors;
 use tiny_skia::Color;
 
@@ -152,13 +151,13 @@ impl OverlayFrame {
             );
 
             // Draw overlay label centered in move mode
-            if let Some(ref label) = self.label {
+            if let Some(label) = self.label.clone() {
                 let font_size = self.scaled(12.0).max(10.0);
                 let label_color = Color::from_rgba8(180, 180, 180, 200);
-                let (text_width, text_height) = self.window.measure_text(label, font_size);
+                let (text_width, text_height) = self.window.measure_text(&label, font_size);
                 let x = (width - text_width) / 2.0;
                 let y = (height + text_height) / 2.0; // baseline-centered
-                self.window.draw_text(label, x, y, font_size, label_color);
+                self.draw_text_glowed(&label, x, y, font_size, label_color);
             }
         }
     }
@@ -207,11 +206,6 @@ impl OverlayFrame {
     // Drawing helpers (delegate to window)
     // ─────────────────────────────────────────────────────────────────────────
 
-    /// Draw text at the specified position
-    pub fn draw_text(&mut self, text: &str, x: f32, y: f32, font_size: f32, color: Color) {
-        self.window.draw_text(text, x, y, font_size, color);
-    }
-
     /// Draw text with bold/italic styling
     pub fn draw_text_styled(
         &mut self,
@@ -256,10 +250,9 @@ impl OverlayFrame {
         self.draw_text_styled(text, x, y, font_size, color, bold, italic);
     }
 
-    /// Draw text with color from RGBA array
-    pub fn draw_text_rgba(&mut self, text: &str, x: f32, y: f32, font_size: f32, rgba: [u8; 4]) {
-        self.window
-            .draw_text(text, x, y, font_size, color_from_rgba(rgba));
+    /// Draw text with a full surrounding dark glow (non-styled convenience method).
+    pub fn draw_text_glowed(&mut self, text: &str, x: f32, y: f32, font_size: f32, color: Color) {
+        self.draw_text_with_glow(text, x, y, font_size, color, false, false);
     }
 
     /// Measure text dimensions

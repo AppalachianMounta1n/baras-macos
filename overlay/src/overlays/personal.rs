@@ -377,25 +377,8 @@ impl PersonalOverlay {
                         .frame
                         .measure_text_styled(&value, actual_fs, false, false);
                     let cx = padding + (content_width - fitted_w) * 0.5;
-                    let shadow = colors::text_shadow();
-                    self.frame.draw_text_styled(
-                        &value,
-                        cx + 1.0,
-                        y + 1.0,
-                        actual_fs,
-                        shadow,
-                        false,
-                        false,
-                    );
-                    self.frame.draw_text_styled(
-                        &value,
-                        cx,
-                        y,
-                        actual_fs,
-                        value_color,
-                        false,
-                        false,
-                    );
+                    self.frame
+                        .draw_text_glowed(&value, cx, y, actual_fs, value_color);
                 } else {
                     // Metric single-value rows (APM, Combat Time, etc.)
                     // Use 0.8x value font to match compound row values

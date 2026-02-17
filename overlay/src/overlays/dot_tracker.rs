@@ -315,7 +315,7 @@ impl DotTrackerOverlay {
 
             for (i, line) in name_lines.iter().enumerate() {
                 if i == 1 && total_lines > 2 {
-                    self.frame.draw_text(
+                    self.frame.draw_text_glowed(
                         &format!("{}...", line),
                         x,
                         text_start_y + i as f32 * line_height,
@@ -325,7 +325,7 @@ impl DotTrackerOverlay {
                     break;
                 }
 
-                self.frame.draw_text(
+                self.frame.draw_text_glowed(
                     line,
                     x,
                     text_start_y + i as f32 * line_height,
@@ -399,56 +399,40 @@ impl DotTrackerOverlay {
                 );
 
                 // Font size for countdown/stack text
-                let time_font_size = font_size * 0.85;
+                let time_font_size = font_size * 0.95;
 
                 // Countdown text centered (if enabled)
                 if self.config.show_countdown {
                     let time_text = dot.format_time();
                     let text_width = self.frame.measure_text(&time_text, time_font_size).0;
                     let text_x = icon_x + (icon_size - text_width) / 2.0;
-                    let text_y = y + icon_size / 2.0 + time_font_size / 3.0;
+                    let text_y = y + icon_size / 2.0 + time_font_size * 0.4;
 
-                    // Shadow
-                    self.frame.draw_text(
-                        &time_text,
-                        text_x + 1.0,
-                        text_y + 1.0,
-                        time_font_size,
-                        colors::text_shadow(),
-                    );
-                    // Text
                     let time_color = if dot.remaining_secs <= 3.0 {
                         colors::effect_debuff()
                     } else {
-                        colors::white()
+                        colors::icon_countdown()
                     };
                     self.frame
-                        .draw_text(&time_text, text_x, text_y, time_font_size, time_color);
+                        .draw_text_glowed(&time_text, text_x, text_y, time_font_size, time_color);
                 }
 
                 // Stack count - prominent display when stacks exist
                 if dot.stacks >= 1 {
                     let stack_text = format!("{}", dot.stacks);
-                    let stack_font_size = time_font_size * 1.1;
+                    let stack_font_size = time_font_size * 1.2;
                     // Position at bottom-right corner
                     let stack_x = icon_x + icon_size
                         - self.frame.measure_text(&stack_text, stack_font_size).0
                         - 1.0;
-                    let stack_y = y + icon_size - 1.0;
+                    let stack_y = y + icon_size - 2.0;
 
-                    self.frame.draw_text(
-                        &stack_text,
-                        stack_x + 1.0,
-                        stack_y + 1.0,
-                        stack_font_size,
-                        colors::text_shadow(),
-                    );
-                    self.frame.draw_text(
+                    self.frame.draw_text_glowed(
                         &stack_text,
                         stack_x,
                         stack_y,
                         stack_font_size,
-                        colors::effect_buff(),
+                        colors::icon_countdown(),
                     );
                 }
 
@@ -517,7 +501,7 @@ impl DotTrackerOverlay {
             let text_start_y = y + (icon_size - total_text_height) / 2.0 + font_size;
 
             for (i, line) in name_lines.iter().enumerate() {
-                self.frame.draw_text(
+                self.frame.draw_text_glowed(
                     line,
                     x,
                     text_start_y + i as f32 * line_height,
@@ -554,44 +538,34 @@ impl DotTrackerOverlay {
                 );
 
                 // Countdown text centered
-                let time_font_size = font_size * 0.85;
+                let time_font_size = font_size * 0.95;
                 let text_width = self.frame.measure_text(time_text, time_font_size).0;
                 let text_x = icon_x + (icon_size - text_width) / 2.0;
-                let text_y = y + icon_size / 2.0 + time_font_size / 3.0;
+                let text_y = y + icon_size / 2.0 + time_font_size * 0.4;
 
-                // Shadow + text
-                self.frame.draw_text(
+                self.frame.draw_text_glowed(
                     time_text,
-                    text_x + 1.0,
-                    text_y + 1.0,
+                    text_x,
+                    text_y,
                     time_font_size,
-                    colors::text_shadow(),
+                    colors::icon_countdown(),
                 );
-                self.frame
-                    .draw_text(time_text, text_x, text_y, time_font_size, colors::white());
 
                 // Stack count in bottom-right corner
                 if *stacks >= 1 {
                     let stack_text = format!("{}", stacks);
-                    let stack_font_size = time_font_size * 1.1;
+                    let stack_font_size = time_font_size * 1.2;
                     let stack_x = icon_x + icon_size
                         - self.frame.measure_text(&stack_text, stack_font_size).0
                         - 1.0;
-                    let stack_y = y + icon_size - 1.0;
+                    let stack_y = y + icon_size - 2.0;
 
-                    self.frame.draw_text(
-                        &stack_text,
-                        stack_x + 1.0,
-                        stack_y + 1.0,
-                        stack_font_size,
-                        colors::text_shadow(),
-                    );
-                    self.frame.draw_text(
+                    self.frame.draw_text_glowed(
                         &stack_text,
                         stack_x,
                         stack_y,
                         stack_font_size,
-                        colors::effect_buff(),
+                        colors::icon_countdown(),
                     );
                 }
 

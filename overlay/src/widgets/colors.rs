@@ -287,6 +287,12 @@ pub fn text_shadow() -> Color {
     Color::from_rgba8(0, 0, 0, 160)
 }
 
+/// Yellow countdown/charge text for icons (SWTOR style)
+#[inline]
+pub fn icon_countdown() -> Color {
+    Color::from_rgba8(255, 210, 0, 255)
+}
+
 /// Muted/inactive text
 #[inline]
 pub fn text_muted() -> Color {

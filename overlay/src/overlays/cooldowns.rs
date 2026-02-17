@@ -345,24 +345,17 @@ impl CooldownOverlay {
             // Charge count in corner (if > 1 or showing max charges)
             if entry.charges > 1 || (entry.max_charges > 1 && entry.charges > 0) {
                 let charge_text = format!("{}", entry.charges);
-                let charge_font_size = font_size * 0.9;
+                let charge_font_size = font_size * 1.0;
                 let charge_x =
                     x + icon_size - self.frame.measure_text(&charge_text, charge_font_size).0 - 2.0;
                 let charge_y = y + charge_font_size + 2.0;
 
-                self.frame.draw_text(
-                    &charge_text,
-                    charge_x + 1.0,
-                    charge_y + 1.0,
-                    charge_font_size,
-                    colors::text_shadow(),
-                );
-                self.frame.draw_text(
+                self.frame.draw_text_glowed(
                     &charge_text,
                     charge_x,
                     charge_y,
                     charge_font_size,
-                    colors::effect_buff(),
+                    colors::icon_countdown(),
                 );
             }
 
@@ -374,19 +367,19 @@ impl CooldownOverlay {
             let ready_text_color = if entry.is_in_ready_state {
                 colors::cooldown_ready() // Light-blue for ready state
             } else {
-                colors::label_dim()
+                colors::white()
             };
 
             if self.config.show_ability_names {
                 // Ability name on top
                 let name_y = text_y - font_size * 0.3;
                 self.frame
-                    .draw_text(&entry.name, text_x, name_y, font_size, colors::white());
+                    .draw_text_glowed(&entry.name, text_x, name_y, font_size, colors::white());
 
                 // Countdown below
                 let time_text = entry.format_time();
                 let time_y = name_y + font_size + 2.0;
-                self.frame.draw_text(
+                self.frame.draw_text_glowed(
                     &time_text,
                     text_x,
                     time_y,
@@ -397,12 +390,12 @@ impl CooldownOverlay {
                 // Source name below countdown (per-effect toggle)
                 if entry.display_source && !entry.source_name.is_empty() {
                     let source_font_size = font_size * 0.8;
-                    self.frame.draw_text(
+                    self.frame.draw_text_glowed(
                         &entry.source_name,
                         text_x,
                         time_y + font_size * 0.9 + 2.0,
                         source_font_size,
-                        colors::label_dim(),
+                        colors::white(),
                     );
                 }
             } else {
@@ -413,7 +406,7 @@ impl CooldownOverlay {
                 } else {
                     colors::white()
                 };
-                self.frame.draw_text(
+                self.frame.draw_text_glowed(
                     &time_text,
                     text_x,
                     text_y + font_size / 3.0,
@@ -424,12 +417,12 @@ impl CooldownOverlay {
                 // Source name below countdown (per-effect toggle)
                 if entry.display_source && !entry.source_name.is_empty() {
                     let source_font_size = font_size * 0.8;
-                    self.frame.draw_text(
+                    self.frame.draw_text_glowed(
                         &entry.source_name,
                         text_x,
                         text_y + font_size / 3.0 + font_size + 2.0,
                         source_font_size,
-                        colors::label_dim(),
+                        colors::white(),
                     );
                 }
             }
@@ -504,24 +497,17 @@ impl CooldownOverlay {
             // Charge count in corner (if > 1)
             if *charges > 1 {
                 let charge_text = format!("{}", charges);
-                let charge_font_size = font_size * 0.9;
+                let charge_font_size = font_size * 1.0;
                 let charge_x =
                     x + icon_size - self.frame.measure_text(&charge_text, charge_font_size).0 - 2.0;
                 let charge_y = y + charge_font_size + 2.0;
 
-                self.frame.draw_text(
-                    &charge_text,
-                    charge_x + 1.0,
-                    charge_y + 1.0,
-                    charge_font_size,
-                    colors::text_shadow(),
-                );
-                self.frame.draw_text(
+                self.frame.draw_text_glowed(
                     &charge_text,
                     charge_x,
                     charge_y,
                     charge_font_size,
-                    colors::effect_buff(),
+                    colors::icon_countdown(),
                 );
             }
 
@@ -533,20 +519,20 @@ impl CooldownOverlay {
                 // Ability name on top
                 let name_y = text_y - font_size * 0.3;
                 self.frame
-                    .draw_text(name, text_x, name_y, font_size, colors::white());
+                    .draw_text_glowed(name, text_x, name_y, font_size, colors::white());
 
                 // Countdown below
                 let time_y = name_y + font_size + 2.0;
-                self.frame.draw_text(
+                self.frame.draw_text_glowed(
                     time_text,
                     text_x,
                     time_y,
                     font_size * 0.9,
-                    colors::label_dim(),
+                    colors::white(),
                 );
             } else {
                 // Just countdown centered
-                self.frame.draw_text(
+                self.frame.draw_text_glowed(
                     time_text,
                     text_x,
                     text_y + font_size / 3.0,
