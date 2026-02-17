@@ -1177,7 +1177,8 @@
 .log-header .log-dmg-type {
   text-align: center;
 }
-.log-header .log-ability {
+.log-header .log-ability,
+.log-header .log-effect {
   display: block;
   text-align: left;
 }
@@ -1253,6 +1254,12 @@
   text-align: left;
 }
 .log-ability {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.log-effect {
   flex-shrink: 0;
   display: flex;
   align-items: center;

@@ -277,7 +277,8 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
     let mut col_source = use_signal(|| 110.0f64);
     let mut col_type = use_signal(|| 90.0f64);
     let mut col_target = use_signal(|| 110.0f64);
-    let mut col_ability = use_signal(|| 280.0f64);
+    let mut col_ability = use_signal(|| 200.0f64);
+    let mut col_effect = use_signal(|| 200.0f64);
     let mut col_value = use_signal(|| 70.0f64);
     let mut col_abs = use_signal(|| 70.0f64);
     let mut col_over = use_signal(|| 70.0f64);
@@ -974,12 +975,13 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
                                 2 => col_type.set(new_width),
                                 3 => col_target.set(new_width),
                                 4 => col_ability.set(new_width),
-                                5 => col_value.set(new_width),
-                                6 => col_abs.set(new_width),
-                                7 => col_over.set(new_width),
-                                8 => col_mit.set(new_width),
-                                9 => col_dmg_type.set(new_width),
-                                10 => col_threat.set(new_width),
+                                5 => col_effect.set(new_width),
+                                6 => col_value.set(new_width),
+                                7 => col_abs.set(new_width),
+                                8 => col_over.set(new_width),
+                                9 => col_mit.set(new_width),
+                                10 => col_dmg_type.set(new_width),
+                                11 => col_threat.set(new_width),
                                 _ => {}
                             }
                         }
@@ -1027,7 +1029,7 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
                             resize_start_width.set(*col_target.read());
                         },
                     }
-                    div { class: "log-cell log-ability", style: "width: {col_ability}px; min-width: {col_ability}px;", "Ability/Effect" }
+                    div { class: "log-cell log-ability", style: "width: {col_ability}px; min-width: {col_ability}px;", "Ability" }
                     div {
                         class: "log-resize-handle",
                         onmousedown: move |e| {
@@ -1037,12 +1039,22 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
                             resize_start_width.set(*col_ability.read());
                         },
                     }
-                    div { class: "log-cell log-value", style: "width: {col_value}px; min-width: {col_value}px;", "Value" }
+                    div { class: "log-cell log-effect", style: "width: {col_effect}px; min-width: {col_effect}px;", "Effect" }
                     div {
                         class: "log-resize-handle",
                         onmousedown: move |e| {
                             e.prevent_default();
                             resizing_col.set(Some(5));
+                            resize_start_x.set(e.client_coordinates().x);
+                            resize_start_width.set(*col_effect.read());
+                        },
+                    }
+                    div { class: "log-cell log-value", style: "width: {col_value}px; min-width: {col_value}px;", "Value" }
+                    div {
+                        class: "log-resize-handle",
+                        onmousedown: move |e| {
+                            e.prevent_default();
+                            resizing_col.set(Some(6));
                             resize_start_x.set(e.client_coordinates().x);
                             resize_start_width.set(*col_value.read());
                         },
@@ -1052,7 +1064,7 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
                         class: "log-resize-handle",
                         onmousedown: move |e| {
                             e.prevent_default();
-                            resizing_col.set(Some(6));
+                            resizing_col.set(Some(7));
                             resize_start_x.set(e.client_coordinates().x);
                             resize_start_width.set(*col_abs.read());
                         },
@@ -1062,7 +1074,7 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
                         class: "log-resize-handle",
                         onmousedown: move |e| {
                             e.prevent_default();
-                            resizing_col.set(Some(7));
+                            resizing_col.set(Some(8));
                             resize_start_x.set(e.client_coordinates().x);
                             resize_start_width.set(*col_over.read());
                         },
@@ -1072,7 +1084,7 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
                         class: "log-resize-handle",
                         onmousedown: move |e| {
                             e.prevent_default();
-                            resizing_col.set(Some(8));
+                            resizing_col.set(Some(9));
                             resize_start_x.set(e.client_coordinates().x);
                             resize_start_width.set(*col_mit.read());
                         },
@@ -1082,7 +1094,7 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
                         class: "log-resize-handle",
                         onmousedown: move |e| {
                             e.prevent_default();
-                            resizing_col.set(Some(9));
+                            resizing_col.set(Some(10));
                             resize_start_x.set(e.client_coordinates().x);
                             resize_start_width.set(*col_dmg_type.read());
                         },
@@ -1138,29 +1150,21 @@ pub fn CombatLog(props: CombatLogProps) -> Element {
                                     if row.ability_id != 0 {
                                         AbilityIcon { key: "{row.ability_id}", ability_id: row.ability_id, size: 16 }
                                     }
-                                    // For effect gained/lost events, show the effect name (the buff/debuff)
-                                    // For other events (damage, heal, activation), show the ability name
-                                    {
-                                        let is_effect_event = (row.effect_type_id == EFFECT_TYPE_APPLYEFFECT || row.effect_type_id == EFFECT_TYPE_REMOVEEFFECT)
-                                            && row.effect_id != EFFECT_DAMAGE && row.effect_id != EFFECT_HEAL
-                                            && !row.effect_name.is_empty();
-                                        let display_name = if is_effect_event {
-                                            row.effect_name.as_str()
-                                        } else if !row.ability_name.is_empty() {
-                                            row.ability_name.as_str()
-                                        } else {
-                                            row.effect_name.as_str()
-                                        };
-                                        let display_id = if is_effect_event {
-                                            row.effect_id
-                                        } else {
-                                            row.ability_id
-                                        };
-                                        rsx! {
-                                            "{display_name}"
-                                            if show_ids_val && display_id != 0 {
-                                                span { class: "log-id-suffix", " [{display_id}]" }
-                                            }
+                                    if !row.ability_name.is_empty() {
+                                        "{row.ability_name}"
+                                        if show_ids_val && row.ability_id != 0 {
+                                            span { class: "log-id-suffix", " [{row.ability_id}]" }
+                                        }
+                                    }
+                                }
+                                div { class: "log-cell log-effect", style: "width: {col_effect}px; min-width: {col_effect}px;",
+                                    if row.effect_id != 0 {
+                                        AbilityIcon { key: "{row.effect_id}", ability_id: row.effect_id, size: 16 }
+                                    }
+                                    if !row.effect_name.is_empty() {
+                                        "{row.effect_name}"
+                                        if show_ids_val && row.effect_id != 0 {
+                                            span { class: "log-id-suffix", " [{row.effect_id}]" }
                                         }
                                     }
                                 }

@@ -1481,8 +1481,8 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                         }
                     }
 
-                    // Selected encounter indicator (shown when sidebar collapsed)
-                    if *sidebar_collapsed.read() {
+                    // Selected encounter indicator (shown when sidebar collapsed or fullscreen)
+                    if *sidebar_collapsed.read() || *overview_fullscreen.read() {
                         if let Some(enc_idx) = *selected_encounter.read() {
                             if let Some(enc) = encounters().iter().find(|e| e.encounter_id as u32 == enc_idx) {
                                 div { class: "selected-entity-indicator",
