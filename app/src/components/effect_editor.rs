@@ -30,7 +30,8 @@ fn get_trigger_filters(trigger: &Trigger) -> (EntityFilter, EntityFilter) {
         Trigger::EffectApplied { source, target, .. }
         | Trigger::EffectRemoved { source, target, .. }
         | Trigger::AbilityCast { source, target, .. }
-        | Trigger::DamageTaken { source, target, .. } => (source.clone(), target.clone()),
+        | Trigger::DamageTaken { source, target, .. }
+        | Trigger::HealingTaken { source, target, .. } => (source.clone(), target.clone()),
         _ => (EntityFilter::Any, EntityFilter::Any),
     }
 }
@@ -57,7 +58,9 @@ fn get_trigger_effects(trigger: &Trigger) -> (bool, Vec<EffectSelector>) {
 /// Get abilities from an ability-based trigger
 fn get_trigger_abilities(trigger: &Trigger) -> Vec<AbilitySelector> {
     match trigger {
-        Trigger::AbilityCast { abilities, .. } => abilities.clone(),
+        Trigger::AbilityCast { abilities, .. }
+        | Trigger::DamageTaken { abilities, .. }
+        | Trigger::HealingTaken { abilities, .. } => abilities.clone(),
         _ => vec![],
     }
 }
@@ -89,6 +92,13 @@ fn set_trigger_source(trigger: Trigger, source: EntityFilter) -> Trigger {
         Trigger::DamageTaken {
             abilities, target, ..
         } => Trigger::DamageTaken {
+            abilities,
+            source,
+            target,
+        },
+        Trigger::HealingTaken {
+            abilities, target, ..
+        } => Trigger::HealingTaken {
             abilities,
             source,
             target,
@@ -128,6 +138,13 @@ fn set_trigger_target(trigger: Trigger, target: EntityFilter) -> Trigger {
             source,
             target,
         },
+        Trigger::HealingTaken {
+            abilities, source, ..
+        } => Trigger::HealingTaken {
+            abilities,
+            source,
+            target,
+        },
         other => other,
     }
 }
@@ -153,6 +170,16 @@ fn set_trigger_effects(trigger: Trigger, effects: Vec<EffectSelector>) -> Trigge
 fn set_trigger_abilities(trigger: Trigger, abilities: Vec<AbilitySelector>) -> Trigger {
     match trigger {
         Trigger::AbilityCast { source, target, .. } => Trigger::AbilityCast {
+            abilities,
+            source,
+            target,
+        },
+        Trigger::DamageTaken { source, target, .. } => Trigger::DamageTaken {
+            abilities,
+            source,
+            target,
+        },
+        Trigger::HealingTaken { source, target, .. } => Trigger::HealingTaken {
             abilities,
             source,
             target,
@@ -207,6 +234,10 @@ enum EffectTriggerType {
     EffectBased,
     /// Track based on ability cast (for procs/cooldowns)
     AbilityCast,
+    /// Track based on damage taken from an ability
+    DamageTaken,
+    /// Track based on healing taken from an ability
+    HealingTaken,
 }
 
 impl EffectTriggerType {
@@ -214,17 +245,21 @@ impl EffectTriggerType {
         match self {
             Self::EffectBased => "Effect Based",
             Self::AbilityCast => "Ability Cast",
+            Self::DamageTaken => "Damage Taken",
+            Self::HealingTaken => "Healing Taken",
         }
     }
 
     fn all() -> &'static [Self] {
-        &[Self::EffectBased, Self::AbilityCast]
+        &[Self::EffectBased, Self::AbilityCast, Self::DamageTaken, Self::HealingTaken]
     }
 
     /// Determine trigger type from effect data
     fn from_effect(effect: &EffectListItem) -> Self {
         match &effect.trigger {
             Trigger::AbilityCast { .. } => Self::AbilityCast,
+            Trigger::DamageTaken { .. } => Self::DamageTaken,
+            Trigger::HealingTaken { .. } => Self::HealingTaken,
             _ => Self::EffectBased,
         }
     }
@@ -1170,6 +1205,8 @@ fn EffectEditForm(
                                             let new_type = match e.value().as_str() {
                                                 "Effect Based" => EffectTriggerType::EffectBased,
                                                 "Ability Cast" => EffectTriggerType::AbilityCast,
+                                                "Damage Taken" => EffectTriggerType::DamageTaken,
+                                                "Healing Taken" => EffectTriggerType::HealingTaken,
                                                 _ => trigger_type(),
                                             };
                                             trigger_type.set(new_type);
@@ -1183,6 +1220,16 @@ fn EffectEditForm(
                                                     target,
                                                 },
                                                 EffectTriggerType::AbilityCast => Trigger::AbilityCast {
+                                                    abilities: vec![],
+                                                    source,
+                                                    target,
+                                                },
+                                                EffectTriggerType::DamageTaken => Trigger::DamageTaken {
+                                                    abilities: vec![],
+                                                    source,
+                                                    target,
+                                                },
+                                                EffectTriggerType::HealingTaken => Trigger::HealingTaken {
                                                     abilities: vec![],
                                                     source,
                                                     target,

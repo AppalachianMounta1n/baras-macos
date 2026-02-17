@@ -154,7 +154,9 @@ impl EffectListItem {
             Trigger::EffectApplied { effects, .. } | Trigger::EffectRemoved { effects, .. } => {
                 !effects.is_empty() || !self.refresh_abilities.is_empty()
             }
-            Trigger::AbilityCast { abilities, .. } => {
+            Trigger::AbilityCast { abilities, .. }
+            | Trigger::DamageTaken { abilities, .. }
+            | Trigger::HealingTaken { abilities, .. } => {
                 !abilities.is_empty() || !self.refresh_abilities.is_empty()
             }
             _ => false,

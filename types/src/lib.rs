@@ -730,6 +730,16 @@ pub enum Trigger {
         target: EntityFilter,
     },
 
+    /// Healing is received from an ability. [TPC]
+    HealingTaken {
+        #[serde(default)]
+        abilities: Vec<AbilitySelector>,
+        #[serde(default)]
+        source: EntityFilter,
+        #[serde(default)]
+        target: EntityFilter,
+    },
+
     // ─── HP Thresholds [TPC] ───────────────────────────────────────────────
     /// Boss HP drops below threshold. [TPC]
     BossHpBelow {
@@ -813,6 +823,7 @@ impl Trigger {
             Self::EffectApplied { .. } => "Effect Applied",
             Self::EffectRemoved { .. } => "Effect Removed",
             Self::DamageTaken { .. } => "Damage Taken",
+            Self::HealingTaken { .. } => "Healing Taken",
             Self::BossHpBelow { .. } => "Boss HP Below",
             Self::BossHpAbove { .. } => "Boss HP Above",
             Self::NpcAppears { .. } => "NPC Appears",
@@ -840,6 +851,7 @@ impl Trigger {
             Self::EffectApplied { .. } => "effect_applied",
             Self::EffectRemoved { .. } => "effect_removed",
             Self::DamageTaken { .. } => "damage_taken",
+            Self::HealingTaken { .. } => "healing_taken",
             Self::BossHpBelow { .. } => "boss_hp_below",
             Self::BossHpAbove { .. } => "boss_hp_above",
             Self::NpcAppears { .. } => "npc_appears",

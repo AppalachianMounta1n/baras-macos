@@ -256,6 +256,14 @@ fn convert_trigger(xml: &XmlTrigger) -> Trigger {
             source,
             target,
         },
+        "HEAL" => Trigger::HealingTaken {
+            abilities: build_ability_selectors(
+                xml.ability_guid.as_deref(),
+                xml.ability.as_deref(),
+            ),
+            source,
+            target,
+        },
         "ABILITY_ACTIVATED" => Trigger::AbilityCast {
             abilities: build_ability_selectors(
                 xml.ability_guid.as_deref(),
@@ -442,7 +450,7 @@ fn group_timers(xml_timers: &[XmlConfigTimer]) -> GroupedTimers {
                 .as_ref()
                 .and_then(|t| t.trigger_type.as_deref())
                 .unwrap_or("");
-            if trigger_type == "EFFECT_GAINED" || trigger_type == "EFFECT_LOST" {
+            if matches!(trigger_type, "EFFECT_GAINED" | "EFFECT_LOST" | "DAMAGE" | "HEAL" | "ABILITY_ACTIVATED") {
                 effects.push(convert_to_effect(xml));
             } else {
                 skipped_unsupported_effects += 1;

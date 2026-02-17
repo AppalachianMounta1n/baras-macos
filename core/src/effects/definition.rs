@@ -197,6 +197,16 @@ impl EffectDefinition {
         matches!(self.trigger, Trigger::AbilityCast { .. })
     }
 
+    /// Check if this is a DamageTaken trigger
+    pub fn is_damage_taken_trigger(&self) -> bool {
+        matches!(self.trigger, Trigger::DamageTaken { .. })
+    }
+
+    /// Check if this is a HealingTaken trigger
+    pub fn is_healing_taken_trigger(&self) -> bool {
+        matches!(self.trigger, Trigger::HealingTaken { .. })
+    }
+
     /// Check if an effect ID/name matches this definition's trigger
     pub fn matches_effect(&self, effect_id: u64, effect_name: Option<&str>) -> bool {
         match &self.trigger {

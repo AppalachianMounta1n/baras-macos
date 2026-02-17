@@ -130,7 +130,9 @@ impl DefinitionSet {
                     }
                 }
             }
-            Trigger::AbilityCast { abilities, .. } => {
+            Trigger::AbilityCast { abilities, .. }
+            | Trigger::DamageTaken { abilities, .. }
+            | Trigger::HealingTaken { abilities, .. } => {
                 for selector in abilities {
                     match selector {
                         AbilitySelector::Id(id) => {
@@ -1234,6 +1236,11 @@ impl EffectTracker {
         let current_target_id =
             local_player_id.and_then(|id| self.current_targets.get(&id).map(|(tid, _, _)| *tid));
         for def in matching_defs {
+            // Only process AbilityCast triggers here (index also contains DamageTaken/HealingTaken)
+            if !def.is_ability_cast_trigger() {
+                continue;
+            }
+
             // Check discipline filter
             if !def.matches_discipline(self.local_player_discipline.as_ref()) {
                 continue;
@@ -1302,6 +1309,97 @@ impl EffectTracker {
                     source_name,
                     effect_target_id,
                     effect_target_name,
+                    is_from_local,
+                    timestamp,
+                    duration,
+                    def.effective_color(),
+                    def.display_target,
+                    icon_ability_id,
+                    def.show_at_secs,
+                    def.show_icon,
+                    def.display_source,
+                    def.cooldown_ready_secs,
+                    &def.audio,
+                    def.alert_text.clone(),
+                    def.alert_on == AlertTrigger::OnExpire,
+                );
+                self.active_effects.insert(key, effect);
+                self.ticking_count += 1;
+            }
+        }
+    }
+
+    /// Handle damage/healing taken trigger - creates a simple timed effect.
+    /// No refresh or charge logic, just starts (or restarts) the timer on each event.
+    fn handle_ability_event_trigger(
+        &mut self,
+        ability_id: i64,
+        ability_name: IStr,
+        source_id: i64,
+        source_name: IStr,
+        source_entity_type: EntityType,
+        source_npc_id: i64,
+        target_id: i64,
+        target_name: IStr,
+        target_entity_type: EntityType,
+        target_npc_id: i64,
+        timestamp: NaiveDateTime,
+        encounter: Option<&crate::encounter::CombatEncounter>,
+        trigger_check: fn(&EffectDefinition) -> bool,
+    ) {
+        self.current_game_time = Some(timestamp);
+        let ability_name_str = crate::context::resolve(ability_name);
+
+        let matching_defs: Vec<_> = self
+            .definitions
+            .find_ability_cast_matching(ability_id as u64, Some(ability_name_str))
+            .into_iter()
+            .collect();
+
+        if matching_defs.is_empty() {
+            return;
+        }
+
+        let source_info = EntityInfo {
+            id: source_id,
+            npc_id: source_npc_id,
+            entity_type: source_entity_type,
+            name: source_name,
+        };
+        let target_info = EntityInfo {
+            id: target_id,
+            npc_id: target_npc_id,
+            entity_type: target_entity_type,
+            name: target_name,
+        };
+
+        let is_from_local = self.local_player_id == Some(source_id);
+
+        for def in matching_defs {
+            if !trigger_check(def) {
+                continue;
+            }
+            if !self.matches_filters(def, source_info, target_info, encounter) {
+                continue;
+            }
+
+            let key = EffectKey::new(&def.id, target_id);
+            let duration = self.effective_duration(def);
+
+            if let Some(existing) = self.active_effects.get_mut(&key) {
+                existing.refresh(timestamp, duration);
+            } else {
+                let display_text = def.display_text().to_string();
+                let icon_ability_id = def.icon_ability_id.unwrap_or(ability_id as u64);
+                let effect = ActiveEffect::new(
+                    def.id.clone(),
+                    ability_id as u64,
+                    def.name.clone(),
+                    display_text,
+                    source_id,
+                    source_name,
+                    target_id,
+                    target_name,
                     is_from_local,
                     timestamp,
                     duration,
@@ -1784,28 +1882,52 @@ impl SignalHandler for EffectTracker {
             }
             GameSignal::DamageTaken {
                 ability_id,
+                ability_name,
                 source_id,
+                source_entity_type,
+                source_name,
+                source_npc_id,
                 target_id,
+                target_entity_type,
+                target_name,
+                target_npc_id,
                 timestamp,
-                ..
             } => {
-                // Only process for local player's damage
+                // Existing AoE refresh logic
                 if self.local_player_id == Some(*source_id) {
                     self.handle_damage_for_aoe_refresh(*ability_id, *target_id, *timestamp);
                 }
+                // DamageTaken trigger matching for effects tracker
+                self.handle_ability_event_trigger(
+                    *ability_id,
+                    *ability_name,
+                    *source_id,
+                    *source_name,
+                    *source_entity_type,
+                    *source_npc_id,
+                    *target_id,
+                    *target_name,
+                    *target_entity_type,
+                    *target_npc_id,
+                    *timestamp,
+                    encounter,
+                    EffectDefinition::is_damage_taken_trigger,
+                );
             }
             GameSignal::HealingDone {
                 ability_id,
                 ability_name,
                 source_id,
+                source_entity_type,
                 source_name,
+                source_npc_id,
                 target_id,
                 target_entity_type,
                 target_name,
+                target_npc_id,
                 timestamp,
-                ..
             } => {
-                // Only process for local player's heals (for refresh on heal completion)
+                // Existing refresh on heal completion logic
                 if self.local_player_id == Some(*source_id) {
                     self.refresh_effects_by_action(
                         *ability_id,
@@ -1820,6 +1942,22 @@ impl SignalHandler for EffectTracker {
                         RefreshTrigger::Heal,
                     );
                 }
+                // HealingTaken trigger matching for effects tracker
+                self.handle_ability_event_trigger(
+                    *ability_id,
+                    *ability_name,
+                    *source_id,
+                    *source_name,
+                    *source_entity_type,
+                    *source_npc_id,
+                    *target_id,
+                    *target_name,
+                    *target_entity_type,
+                    *target_npc_id,
+                    *timestamp,
+                    encounter,
+                    EffectDefinition::is_healing_taken_trigger,
+                );
             }
             GameSignal::TargetChanged {
                 source_id,
