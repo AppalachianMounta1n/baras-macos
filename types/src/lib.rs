@@ -1242,7 +1242,7 @@ pub struct PersonalOverlayConfig {
     #[serde(default = "default_scaling_factor")]
     pub line_spacing: f32,
     /// When true, stats with zero/empty values are hidden
-    #[serde(default = "default_true")]
+    #[serde(default)]
     pub hide_empty_values: bool,
 }
 
@@ -1270,7 +1270,7 @@ impl Default for PersonalOverlayConfig {
             dynamic_background: false,
             auto_color_values: true,
             line_spacing: 1.0,
-            hide_empty_values: true,
+            hide_empty_values: false,
         }
     }
 }
