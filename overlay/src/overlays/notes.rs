@@ -15,6 +15,7 @@ pub struct NotesConfig {
     pub font_size: u8,
     /// Font color for notes text (RGBA)
     pub font_color: [u8; 4],
+    pub dynamic_background: bool,
 }
 
 impl Default for NotesConfig {
@@ -22,6 +23,7 @@ impl Default for NotesConfig {
         Self {
             font_size: 14,
             font_color: [255, 255, 255, 255],
+            dynamic_background: false,
         }
     }
 }
@@ -326,8 +328,26 @@ impl NotesOverlay {
         let font_size = self.frame.scaled(self.config.font_size as f32);
         let header_font_size = font_size * 1.1;
 
-        // Begin frame (clear, background, border)
-        self.frame.begin_frame();
+        // Calculate content height for dynamic background
+        if self.config.dynamic_background {
+            let mut content_h = padding;
+            if !self.data.boss_name.is_empty() {
+                content_h += header_font_size + header_spacing * 2.0;
+            }
+            for line in &self.lines {
+                if line.is_divider {
+                    content_h += font_size + line_height * 0.3;
+                } else if line.spans.is_empty() || line.spans.iter().all(|s| s.text.is_empty()) {
+                    content_h += line_height * 0.5;
+                } else {
+                    content_h += line_height;
+                }
+            }
+            content_h += padding;
+            self.frame.begin_frame_with_content_height(content_h);
+        } else {
+            self.frame.begin_frame();
+        }
 
         // If no data, show placeholder
         if self.data.text.is_empty() && self.data.boss_name.is_empty() {

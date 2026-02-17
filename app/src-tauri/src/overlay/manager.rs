@@ -375,6 +375,7 @@ impl OverlayManager {
                 let notes_config = NotesConfig {
                     font_size: cfg.font_size,
                     font_color: cfg.font_color.clone(),
+                    dynamic_background: cfg.dynamic_background,
                 };
                 OverlayConfigUpdate::Notes(notes_config, settings.notes_opacity)
             }

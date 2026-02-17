@@ -1386,6 +1386,19 @@ pub fn SettingsPanel(
                     }
 
                     div { class: "setting-row",
+                        label { "Dynamic Background" }
+                        input {
+                            r#type: "checkbox",
+                            checked: current_settings.notes_overlay.dynamic_background,
+                            onchange: move |e: Event<FormData>| {
+                                let mut new_settings = draft_settings();
+                                new_settings.notes_overlay.dynamic_background = e.checked();
+                                update_draft(new_settings);
+                            }
+                        }
+                    }
+
+                    div { class: "setting-row",
                         label { "Font Size" }
                         input {
                             r#type: "range",

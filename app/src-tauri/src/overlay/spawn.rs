@@ -973,6 +973,7 @@ pub fn create_notes_overlay(
     let overlay_config = NotesConfig {
         font_size: notes_config.font_size,
         font_color: notes_config.font_color,
+        dynamic_background: notes_config.dynamic_background,
     };
 
     let factory = move || {

@@ -1845,6 +1845,8 @@ pub struct NotesOverlayConfig {
     /// Font color for notes text
     #[serde(default = "default_font_color")]
     pub font_color: Color,
+    #[serde(default)]
+    pub dynamic_background: bool,
 }
 
 fn default_notes_font_size() -> u8 {
@@ -1856,6 +1858,7 @@ impl Default for NotesOverlayConfig {
         Self {
             font_size: default_notes_font_size(),
             font_color: overlay_colors::WHITE,
+            dynamic_background: false,
         }
     }
 }
