@@ -131,7 +131,7 @@ impl PersonalOverlay {
     fn compound_values(&self, stat: PersonalStat) -> (&'static str, Vec<CompoundValue>) {
         match stat {
             PersonalStat::DamageGroup => (
-                "DMG",
+                "Damage",
                 vec![
                     CompoundValue::new(format_number(self.stats.dps as i64)),
                     CompoundValue::new(format_number(self.stats.total_damage)),
@@ -156,7 +156,7 @@ impl PersonalOverlay {
                 ],
             ),
             PersonalStat::HealingAdvanced => (
-                "Heal Tot",
+                "Total Heal",
                 vec![
                     CompoundValue::new(format_number(self.stats.total_healing)),
                     CompoundValue::new(format_number(self.stats.total_healing_effective)),
@@ -305,6 +305,7 @@ impl PersonalOverlay {
         // Draw stats
         let mut y = padding + font_size;
         let content_width = width - padding * 2.0;
+        let row_fs = font_size * 0.85;
         // Track the smallest font size used by centered info text (encounter name, difficulty, etc.)
         // so subsequent info rows don't render larger than an earlier one that had to shrink.
         let mut info_font_ceiling = font_size;
@@ -317,12 +318,13 @@ impl PersonalOverlay {
 
             // Handle separator
             if *stat == PersonalStat::Separator {
-                let line_y = y - font_size * 0.3;
+                // Draw line 85% down from the top of the separator section
+                let line_y = y - line_height + separator_height * 0.85;
                 self.frame.fill_rect(
                     padding,
                     line_y,
                     content_width,
-                    1.0,
+                    2.0,
                     colors::separator_line(),
                 );
                 y += separator_height;
@@ -353,7 +355,7 @@ impl PersonalOverlay {
                 CompoundRow::new(label, values)
                     .with_label_color(effective_label_color)
                     .with_value_color(value_color)
-                    .render(&mut self.frame, padding, y, content_width, font_size);
+                    .render(&mut self.frame, padding, y, content_width, row_fs);
             } else {
                 // Single-value row
                 let (label, value) = self.stat_display(*stat);
@@ -384,22 +386,12 @@ impl PersonalOverlay {
                         .draw_text_styled(&value, cx, y, actual_fs, value_color, true, false);
                 } else {
                     // Metric single-value rows (APM, Combat Time, etc.)
-                    // Use 0.8x value font to match compound row values
-                    let value_fs = font_size * 0.8;
-                    let label_fs = font_size * 0.85;
                     LabeledValue::new(label, value)
                         .with_label_color(effective_label_color)
                         .with_value_color(value_color)
                         .with_label_bold(false)
                         .with_value_bold(true)
-                        .render_scaled(
-                            &mut self.frame,
-                            padding,
-                            y,
-                            content_width,
-                            label_fs,
-                            value_fs,
-                        );
+                        .render(&mut self.frame, padding, y, content_width, row_fs);
                 }
             }
 

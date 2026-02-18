@@ -110,13 +110,12 @@ impl CompoundRow {
         let shadow = colors::text_shadow();
         let prefix_color = colors::label_dim();
 
-        // Draw label on left (regular weight, slightly smaller than values)
-        let label_font_size = font_size * 0.85;
+        // Draw label on left (regular weight, same size as values)
         frame.draw_text_styled(
             &self.label,
             x + SHADOW_OFFSET,
             y + SHADOW_OFFSET,
-            label_font_size,
+            font_size,
             shadow,
             false,
             false,
@@ -125,7 +124,7 @@ impl CompoundRow {
             &self.label,
             x,
             y,
-            label_font_size,
+            font_size,
             self.label_color,
             false,
             false,
@@ -136,14 +135,12 @@ impl CompoundRow {
         }
 
         // Measure label to find available space for values
-        let (label_width, _) =
-            frame.measure_text_styled(&self.label, label_font_size, false, false);
+        let (label_width, _) = frame.measure_text_styled(&self.label, font_size, false, false);
         let label_gap = font_size * 0.4;
         let available = width - label_width - label_gap;
 
-        // Use a fixed value font size (0.8x) for all compound rows so 2-column
-        // and 3-column rows look consistent. Auto-shrink further only if needed.
-        let base_value_scale = 0.8f32;
+        // Values start at 1.0x (same size as label); auto-shrink only if needed.
+        let base_value_scale = 1.0f32;
         let min_scale = 0.55f32;
         let base_vfs = font_size * base_value_scale;
         let base_gap = base_vfs * 0.5;
@@ -184,13 +181,8 @@ impl CompoundRow {
             cursor = positions[i] - gap;
         }
 
-        // Vertically center smaller text relative to the label baseline
-        let y_offset = if scale < 1.0 {
-            font_size * (1.0 - scale) * 0.35
-        } else {
-            0.0
-        };
-        let vy = y + y_offset;
+        // Values sit on the same baseline as the label
+        let vy = y;
 
         // Draw each value
         for (i, cv) in self.values.iter().enumerate() {
