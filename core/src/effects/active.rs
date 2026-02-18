@@ -472,6 +472,11 @@ impl ActiveEffect {
     ///
     /// Uses BASE duration (excludes ready state time)
     pub fn check_expiration_audio(&mut self) -> bool {
+        // Audio must be enabled for this effect
+        if !self.audio_enabled {
+            return false;
+        }
+
         // No audio file configured
         if self.audio_file.is_none() {
             return false;

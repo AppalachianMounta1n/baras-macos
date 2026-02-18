@@ -709,8 +709,10 @@ impl EffectTracker {
                 && (effect.has_base_duration_ended() || effect.removed_at.is_some())
             {
                 effect.on_end_alert_fired = true;
-                let should_play_audio =
-                    !effect.audio_played && effect.audio_offset == 0 && effect.audio_file.is_some();
+                let should_play_audio = effect.audio_enabled
+                    && !effect.audio_played
+                    && effect.audio_offset == 0
+                    && effect.audio_file.is_some();
                 if should_play_audio {
                     effect.audio_played = true;
                 }
