@@ -238,7 +238,7 @@ impl DotTrackerOverlay {
         let font_scale = self.config.font_scale.clamp(1.0, 2.0);
         let font_size = self.frame.scaled(BASE_FONT_SIZE * font_scale);
         let icon_size = self.frame.scaled(self.config.icon_size as f32);
-        let name_width = self.frame.scaled(BASE_NAME_WIDTH);
+        let name_width = self.frame.scaled(BASE_NAME_WIDTH * font_scale);
         let row_height = icon_size + row_spacing;
         let scale = self.frame.scale_factor();
         let header_font_size = font_size * 1.4;
@@ -450,9 +450,10 @@ impl DotTrackerOverlay {
         let padding = self.frame.scaled(BASE_PADDING);
         let row_spacing = self.frame.scaled(BASE_ROW_SPACING);
         let icon_spacing = self.frame.scaled(BASE_ICON_SPACING);
-        let font_size = self.frame.scaled(BASE_FONT_SIZE);
+        let font_scale = self.config.font_scale.clamp(1.0, 2.0);
+        let font_size = self.frame.scaled(BASE_FONT_SIZE * font_scale);
         let icon_size = self.frame.scaled(self.config.icon_size as f32);
-        let name_width = self.frame.scaled(BASE_NAME_WIDTH);
+        let name_width = self.frame.scaled(BASE_NAME_WIDTH * font_scale);
         let row_height = icon_size + row_spacing;
         let scale = self.frame.scale_factor();
         let header_font_size = font_size * 1.4;
