@@ -47,11 +47,18 @@ fn spawn_auto_show_overlays(overlay_state: SharedOverlayState, service_handle: S
         // The initial file parse may have completed during our delay, revealing a stale
         // or empty session. In that case, skip showing overlays and mark the auto-hide
         // as active so they restore when the session becomes live.
-        if config.overlay_settings.hide_when_not_live
-            && service_handle.shared.is_session_not_live().await
-        {
-            service_handle.shared.activate_not_live_hiding();
-            return;
+        if config.overlay_settings.hide_when_not_live {
+            // Check if the game process is running — if not, don't show overlays at all.
+            // This avoids the flash of overlays appearing then hiding when BARAS starts
+            // without SWTOR running.
+            let game_running = service::process_monitor::is_game_running()
+                .await
+                .unwrap_or(true); // safe default: assume running if check fails
+
+            if !game_running || service_handle.shared.is_session_not_live().await {
+                service_handle.shared.activate_not_live_hiding();
+                return;
+            }
         }
 
         // Use OverlayManager to show all enabled overlays

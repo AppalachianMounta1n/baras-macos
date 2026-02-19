@@ -287,13 +287,14 @@ impl ServiceHandle {
             (None, None)
         };
 
-        // Check if this is a stale session (last event >15 min ago).
+        // Check if this is a stale session (last event >15 min ago, or game process closed).
         // Only relevant for live-tailing mode — historical sessions are inherently "not live".
         let stale_session = if is_live {
             // Use the live session's last_event_time (updated on every process_event call)
             // rather than the static directory-index snapshot which becomes stale during tailing.
             let live_last_event = session.last_event_time;
             Self::is_session_stale(live_last_event, start_datetime)
+                || self.shared.not_live_hiding_active.load(Ordering::SeqCst)
         } else {
             false
         };

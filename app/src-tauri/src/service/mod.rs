@@ -6,7 +6,7 @@
 //! - CombatService: Background task that processes commands and updates shared state
 mod directory;
 mod handler;
-mod process_monitor;
+pub(crate) mod process_monitor;
 
 use crate::state::SharedState;
 pub use crate::state::{RaidSlotRegistry, RegisteredPlayer};
@@ -2007,11 +2007,10 @@ impl CombatService {
 
         let overlay_tx = self.overlay_tx.clone();
         let handle = tokio::spawn(async move {
+            // Check immediately on startup, then poll at intervals
             loop {
-                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-
                 match process_monitor::is_game_running().await {
-                    Some(true) => continue,
+                    Some(true) => {}
                     Some(false) => {
                         info!("Game process no longer detected, emitting not-live event");
                         let _ = overlay_tx
@@ -2024,6 +2023,7 @@ impl CombatService {
                         break;
                     }
                 }
+                tokio::time::sleep(std::time::Duration::from_millis(2500)).await;
             }
         });
 

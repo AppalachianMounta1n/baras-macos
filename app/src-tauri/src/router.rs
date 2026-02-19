@@ -13,6 +13,7 @@ use crate::overlay::{
 use crate::service::{OverlayUpdate, ServiceHandle};
 use crate::state::SharedState;
 use baras_overlay::{OverlayData, RaidRegistryAction};
+use tauri::Emitter;
 use tokio::sync::mpsc;
 
 /// Spawn the overlay update router task.
@@ -544,6 +545,10 @@ async fn process_overlay_update(
                     shared.activate_not_live_hiding();
                     let _ =
                         OverlayManager::temporary_hide_all(overlay_state, service_handle).await;
+                    // Notify frontend so it re-fetches session info (stale_session will now be true)
+                    let _ = service_handle
+                        .app_handle
+                        .emit("session-updated", "ProcessMonitorNotLive");
                 }
             } else {
                 // Session is live again — restore overlays if we were the ones who hid them
