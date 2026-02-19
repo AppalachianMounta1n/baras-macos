@@ -454,6 +454,30 @@ impl EffectTracker {
         std::mem::take(&mut self.fired_alerts)
     }
 
+    /// Build a `FiredAlert` for an instant alert (no active effect created).
+    ///
+    /// If `alert_text` is set, the text overlay fires with that text.
+    /// If `alert_text` is `None`, only audio fires (no text on screen) — the
+    /// `text` field is still populated (with the definition name) for the audio
+    /// TTS fallback, but `alert_text_enabled` is `false` so nothing is shown.
+    fn build_instant_alert(def: &EffectDefinition, timestamp: NaiveDateTime) -> FiredAlert {
+        let has_text = def.alert_text.is_some();
+        let text = def
+            .alert_text
+            .clone()
+            .unwrap_or_else(|| def.name.clone());
+        FiredAlert {
+            id: def.id.clone(),
+            name: def.name.clone(),
+            text,
+            color: def.color,
+            timestamp,
+            alert_text_enabled: has_text,
+            audio_enabled: def.audio.enabled,
+            audio_file: def.audio.file.clone(),
+        }
+    }
+
     /// Set the player's alacrity percentage for duration calculations
     pub fn set_player_context(&mut self, player_id: i64, discipline_id: i64) {
         self.local_player_id = Some(player_id);
@@ -836,6 +860,12 @@ impl EffectTracker {
         let mut pending_alerts: Vec<FiredAlert> = Vec::new();
 
         for def in matching_defs {
+            // Instant alerts: fire and skip — no ActiveEffect created
+            if def.is_alert {
+                pending_alerts.push(Self::build_instant_alert(def, timestamp));
+                continue;
+            }
+
             let key = EffectKey::new(&def.id, target_id);
 
             let duration = self.effective_duration(def);
@@ -1308,6 +1338,12 @@ impl EffectTracker {
                 continue;
             }
 
+            // Instant alerts: fire and skip — no ActiveEffect created
+            if def.is_alert {
+                self.fired_alerts.push(Self::build_instant_alert(def, timestamp));
+                continue;
+            }
+
             // For procs, the effect is typically shown on the caster (source)
             // Use target from definition's target filter, or default to source
             let (effect_target_id, effect_target_name, effect_target_type) =
@@ -1341,6 +1377,22 @@ impl EffectTracker {
                         name: effect_target_name,
                     });
                 }
+
+                // Fire OnApply alert on refresh
+                if def.alert_on == AlertTrigger::OnApply
+                    && let Some(text) = &def.alert_text
+                {
+                    self.fired_alerts.push(FiredAlert {
+                        id: def.id.clone(),
+                        name: def.name.clone(),
+                        text: text.clone(),
+                        color: def.color,
+                        timestamp,
+                        alert_text_enabled: true,
+                        audio_enabled: false,
+                        audio_file: None,
+                    });
+                }
             } else {
                 // Create new effect
                 let display_text = def.display_text().to_string();
@@ -1370,6 +1422,22 @@ impl EffectTracker {
                 );
                 self.active_effects.insert(key, effect);
                 self.ticking_count += 1;
+
+                // Fire OnApply alert for new effect
+                if def.alert_on == AlertTrigger::OnApply
+                    && let Some(text) = &def.alert_text
+                {
+                    self.fired_alerts.push(FiredAlert {
+                        id: def.id.clone(),
+                        name: def.name.clone(),
+                        text: text.clone(),
+                        color: def.color,
+                        timestamp,
+                        alert_text_enabled: true,
+                        audio_enabled: false,
+                        audio_file: None,
+                    });
+                }
             }
         }
     }
@@ -1428,11 +1496,33 @@ impl EffectTracker {
                 continue;
             }
 
+            // Instant alerts: fire and skip — no ActiveEffect created
+            if def.is_alert {
+                self.fired_alerts.push(Self::build_instant_alert(def, timestamp));
+                continue;
+            }
+
             let key = EffectKey::new(&def.id, target_id);
             let duration = self.effective_duration(def);
 
             if let Some(existing) = self.active_effects.get_mut(&key) {
                 existing.refresh(timestamp, duration);
+
+                // Fire OnApply alert on refresh
+                if def.alert_on == AlertTrigger::OnApply
+                    && let Some(text) = &def.alert_text
+                {
+                    self.fired_alerts.push(FiredAlert {
+                        id: def.id.clone(),
+                        name: def.name.clone(),
+                        text: text.clone(),
+                        color: def.color,
+                        timestamp,
+                        alert_text_enabled: true,
+                        audio_enabled: false,
+                        audio_file: None,
+                    });
+                }
             } else {
                 let display_text = def.display_text().to_string();
                 let icon_ability_id = def.icon_ability_id.unwrap_or(ability_id as u64);
@@ -1461,6 +1551,22 @@ impl EffectTracker {
                 );
                 self.active_effects.insert(key, effect);
                 self.ticking_count += 1;
+
+                // Fire OnApply alert for new effect
+                if def.alert_on == AlertTrigger::OnApply
+                    && let Some(text) = &def.alert_text
+                {
+                    self.fired_alerts.push(FiredAlert {
+                        id: def.id.clone(),
+                        name: def.name.clone(),
+                        text: text.clone(),
+                        color: def.color,
+                        timestamp,
+                        alert_text_enabled: true,
+                        audio_enabled: false,
+                        audio_file: None,
+                    });
+                }
             }
         }
     }
@@ -1536,6 +1642,12 @@ impl EffectTracker {
             } else if def.is_effect_removed_trigger()
                 && self.matches_filters(def, source_info, target_info, encounter)
             {
+                // Instant alerts: fire and skip — no ActiveEffect created
+                if def.is_alert {
+                    self.fired_alerts.push(Self::build_instant_alert(def, timestamp));
+                    continue;
+                }
+
                 // Create new effect when the game effect is removed (cooldown tracking)
                 let duration = self.effective_duration(def);
                 let display_text = def.display_text().to_string();
@@ -1565,6 +1677,22 @@ impl EffectTracker {
                 );
                 self.active_effects.insert(key, effect);
                 self.ticking_count += 1;
+
+                // Fire OnApply alert for new EffectRemoved-triggered effect
+                if def.alert_on == AlertTrigger::OnApply
+                    && let Some(text) = &def.alert_text
+                {
+                    self.fired_alerts.push(FiredAlert {
+                        id: def.id.clone(),
+                        name: def.name.clone(),
+                        text: text.clone(),
+                        color: def.color,
+                        timestamp,
+                        alert_text_enabled: true,
+                        audio_enabled: false,
+                        audio_file: None,
+                    });
+                }
             }
         }
     }

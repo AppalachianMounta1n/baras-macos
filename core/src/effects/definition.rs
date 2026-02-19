@@ -157,6 +157,11 @@ pub struct EffectDefinition {
     pub on_expire_trigger_timer: Option<String>,
 
     // ─── Alerts ────────────────────────────────────────────────────────────────
+    /// If true, fires as instant alert (no active effect created).
+    /// Only shows alert text and plays audio on trigger — no duration tracking.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub is_alert: bool,
+
     /// Text to display in the alerts overlay
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub alert_text: Option<String>,
