@@ -3131,22 +3131,11 @@ details[open] .collapsible-summary::before {
 }
 
 .boss-filter-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.4em;
   font-size: 0.75em;
-  color: var(--text-muted);
-  cursor: pointer;
-  user-select: none;
 }
 
-.boss-filter-toggle:hover {
-  color: var(--text-tertiary);
-}
-
-.boss-filter-toggle input[type="checkbox"] {
-  accent-color: #4a9eff;
-  cursor: pointer;
+.boss-filter-toggle .toggle-text {
+  font-size: 1em;
 }
 
 .encounter-count {

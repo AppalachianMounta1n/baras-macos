@@ -6,6 +6,7 @@
 //! - CombatService: Background task that processes commands and updates shared state
 mod directory;
 mod handler;
+mod process_monitor;
 
 use crate::state::SharedState;
 pub use crate::state::{RaidSlotRegistry, RegisteredPlayer};
@@ -121,6 +122,8 @@ pub enum ServiceCommand {
     SendNotesToOverlay(NotesData),
     /// Reload area definitions for a new area (triggers notes update)
     ReloadAreaDefinitions(i64),
+    /// Start monitoring for the game process (triggered on first live event)
+    StartProcessMonitor,
 }
 
 /// Updates sent to the overlay system
@@ -193,6 +196,8 @@ struct CombatSignalHandler {
     cmd_tx: mpsc::Sender<ServiceCommand>,
     /// Local player entity ID (set on first DisciplineChanged)
     local_player_id: Option<i64>,
+    /// Whether we've already requested the process monitor for this tailing session
+    monitor_requested: bool,
 }
 
 impl CombatSignalHandler {
@@ -210,6 +215,7 @@ impl CombatSignalHandler {
             overlay_tx,
             cmd_tx,
             local_player_id: None,
+            monitor_requested: false,
         }
     }
 }
@@ -220,6 +226,12 @@ impl SignalHandler for CombatSignalHandler {
         signal: &GameSignal,
         _encounter: Option<&baras_core::encounter::CombatEncounter>,
     ) {
+        // On first event processed, start monitoring the game process
+        if !self.monitor_requested {
+            self.monitor_requested = true;
+            let _ = self.cmd_tx.try_send(ServiceCommand::StartProcessMonitor);
+        }
+
         match signal {
             GameSignal::CombatStarted { .. } => {
                 self.shared.in_combat.store(true, Ordering::SeqCst);
@@ -342,6 +354,8 @@ pub struct CombatService {
     icon_cache: Option<Arc<baras_overlay::icons::IconCache>>,
     /// Pending file to switch to when it gets content (deferred rotation for empty files)
     pending_file: Option<PathBuf>,
+    /// Handle for the game process monitor task
+    process_monitor_handle: Option<tokio::task::JoinHandle<()>>,
 }
 
 impl CombatService {
@@ -418,6 +432,7 @@ impl CombatService {
             loaded_area_id: 0,
             icon_cache,
             pending_file: None,
+            process_monitor_handle: None,
         };
 
         let handle = ServiceHandle { cmd_tx, shared: shared.clone(), app_handle: app_handle.clone() };
@@ -921,6 +936,9 @@ impl CombatService {
                 ServiceCommand::SendNotesToOverlay(notes_data) => {
                     // Send specific boss notes to the overlay
                     let _ = self.overlay_tx.try_send(OverlayUpdate::NotesUpdated(notes_data));
+                }
+                ServiceCommand::StartProcessMonitor => {
+                    self.start_process_monitor();
                 }
                 ServiceCommand::ReloadAreaDefinitions(area_id) => {
                     // Reload definitions for the new area and update notes overlay
@@ -1955,6 +1973,9 @@ impl CombatService {
         // Reset combat state
         self.shared.in_combat.store(false, Ordering::SeqCst);
 
+        // Stop process monitor
+        self.stop_process_monitor();
+
         // Cancel effects task
         if let Some(handle) = self.effects_handle.take() {
             handle.abort();
@@ -1974,6 +1995,46 @@ impl CombatService {
         }
 
         *self.shared.session.write().await = None;
+    }
+
+    /// Start monitoring the game process. If the process disappears, emits
+    /// `NotLiveStateChanged { is_live: false }` to auto-hide overlays.
+    /// Only one monitor runs at a time; calling this while one is active is a no-op.
+    fn start_process_monitor(&mut self) {
+        if self.process_monitor_handle.is_some() {
+            return;
+        }
+
+        let overlay_tx = self.overlay_tx.clone();
+        let handle = tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+
+                match process_monitor::is_game_running().await {
+                    Some(true) => continue,
+                    Some(false) => {
+                        info!("Game process no longer detected, emitting not-live event");
+                        let _ = overlay_tx
+                            .try_send(OverlayUpdate::NotLiveStateChanged { is_live: false });
+                        break;
+                    }
+                    None => {
+                        // Process check failed — safe default is to stop monitoring
+                        // and leave overlays visible
+                        break;
+                    }
+                }
+            }
+        });
+
+        self.process_monitor_handle = Some(handle);
+    }
+
+    /// Stop the game process monitor if running.
+    fn stop_process_monitor(&mut self) {
+        if let Some(handle) = self.process_monitor_handle.take() {
+            handle.abort();
+        }
     }
 
     async fn refresh_index(&mut self) {

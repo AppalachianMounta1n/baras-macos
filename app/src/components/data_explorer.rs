@@ -1350,29 +1350,32 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                     }
                     if !*sidebar_collapsed.read() {
                         div { class: "history-controls",
-                            label { class: "boss-filter-toggle",
-                                input {
-                                    r#type: "checkbox",
-                                    checked: *show_only_bosses.read(),
-                                    onchange: move |e| {
-                                        let checked = e.checked();
-                                        show_only_bosses.set(checked);
-                                        // Update parent state immediately (avoids bidirectional sync loop)
-                                        if let Ok(mut state) = props.state.try_write() {
-                                            state.data_explorer.show_only_bosses = checked;
-                                        }
-                                        let mut toast = use_toast();
-                                        spawn(async move {
-                                            if let Some(mut cfg) = api::get_config().await {
-                                                cfg.show_only_bosses = checked;
-                                                if let Err(err) = api::update_config(&cfg).await {
-                                                    toast.show(format!("Failed to save settings: {}", err), ToastSeverity::Normal);
-                                                }
+                            label { class: "toggle-switch-label boss-filter-toggle",
+                                span { class: "toggle-switch",
+                                    input {
+                                        r#type: "checkbox",
+                                        checked: *show_only_bosses.read(),
+                                        onchange: move |e| {
+                                            let checked = e.checked();
+                                            show_only_bosses.set(checked);
+                                            // Update parent state immediately (avoids bidirectional sync loop)
+                                            if let Ok(mut state) = props.state.try_write() {
+                                                state.data_explorer.show_only_bosses = checked;
                                             }
-                                        });
+                                            let mut toast = use_toast();
+                                            spawn(async move {
+                                                if let Some(mut cfg) = api::get_config().await {
+                                                    cfg.show_only_bosses = checked;
+                                                    if let Err(err) = api::update_config(&cfg).await {
+                                                        toast.show(format!("Failed to save settings: {}", err), ToastSeverity::Normal);
+                                                    }
+                                                }
+                                            });
+                                        }
                                     }
+                                    span { class: "toggle-slider" }
                                 }
-                                span { "Bosses Only" }
+                                span { class: "toggle-text", "Bosses Only" }
                             }
                             span { class: "encounter-count",
                                 "{filtered_history().len()}"
