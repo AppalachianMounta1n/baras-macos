@@ -795,6 +795,21 @@ duration_secs = 16.0
 color = [224, 29, 31, 255]
 difficulties = ["veteran", "master"]
 
+[[boss.timer]]
+id = "huntmaster_grenade"
+name = "Grenade"
+alert_text = "Grenade on You!"
+is_alert = true
+color = [255, 128, 0, 255]
+difficulties = ["story", "veteran", "master"]
+enabled = true
+display_target = "timers_a"
+
+[boss.timer.trigger]
+type = "effect_applied"
+effects = [4271559724236800]
+source = "any"
+target = "local_player"
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Boss 4: Apex Vanguard
