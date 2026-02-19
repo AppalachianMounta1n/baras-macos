@@ -227,9 +227,18 @@ impl SignalHandler for CombatSignalHandler {
         _encounter: Option<&baras_core::encounter::CombatEncounter>,
     ) {
         // On first event processed, start monitoring the game process
+        // (only if auto-hide when not live is enabled — no point polling otherwise)
         if !self.monitor_requested {
             self.monitor_requested = true;
-            let _ = self.cmd_tx.try_send(ServiceCommand::StartProcessMonitor);
+            let should_monitor = self
+                .shared
+                .config
+                .try_read()
+                .map(|c| c.overlay_settings.hide_when_not_live)
+                .unwrap_or(true); // safe default: start monitor if lock unavailable
+            if should_monitor {
+                let _ = self.cmd_tx.try_send(ServiceCommand::StartProcessMonitor);
+            }
         }
 
         match signal {
