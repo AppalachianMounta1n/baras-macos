@@ -499,6 +499,7 @@ pub struct RaidOverlay {
     last_render: Instant,
     /// Pending registry actions to be sent to the service
     pending_registry_actions: Vec<RaidRegistryAction>,
+    european_number_format: bool,
 }
 
 impl RaidOverlay {
@@ -528,6 +529,7 @@ impl RaidOverlay {
             needs_render: true,                            // Initial render needed
             last_render: Instant::now() - RENDER_INTERVAL, // Allow immediate first render
             pending_registry_actions: Vec::new(),
+            european_number_format: false,
         })
     }
 
@@ -1254,9 +1256,10 @@ impl Overlay for RaidOverlay {
     }
 
     fn update_config(&mut self, config: OverlayConfigUpdate) {
-        if let OverlayConfigUpdate::Raid(raid_config, alpha) = config {
+        if let OverlayConfigUpdate::Raid(raid_config, alpha, european) = config {
             self.config = raid_config;
             self.frame.set_background_alpha(alpha);
+            self.european_number_format = european;
             self.needs_render = true;
         }
     }

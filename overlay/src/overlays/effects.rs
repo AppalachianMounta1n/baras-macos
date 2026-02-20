@@ -36,21 +36,8 @@ impl EffectEntry {
     }
 
     /// Format remaining time as MM:SS or S.s
-    pub fn format_time(&self) -> String {
-        if self.remaining_secs <= 0.0 {
-            return "0:00".to_string();
-        }
-
-        let secs = self.remaining_secs;
-        if secs >= 60.0 {
-            let mins = (secs / 60.0).floor() as u32;
-            let remaining_secs = (secs % 60.0).floor() as u32;
-            format!("{}:{:02}", mins, remaining_secs)
-        } else if secs >= 10.0 {
-            format!("{:.0}", secs)
-        } else {
-            format!("{:.1}", secs)
-        }
+    pub fn format_time(&self, european: bool) -> String {
+        baras_types::formatting::format_countdown(self.remaining_secs, "", "0:00", european)
     }
 
     /// Format display text (name + optional stacks)
@@ -85,6 +72,7 @@ pub struct EffectsOverlay {
     frame: OverlayFrame,
     config: TimerOverlayConfig, // Reuse timer config for now
     data: EffectsData,
+    european_number_format: bool,
 }
 
 impl EffectsOverlay {
@@ -102,6 +90,7 @@ impl EffectsOverlay {
             frame,
             config,
             data: EffectsData::default(),
+            european_number_format: false,
         })
     }
 
@@ -170,7 +159,7 @@ impl EffectsOverlay {
 
         for entry in self.data.entries.iter().take(max_display) {
             let bar_color = color_from_rgba(entry.color);
-            let time_text = entry.format_time();
+            let time_text = entry.format_time(self.european_number_format);
 
             // Draw effect bar with name on left, time on right
             ProgressBar::new(entry.display_name(), entry.progress())
@@ -215,9 +204,10 @@ impl Overlay for EffectsOverlay {
     }
 
     fn update_config(&mut self, config: OverlayConfigUpdate) {
-        if let OverlayConfigUpdate::Effects(effects_config, alpha) = config {
+        if let OverlayConfigUpdate::Effects(effects_config, alpha, european) = config {
             self.set_config(effects_config);
             self.set_background_alpha(alpha);
+            self.european_number_format = european;
         }
     }
 

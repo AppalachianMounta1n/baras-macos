@@ -22,6 +22,7 @@ use crate::components::rotation_view::RotationView;
 use crate::components::{ToastSeverity, use_toast};
 use crate::types::{BreakdownMode, CombatLogSessionState, DataTab, SortColumn, SortDirection, UiSessionState, ViewMode};
 use crate::utils::js_set;
+use baras_types::formatting;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Local Types (not persisted)
@@ -277,26 +278,7 @@ fn parse_hsl(color: &str) -> Option<(f64, f64, f64)> {
 // Helper Functions
 // ─────────────────────────────────────────────────────────────────────────────
 
-fn format_number(n: f64) -> String {
-    let n = n as i64;
-    if n >= 1_000_000 {
-        format!("{:.2}M", n as f64 / 1_000_000.0)
-    } else if n >= 1_000 {
-        format!("{:.2}K", n as f64 / 1_000.0)
-    } else {
-        n.to_string()
-    }
-}
 
-fn format_pct(n: f64) -> String {
-    format!("{:.1}%", n)
-}
-
-fn format_duration(secs: i64) -> String {
-    let mins = secs / 60;
-    let secs = secs % 60;
-    format!("{}:{:02}", mins, secs)
-}
 
 /// Group encounters into sections by area (based on is_phase_start flag or area change)
 fn group_by_area(
@@ -1329,6 +1311,10 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
         result
     });
 
+    let eu = props.state.read().european_number_format;
+    let format_number = |n: f64| formatting::format_compact_f64(n, eu);
+    let format_pct = |n: f64| formatting::format_pct(n, eu);
+
     rsx! {
         div { class: "data-explorer",
             // Sidebar with encounter list
@@ -1449,7 +1435,7 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                                 if let Some(time) = &enc.start_time {
                                                                     span { class: "encounter-time", "{time}" }
                                                                 }
-                                                                span { class: "encounter-duration", "({format_duration(enc.duration_seconds)})" }
+                                                                span { class: "encounter-duration", "({formatting::format_duration(enc.duration_seconds)})" }
                                                             }
                                                         }
                                                     }
@@ -1491,7 +1477,7 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                 div { class: "selected-entity-indicator",
                                     i { class: "fa-solid fa-crosshairs" }
                                     span { "{enc.display_name}" }
-                                    span { class: "indicator-meta", "({format_duration(enc.duration_seconds)})" }
+                                    span { class: "indicator-meta", "({formatting::format_duration(enc.duration_seconds)})" }
                                 }
                             }
                         }
@@ -1578,6 +1564,7 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                 on_range_change: move |new_range: TimeRange| {
                                     time_range.set(new_range);
                                 },
+                                european: eu,
                             }
                         }
                     } else if matches!(view_mode(), ViewMode::Charts) {
@@ -1599,6 +1586,7 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                         local_player: local_player_name.read().clone(),
                                         entity_collapsed: *entity_collapsed.read(),
                                         on_toggle_entity: move |_| { let v = *entity_collapsed.read(); entity_collapsed.set(!v); },
+                                        european: eu,
                                     }
                                 }
                             }
@@ -1622,7 +1610,7 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                     {
                                                         let name = death.name.clone();
                                                         let death_time = death.death_time_secs;
-                                                        let time_str = format_duration(death_time as i64);
+                                                        let time_str = formatting::format_duration(death_time as i64);
                                                         rsx! {
                                                             button {
                                                                 class: "death-item",
@@ -1726,7 +1714,7 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                     td { class: "num heal", "{format_number(row.ehps)}" }
                                                     td { class: "num shield", "{format_number(row.shielding_given_total)}" }
                                                     td { class: "num shield", "{format_number(row.sps)}" }
-                                                    td { class: "num apm", "{row.apm:.1}" }
+                                                    td { class: "num apm", "{formatting::format_decimal_f64(row.apm, 1, eu)}" }
                                                 }
                                             }
                                         }
@@ -1788,8 +1776,8 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                                     for npc in chunk.iter() {
                                                                         {
                                                                             let hp_class = if npc.final_hp == 0 { "dead" } else { "alive" };
-                                                                            let seen_str = format_duration(npc.first_seen_secs as i64);
-                                                                            let death_str = npc.death_time_secs.map(|t| format_duration(t as i64));
+                                                                            let seen_str = formatting::format_duration(npc.first_seen_secs as i64);
+                                                                            let death_str = npc.death_time_secs.map(|t| formatting::format_duration(t as i64));
                                                                             rsx! {
                                                                                 tr { class: "npc-row {hp_class}",
                                                                                     td {
@@ -1804,7 +1792,7 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                                                                     }
                                                                                     td { class: "num", "{format_number(npc.final_hp as f64)}" }
                                                                                     td { class: "num", "{format_number(npc.max_hp as f64)}" }
-                                                                                    td { class: "num", "{npc.final_hp_pct:.1}%" }
+                                                                                    td { class: "num", "{formatting::format_pct_f32(npc.final_hp_pct, eu)}" }
                                                                                 }
                                                                             }
                                                                         }
@@ -1923,6 +1911,7 @@ pub fn DataExplorerPanel(mut props: DataExplorerProps) -> Element {
                                         on_range_change: move |new_range: TimeRange| {
                                             time_range.set(new_range);
                                         },
+                                        european: eu,
                                     }
                                 }
                             } else if let Some(current_tab) = current_tab {

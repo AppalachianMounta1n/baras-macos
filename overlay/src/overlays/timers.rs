@@ -33,21 +33,8 @@ impl TimerEntry {
     }
 
     /// Format remaining time as MM:SS or S.s
-    pub fn format_time(&self) -> String {
-        if self.remaining_secs <= 0.0 {
-            return "0:00".to_string();
-        }
-
-        let secs = self.remaining_secs;
-        if secs >= 60.0 {
-            let mins = (secs / 60.0).floor() as u32;
-            let remaining_secs = (secs % 60.0).floor() as u32;
-            format!("{}:{:02}", mins, remaining_secs)
-        } else if secs >= 10.0 {
-            format!("{:.0}", secs)
-        } else {
-            format!("{:.1}", secs)
-        }
+    pub fn format_time(&self, european: bool) -> String {
+        baras_types::formatting::format_countdown(self.remaining_secs, "", "0:00", european)
     }
 }
 
@@ -73,6 +60,7 @@ pub struct TimerOverlay {
     frame: OverlayFrame,
     config: TimerOverlayConfig,
     data: TimerData,
+    european_number_format: bool,
 }
 
 impl TimerOverlay {
@@ -91,6 +79,7 @@ impl TimerOverlay {
             frame,
             config,
             data: TimerData::default(),
+            european_number_format: false,
         })
     }
 
@@ -159,7 +148,7 @@ impl TimerOverlay {
 
         for entry in self.data.entries.iter().take(max_display) {
             let bar_color = color_from_rgba(entry.color);
-            let time_text = entry.format_time();
+            let time_text = entry.format_time(self.european_number_format);
 
             // Draw timer bar with name on left, time on right
             ProgressBar::new(&entry.name, entry.progress())
@@ -208,12 +197,15 @@ impl Overlay for TimerOverlay {
 
     fn update_config(&mut self, config: OverlayConfigUpdate) {
         // Handle both TimersA and TimersB config (same config structure)
-        let (timer_config, alpha) = match config {
-            OverlayConfigUpdate::TimersA(c, a) | OverlayConfigUpdate::TimersB(c, a) => (c, a),
+        let (timer_config, alpha, european) = match config {
+            OverlayConfigUpdate::TimersA(c, a, eu) | OverlayConfigUpdate::TimersB(c, a, eu) => {
+                (c, a, eu)
+            }
             _ => return,
         };
         self.set_config(timer_config);
         self.set_background_alpha(alpha);
+        self.european_number_format = european;
     }
 
     fn render(&mut self) {

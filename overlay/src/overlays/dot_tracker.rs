@@ -55,19 +55,8 @@ impl DotEntry {
     }
 
     /// Format remaining time
-    pub fn format_time(&self) -> String {
-        if self.remaining_secs <= 0.0 {
-            return "0".to_string();
-        }
-        let secs = self.remaining_secs;
-        if secs >= 60.0 {
-            let mins = (secs / 60.0).floor() as u32;
-            format!("{}m", mins)
-        } else if secs >= 10.0 {
-            format!("{:.0}", secs)
-        } else {
-            format!("{:.1}", secs)
-        }
+    pub fn format_time(&self, european: bool) -> String {
+        baras_types::formatting::format_countdown_compact(self.remaining_secs, "0", european)
     }
 }
 
@@ -144,6 +133,7 @@ pub struct DotTrackerOverlay {
     icon_cache: ScaledIconCache,
     /// Last rendered state for dirty checking: Vec of (target_id, Vec of (effect_id, time_string, stacks))
     last_rendered: Vec<(i64, Vec<(u64, String, u8)>)>,
+    european_number_format: bool,
 }
 
 impl DotTrackerOverlay {
@@ -164,6 +154,7 @@ impl DotTrackerOverlay {
             data: DotTrackerData::default(),
             icon_cache: HashMap::new(),
             last_rendered: Vec::new(),
+            european_number_format: false,
         })
     }
 
@@ -220,7 +211,13 @@ impl DotTrackerOverlay {
                 let dots: Vec<(u64, String, u8)> = t
                     .dots
                     .iter()
-                    .map(|d| (d.effect_id, d.format_time(), d.stacks))
+                    .map(|d| {
+                        (
+                            d.effect_id,
+                            d.format_time(self.european_number_format),
+                            d.stacks,
+                        )
+                    })
                     .collect();
                 (t.entity_id, dots)
             })
@@ -403,7 +400,7 @@ impl DotTrackerOverlay {
 
                 // Countdown text centered (if enabled)
                 if self.config.show_countdown {
-                    let time_text = dot.format_time();
+                    let time_text = dot.format_time(self.european_number_format);
                     let text_width = self.frame.measure_text(&time_text, time_font_size).0;
                     let text_x = icon_x + (icon_size - text_width) / 2.0;
                     let text_y = y + icon_size / 2.0 + time_font_size * 0.4;
@@ -413,8 +410,13 @@ impl DotTrackerOverlay {
                     } else {
                         colors::white()
                     };
-                    self.frame
-                        .draw_text_glowed(&time_text, text_x, text_y, time_font_size, time_color);
+                    self.frame.draw_text_glowed(
+                        &time_text,
+                        text_x,
+                        text_y,
+                        time_font_size,
+                        time_color,
+                    );
                 }
 
                 // Stack count - prominent display when stacks exist
@@ -657,9 +659,10 @@ impl Overlay for DotTrackerOverlay {
     }
 
     fn update_config(&mut self, config: OverlayConfigUpdate) {
-        if let OverlayConfigUpdate::DotTracker(cfg, alpha) = config {
+        if let OverlayConfigUpdate::DotTracker(cfg, alpha, european) = config {
             self.set_config(cfg);
             self.set_background_alpha(alpha);
+            self.european_number_format = european;
         }
     }
 

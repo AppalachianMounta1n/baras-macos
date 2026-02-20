@@ -8,7 +8,8 @@ use baras_core::context::BossHealthConfig;
 use super::{Overlay, OverlayConfigUpdate, OverlayData};
 use crate::frame::OverlayFrame;
 use crate::platform::{OverlayConfig, PlatformError};
-use crate::utils::{color_from_rgba, format_number};
+use baras_types::formatting;
+use crate::utils::color_from_rgba;
 use crate::widgets::ProgressBar;
 use crate::widgets::colors;
 
@@ -42,6 +43,7 @@ pub struct BossHealthOverlay {
     frame: OverlayFrame,
     config: BossHealthConfig,
     data: BossHealthData,
+    european_number_format: bool,
 }
 
 impl BossHealthOverlay {
@@ -59,6 +61,7 @@ impl BossHealthOverlay {
             frame,
             config,
             data: BossHealthData::default(),
+            european_number_format: false,
         })
     }
 
@@ -230,11 +233,11 @@ impl BossHealthOverlay {
             y += label_height + label_bar_gap;
 
             // Format health text for inside bar: "(1.5M/2.0M)"
-            let health_text = format_number(entry.current as i64);
+            let health_text = formatting::format_compact(entry.current as i64, self.european_number_format);
 
             // Format percentage for right side
             let percent_text = if self.config.show_percent {
-                format!("{:.1}%", entry.percent())
+                formatting::format_pct(entry.percent() as f64, self.european_number_format)
             } else {
                 String::new()
             };
@@ -294,9 +297,10 @@ impl Overlay for BossHealthOverlay {
     }
 
     fn update_config(&mut self, config: OverlayConfigUpdate) {
-        if let OverlayConfigUpdate::BossHealth(boss_config, alpha) = config {
+        if let OverlayConfigUpdate::BossHealth(boss_config, alpha, european) = config {
             self.set_config(boss_config);
             self.set_background_alpha(alpha);
+            self.european_number_format = european;
         }
     }
 

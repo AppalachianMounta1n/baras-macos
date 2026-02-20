@@ -9,9 +9,10 @@ use baras_core::context::{PersonalOverlayConfig, PersonalStat, PersonalStatCateg
 use super::{Overlay, OverlayConfigUpdate, OverlayData};
 use crate::frame::OverlayFrame;
 use crate::platform::{OverlayConfig, PlatformError};
-use crate::utils::{color_from_rgba, format_number, format_time};
+use crate::utils::color_from_rgba;
 use crate::widgets::colors;
 use crate::widgets::{CompoundRow, CompoundValue, LabeledValue};
+use baras_types::formatting;
 use tiny_skia::Color;
 
 /// Data for the personal overlay
@@ -60,6 +61,7 @@ pub struct PersonalOverlay {
     frame: OverlayFrame,
     config: PersonalOverlayConfig,
     stats: PersonalStats,
+    european_number_format: bool,
 }
 
 impl PersonalOverlay {
@@ -77,6 +79,7 @@ impl PersonalOverlay {
             frame,
             config,
             stats: PersonalStats::default(),
+            european_number_format: false,
         })
     }
 
@@ -106,9 +109,10 @@ impl PersonalOverlay {
                 let diff = self.stats.difficulty.as_deref().unwrap_or("Open World");
                 ("", diff.to_string())
             }
-            PersonalStat::EncounterTime => {
-                ("Combat Time", format_time(self.stats.encounter_time_secs))
-            }
+            PersonalStat::EncounterTime => (
+                "Combat Time",
+                formatting::format_duration_u64(self.stats.encounter_time_secs),
+            ),
             PersonalStat::EncounterCount => (
                 "Session Encounters",
                 format!("{}", self.stats.encounter_count),
@@ -121,7 +125,10 @@ impl PersonalOverlay {
                     .unwrap_or_else(|| "Unknown".to_string());
                 ("Spec", value)
             }
-            PersonalStat::Apm => ("APM", format!("{:.1}", self.stats.apm)),
+            PersonalStat::Apm => (
+                "APM",
+                formatting::format_f32_1(self.stats.apm, self.european_number_format),
+            ),
             // Compound stats should not be called here, but handle gracefully
             _ => (stat.label(), String::new()),
         }
@@ -129,61 +136,74 @@ impl PersonalOverlay {
 
     /// Get the compound values for a group stat
     fn compound_values(&self, stat: PersonalStat) -> (&'static str, Vec<CompoundValue>) {
+        let eu = self.european_number_format;
         match stat {
             PersonalStat::DamageGroup => (
                 "Damage",
                 vec![
-                    CompoundValue::new(format_number(self.stats.dps as i64)),
-                    CompoundValue::new(format_number(self.stats.total_damage)),
-                    CompoundValue::new(format!("{:.1}%", self.stats.damage_crit_pct))
+                    CompoundValue::new(formatting::format_compact(self.stats.dps as i64, eu)),
+                    CompoundValue::new(formatting::format_compact(self.stats.total_damage, eu)),
+                    CompoundValue::new(formatting::format_pct_f32(self.stats.damage_crit_pct, eu))
                         .with_prefix("Crit:"),
                 ],
             ),
             PersonalStat::BossDamageGroup => (
                 "Boss Dmg",
                 vec![
-                    CompoundValue::new(format_number(self.stats.bossdps as i64)),
-                    CompoundValue::new(format_number(self.stats.total_damage_boss)),
+                    CompoundValue::new(formatting::format_compact(self.stats.bossdps as i64, eu)),
+                    CompoundValue::new(formatting::format_compact(
+                        self.stats.total_damage_boss,
+                        eu,
+                    )),
                 ],
             ),
             PersonalStat::HealingGroup => (
                 "HPS",
                 vec![
-                    CompoundValue::new(format_number(self.stats.hps as i64)),
-                    CompoundValue::new(format_number(self.stats.ehps as i64)),
-                    CompoundValue::new(format!("{:.1}%", self.stats.effective_heal_pct))
-                        .with_prefix("Eff:"),
+                    CompoundValue::new(formatting::format_compact(self.stats.hps as i64, eu)),
+                    CompoundValue::new(formatting::format_compact(self.stats.ehps as i64, eu)),
+                    CompoundValue::new(formatting::format_pct_f32(
+                        self.stats.effective_heal_pct,
+                        eu,
+                    ))
+                    .with_prefix("Eff:"),
                 ],
             ),
             PersonalStat::HealingAdvanced => (
                 "Total Heal",
                 vec![
-                    CompoundValue::new(format_number(self.stats.total_healing)),
-                    CompoundValue::new(format_number(self.stats.total_healing_effective)),
-                    CompoundValue::new(format!("{:.1}%", self.stats.heal_crit_pct))
+                    CompoundValue::new(formatting::format_compact(self.stats.total_healing, eu)),
+                    CompoundValue::new(formatting::format_compact(
+                        self.stats.total_healing_effective,
+                        eu,
+                    )),
+                    CompoundValue::new(formatting::format_pct_f32(self.stats.heal_crit_pct, eu))
                         .with_prefix("Crit:"),
                 ],
             ),
             PersonalStat::ThreatGroup => (
                 "Threat",
                 vec![
-                    CompoundValue::new(format_number(self.stats.tps as i64)),
-                    CompoundValue::new(format_number(self.stats.total_threat)),
+                    CompoundValue::new(formatting::format_compact(self.stats.tps as i64, eu)),
+                    CompoundValue::new(formatting::format_compact(self.stats.total_threat, eu)),
                 ],
             ),
             PersonalStat::MitigationGroup => (
                 "DTPS",
                 vec![
-                    CompoundValue::new(format_number(self.stats.edtps as i64)),
-                    CompoundValue::new(format_number(self.stats.total_damage_taken_effective)),
+                    CompoundValue::new(formatting::format_compact(self.stats.edtps as i64, eu)),
+                    CompoundValue::new(formatting::format_compact(
+                        self.stats.total_damage_taken_effective,
+                        eu,
+                    )),
                 ],
             ),
             PersonalStat::DefensiveGroup => (
                 "Defense",
                 vec![
-                    CompoundValue::new(format!("{:.1}%", self.stats.defense_pct))
+                    CompoundValue::new(formatting::format_pct_f32(self.stats.defense_pct, eu))
                         .with_prefix("Def:"),
-                    CompoundValue::new(format!("{:.1}%", self.stats.shield_pct))
+                    CompoundValue::new(formatting::format_pct_f32(self.stats.shield_pct, eu))
                         .with_prefix("Shld:"),
                 ],
             ),
@@ -195,7 +215,7 @@ impl PersonalOverlay {
                     .unwrap_or("")
                     .to_string();
                 let time = if self.stats.current_phase.is_some() {
-                    format_time(self.stats.phase_time_secs as u64)
+                    formatting::format_duration_u64(self.stats.phase_time_secs as u64)
                 } else {
                     String::new()
                 };
@@ -380,8 +400,15 @@ impl PersonalOverlay {
                         .measure_text_styled(&value, actual_fs, true, false);
                     let cx = padding + (content_width - fitted_w) * 0.5;
                     let shadow = crate::widgets::colors::text_shadow();
-                    self.frame
-                        .draw_text_styled(&value, cx + 1.0, y + 1.0, actual_fs, shadow, true, false);
+                    self.frame.draw_text_styled(
+                        &value,
+                        cx + 1.0,
+                        y + 1.0,
+                        actual_fs,
+                        shadow,
+                        true,
+                        false,
+                    );
                     self.frame
                         .draw_text_styled(&value, cx, y, actual_fs, value_color, true, false);
                 } else {
@@ -418,9 +445,10 @@ impl Overlay for PersonalOverlay {
     }
 
     fn update_config(&mut self, config: OverlayConfigUpdate) {
-        if let OverlayConfigUpdate::Personal(personal_config, alpha) = config {
+        if let OverlayConfigUpdate::Personal(personal_config, alpha, european) = config {
             self.set_config(personal_config);
             self.set_background_alpha(alpha);
+            self.european_number_format = european;
         }
     }
 

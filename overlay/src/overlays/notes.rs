@@ -54,6 +54,7 @@ pub struct NotesOverlay {
     data: NotesData,
     /// Cached parsed lines for rendering
     lines: Vec<NotesLine>,
+    european_number_format: bool,
 }
 
 /// A text span with styling
@@ -93,6 +94,7 @@ impl NotesOverlay {
             config,
             data: NotesData::default(),
             lines: Vec::new(),
+            european_number_format: false,
         })
     }
 
@@ -486,9 +488,10 @@ impl Overlay for NotesOverlay {
     }
 
     fn update_config(&mut self, config: OverlayConfigUpdate) {
-        if let OverlayConfigUpdate::Notes(notes_config, alpha) = config {
+        if let OverlayConfigUpdate::Notes(notes_config, alpha, european) = config {
             self.set_config(notes_config);
             self.set_background_alpha(alpha);
+            self.european_number_format = european;
         }
     }
 

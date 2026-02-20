@@ -8,6 +8,7 @@ use wasm_bindgen::JsCast;
 use crate::api::{self, CombatLogFilters, CombatLogFindMatch, CombatLogRow, GroupedEntityNames, TimeRange};
 use crate::components::ability_icon::AbilityIcon;
 use crate::types::CombatLogSessionState;
+use baras_types::formatting;
 
 /// Row height in pixels for virtual scrolling calculations.
 const ROW_HEIGHT: f64 = 24.0;
@@ -56,6 +57,9 @@ pub struct CombatLogProps {
     /// Optional callback to update the parent's time range (e.g. from context menu)
     #[props(default)]
     pub on_range_change: Option<EventHandler<TimeRange>>,
+    /// European number format (swaps `.` and `,`)
+    #[props(default)]
+    pub european: bool,
 }
 
 /// Format time as M:SS.dd (relative to combat start)
@@ -76,24 +80,7 @@ fn format_time_absolute(timestamp_ms: i64) -> String {
     format!("{hours:02}:{mins:02}:{secs:02}.{millis:03}")
 }
 
-/// Format a number with thousands separators.
-fn format_number(n: i32) -> String {
-    if n == 0 {
-        return String::new();
-    }
-    let s = n.abs().to_string();
-    let mut result = String::new();
-    for (i, c) in s.chars().rev().enumerate() {
-        if i > 0 && i % 3 == 0 {
-            result.insert(0, ',');
-        }
-        result.insert(0, c);
-    }
-    if n < 0 {
-        result.insert(0, '-');
-    }
-    result
-}
+
 
 /// Get readable event type from effect_type_id and effect_id.
 fn readable_event_type(row: &CombatLogRow) -> &'static str {
@@ -197,6 +184,9 @@ fn event_type_class(row: &CombatLogRow) -> &'static str {
 
 #[component]
 pub fn CombatLog(props: CombatLogProps) -> Element {
+    let eu = props.european;
+    let format_number = move |n: i32| formatting::format_thousands_eu(&formatting::format_thousands(n), eu);
+
     // Mirror props into signals for reactivity
     let mut time_range_signal = use_signal(|| props.time_range.clone());
     let mut encounter_idx_signal = use_signal(|| props.encounter_idx);

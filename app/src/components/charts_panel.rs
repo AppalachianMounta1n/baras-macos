@@ -12,6 +12,7 @@ use crate::api::{self, EffectChartData, EffectWindow, HpPoint, TimeRange, TimeSe
 use crate::components::ability_icon::AbilityIcon;
 use crate::components::class_icons::get_class_icon;
 use crate::utils::js_set;
+use baras_types::formatting;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ECharts JS Interop
@@ -599,16 +600,7 @@ fn build_hp_chart_option(
 // Helper Functions
 // ─────────────────────────────────────────────────────────────────────────────
 
-fn format_duration(secs: f32) -> String {
-    let total_secs = secs as i32;
-    let mins = total_secs / 60;
-    let secs = total_secs % 60;
-    format!("{}:{:02}", mins, secs)
-}
 
-fn format_pct(pct: f32) -> String {
-    format!("{:.1}%", pct)
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Component
@@ -631,6 +623,9 @@ pub struct ChartsPanelProps {
     /// Callback to toggle entity sidebar collapse
     #[props(default)]
     pub on_toggle_entity: EventHandler<()>,
+    /// European number format (swaps `.` and `,`)
+    #[props(default)]
+    pub european: bool,
 }
 
 #[component]
@@ -1175,8 +1170,8 @@ pub fn ChartsPanel(props: ChartsPanelProps) -> Element {
                                                         "{effect.effect_name}"
                                                     }
                                                     td { class: "num", "{effect.count}" }
-                                                    td { class: "num", "{format_duration(effect.total_duration_secs)}" }
-                                                    td { class: "num", "{format_pct(effect.uptime_pct)}" }
+                                                    td { class: "num", "{formatting::format_duration_f32(effect.total_duration_secs)}" }
+                                                    td { class: "num", "{formatting::format_pct_f32(effect.uptime_pct, props.european)}" }
                                                 }
                                             }
                                         }
@@ -1225,8 +1220,8 @@ pub fn ChartsPanel(props: ChartsPanelProps) -> Element {
                                                     },
                                                     td { "{effect.effect_name}" }
                                                     td { class: "num", "{effect.count}" }
-                                                    td { class: "num", "{format_duration(effect.total_duration_secs)}" }
-                                                    td { class: "num", "{format_pct(effect.uptime_pct)}" }
+                                                    td { class: "num", "{formatting::format_duration_f32(effect.total_duration_secs)}" }
+                                                    td { class: "num", "{formatting::format_pct_f32(effect.uptime_pct, props.european)}" }
                                                 }
                                             }
                                         }

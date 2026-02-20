@@ -255,7 +255,9 @@ impl OverlayManager {
     pub fn create_config_update(
         kind: OverlayType,
         settings: &OverlaySettings,
+        european_number_format: bool,
     ) -> OverlayConfigUpdate {
+        let eu = european_number_format;
         match kind {
             OverlayType::Metric(metric_type) => {
                 let appearance = get_appearance_for_type(settings, metric_type);
@@ -268,35 +270,36 @@ impl OverlayManager {
                     settings.class_icons_enabled,
                     settings.metric_font_scale,
                     settings.metric_dynamic_background,
+                    eu,
                 )
             }
             OverlayType::Personal => {
                 let personal_config = settings.personal_overlay.clone();
-                OverlayConfigUpdate::Personal(personal_config, settings.personal_opacity)
+                OverlayConfigUpdate::Personal(personal_config, settings.personal_opacity, eu)
             }
             OverlayType::Raid => {
                 let raid_config: RaidOverlayConfig = settings.raid_overlay.clone().into();
-                OverlayConfigUpdate::Raid(raid_config, settings.raid_opacity)
+                OverlayConfigUpdate::Raid(raid_config, settings.raid_opacity, eu)
             }
             OverlayType::BossHealth => {
                 let boss_config = settings.boss_health.clone();
-                OverlayConfigUpdate::BossHealth(boss_config, settings.boss_health_opacity)
+                OverlayConfigUpdate::BossHealth(boss_config, settings.boss_health_opacity, eu)
             }
             OverlayType::TimersA => {
                 let timer_config = settings.timers_a_overlay.clone();
-                OverlayConfigUpdate::TimersA(timer_config, settings.timers_a_opacity)
+                OverlayConfigUpdate::TimersA(timer_config, settings.timers_a_opacity, eu)
             }
             OverlayType::TimersB => {
                 let timer_config = settings.timers_b_overlay.clone();
-                OverlayConfigUpdate::TimersB(timer_config, settings.timers_b_opacity)
+                OverlayConfigUpdate::TimersB(timer_config, settings.timers_b_opacity, eu)
             }
             OverlayType::Challenges => {
                 let challenge_config = settings.challenge_overlay.clone();
-                OverlayConfigUpdate::Challenge(challenge_config, settings.challenge_opacity)
+                OverlayConfigUpdate::Challenge(challenge_config, settings.challenge_opacity, eu)
             }
             OverlayType::Alerts => {
                 let alerts_config = settings.alerts_overlay.clone();
-                OverlayConfigUpdate::Alerts(alerts_config, settings.alerts_opacity)
+                OverlayConfigUpdate::Alerts(alerts_config, settings.alerts_opacity, eu)
             }
             OverlayType::EffectsA => {
                 let cfg = &settings.effects_a;
@@ -317,7 +320,7 @@ impl OverlayManager {
                     font_scale: cfg.font_scale,
                     dynamic_background: cfg.dynamic_background,
                 };
-                OverlayConfigUpdate::EffectsA(buffs_config, settings.effects_a_opacity)
+                OverlayConfigUpdate::EffectsA(buffs_config, settings.effects_a_opacity, eu)
             }
             OverlayType::EffectsB => {
                 let cfg = &settings.effects_b;
@@ -338,7 +341,7 @@ impl OverlayManager {
                     font_scale: cfg.font_scale,
                     dynamic_background: cfg.dynamic_background,
                 };
-                OverlayConfigUpdate::EffectsB(debuffs_config, settings.effects_b_opacity)
+                OverlayConfigUpdate::EffectsB(debuffs_config, settings.effects_b_opacity, eu)
             }
             OverlayType::Cooldowns => {
                 let cfg = &settings.cooldown_tracker;
@@ -353,7 +356,7 @@ impl OverlayManager {
                     font_scale: cfg.font_scale,
                     dynamic_background: cfg.dynamic_background,
                 };
-                OverlayConfigUpdate::Cooldowns(cooldowns_config, settings.cooldown_tracker_opacity)
+                OverlayConfigUpdate::Cooldowns(cooldowns_config, settings.cooldown_tracker_opacity, eu)
             }
             OverlayType::DotTracker => {
                 let cfg = &settings.dot_tracker;
@@ -368,7 +371,7 @@ impl OverlayManager {
                     font_scale: cfg.font_scale,
                     dynamic_background: cfg.dynamic_background,
                 };
-                OverlayConfigUpdate::DotTracker(dot_config, settings.dot_tracker_opacity)
+                OverlayConfigUpdate::DotTracker(dot_config, settings.dot_tracker_opacity, eu)
             }
             OverlayType::Notes => {
                 let cfg = &settings.notes_overlay;
@@ -377,7 +380,7 @@ impl OverlayManager {
                     font_color: cfg.font_color.clone(),
                     dynamic_background: cfg.dynamic_background,
                 };
-                OverlayConfigUpdate::Notes(notes_config, settings.notes_opacity)
+                OverlayConfigUpdate::Notes(notes_config, settings.notes_opacity, eu)
             }
         }
     }
@@ -418,6 +421,11 @@ impl OverlayManager {
             s.insert(result.handle);
             (tx, needs_monitor_save, mode)
         };
+
+        // Send config update so overlay gets current settings (e.g., european_number_format)
+        let config_update =
+            Self::create_config_update(kind, &config.overlay_settings, config.european_number_format);
+        let _ = tx.send(OverlayCommand::UpdateConfig(config_update)).await;
 
         // Sync move mode
         Self::sync_move_mode(&tx, current_move_mode).await;
@@ -558,6 +566,11 @@ impl OverlayManager {
                 s.insert(result.handle);
                 (tx, save_monitor)
             };
+
+            // Send config update so overlay gets current settings (e.g., european_number_format)
+            let config_update =
+                Self::create_config_update(kind, &config.overlay_settings, config.european_number_format);
+            let _ = spawn_result.0.send(OverlayCommand::UpdateConfig(config_update)).await;
 
             // Send initial data
             Self::send_initial_data(kind, &spawn_result.0, combat_data.as_ref()).await;
@@ -709,6 +722,11 @@ impl OverlayManager {
                 s.insert(result.handle);
                 tx
             };
+
+            // Send config update so overlay gets current settings (e.g., european_number_format)
+            let config_update =
+                Self::create_config_update(kind, &config.overlay_settings, config.european_number_format);
+            let _ = spawn_result.send(OverlayCommand::UpdateConfig(config_update)).await;
 
             // Send initial data
             Self::send_initial_data(kind, &spawn_result, combat_data.as_ref()).await;
@@ -916,7 +934,8 @@ impl OverlayManager {
             }
 
             // Send config update
-            let config_update = Self::create_config_update(kind, settings);
+            let config_update =
+                Self::create_config_update(kind, settings, config.european_number_format);
             let _ = tx.send(OverlayCommand::UpdateConfig(config_update)).await;
         }
 

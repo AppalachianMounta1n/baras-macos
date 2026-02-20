@@ -3,6 +3,8 @@
 //! This crate contains serializable configuration types that are shared between
 //! the native backend (baras-core) and the WASM frontend (app-ui).
 
+pub mod formatting;
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -2181,6 +2183,11 @@ pub struct AppConfig {
     /// Used to show "What's New" popup only once per version.
     #[serde(default)]
     pub last_viewed_changelog_version: Option<String>,
+
+    /// Use European number formatting (swap `.` and `,` in numbers).
+    /// e.g., `1.50K` becomes `1,50K` and `1,500` becomes `1.500`.
+    #[serde(default)]
+    pub european_number_format: bool,
 }
 
 fn default_retention_days() -> u32 {
@@ -2218,6 +2225,7 @@ impl AppConfig {
             alacrity_percent: 0.0,
             latency_ms: 0,
             last_viewed_changelog_version: None,
+            european_number_format: false,
         }
     }
 }
@@ -2410,6 +2418,9 @@ pub struct UiSessionState {
 
     /// Effects Editor state
     pub effects_editor: EffectsEditorState,
+
+    /// Use European number formatting (swap `.` and `,`)
+    pub european_number_format: bool,
 }
 
 impl Default for UiSessionState {
@@ -2420,6 +2431,7 @@ impl Default for UiSessionState {
             combat_log: CombatLogSessionState::default(),
             encounter_builder: EncounterBuilderState::default(),
             effects_editor: EffectsEditorState::default(),
+            european_number_format: false,
         }
     }
 }

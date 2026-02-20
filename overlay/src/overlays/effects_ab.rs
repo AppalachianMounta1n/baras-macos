@@ -66,19 +66,8 @@ impl EffectABEntry {
     }
 
     /// Format remaining time
-    pub fn format_time(&self) -> String {
-        if self.remaining_secs <= 0.0 {
-            return "0".to_string();
-        }
-        let secs = self.remaining_secs;
-        if secs >= 60.0 {
-            let mins = (secs / 60.0).floor() as u32;
-            format!("{}m", mins)
-        } else if secs >= 10.0 {
-            format!("{:.0}", secs)
-        } else {
-            format!("{:.1}", secs)
-        }
+    pub fn format_time(&self, european: bool) -> String {
+        baras_types::formatting::format_countdown_compact(self.remaining_secs, "0", european)
     }
 }
 
@@ -144,6 +133,7 @@ pub struct EffectsABOverlay {
     last_rendered: Vec<(u64, String, u8)>,
     /// Label for this overlay instance
     _label: String,
+    european_number_format: bool,
 }
 
 impl EffectsABOverlay {
@@ -166,6 +156,7 @@ impl EffectsABOverlay {
             icon_cache: HashMap::new(),
             last_rendered: Vec::new(),
             _label: label.to_string(),
+            european_number_format: false,
         })
     }
 
@@ -223,7 +214,13 @@ impl EffectsABOverlay {
             .effects
             .iter()
             .take(max_display)
-            .map(|e| (e.effect_id, e.format_time(), e.stacks))
+            .map(|e| {
+                (
+                    e.effect_id,
+                    e.format_time(self.european_number_format),
+                    e.stacks,
+                )
+            })
             .collect();
 
         // Skip render if nothing changed
@@ -380,7 +377,13 @@ impl EffectsABOverlay {
             .effects
             .iter()
             .take(max_display)
-            .map(|e| (e.effect_id, e.format_time(), e.stacks))
+            .map(|e| {
+                (
+                    e.effect_id,
+                    e.format_time(self.european_number_format),
+                    e.stacks,
+                )
+            })
             .collect();
 
         // Skip render if nothing changed
@@ -494,12 +497,17 @@ impl EffectsABOverlay {
             if self.config.show_effect_names {
                 // Effect name on top
                 let name_y = text_y - font_size * 0.3;
-                self.frame
-                    .draw_text_glowed(&effect.name, text_x, name_y, font_size, colors::white());
+                self.frame.draw_text_glowed(
+                    &effect.name,
+                    text_x,
+                    name_y,
+                    font_size,
+                    colors::white(),
+                );
 
                 // Countdown below
                 if self.config.show_countdown && effect.total_secs > 0.0 {
-                    let time_text = effect.format_time();
+                    let time_text = effect.format_time(self.european_number_format);
                     let time_y = name_y + font_size + 2.0;
                     self.frame.draw_text_glowed(
                         &time_text,
@@ -524,7 +532,7 @@ impl EffectsABOverlay {
             } else {
                 // Just countdown centered
                 if self.config.show_countdown && effect.total_secs > 0.0 {
-                    let time_text = effect.format_time();
+                    let time_text = effect.format_time(self.european_number_format);
                     self.frame.draw_text_glowed(
                         &time_text,
                         text_x,
@@ -620,7 +628,7 @@ impl EffectsABOverlay {
 
         // Timer small in top-right corner
         if self.config.show_countdown && effect.total_secs > 0.0 {
-            let time_text = effect.format_time();
+            let time_text = effect.format_time(self.european_number_format);
             let time_font_size = font_size * 0.9;
             let time_x =
                 x + icon_size - self.frame.measure_text(&time_text, time_font_size).0 - 2.0;
@@ -646,13 +654,18 @@ impl EffectsABOverlay {
         font_size: f32,
     ) {
         if self.config.show_countdown && effect.total_secs > 0.0 {
-            let time_text = effect.format_time();
+            let time_text = effect.format_time(self.european_number_format);
             let text_width = self.frame.measure_text(&time_text, font_size).0;
             let text_x = x + (icon_size - text_width) / 2.0;
             let text_y = y + icon_size / 2.0 + font_size * 0.4;
 
-            self.frame
-                .draw_text_glowed(&time_text, text_x, text_y, font_size, colors::icon_countdown());
+            self.frame.draw_text_glowed(
+                &time_text,
+                text_x,
+                text_y,
+                font_size,
+                colors::icon_countdown(),
+            );
         }
 
         // Stack count in bottom-right corner
@@ -932,8 +945,13 @@ impl EffectsABOverlay {
             let text_x = x + (icon_size - text_width) / 2.0;
             let text_y = y + icon_size / 2.0 + font_size * 0.4;
 
-            self.frame
-                .draw_text_glowed(time_text, text_x, text_y, font_size, colors::icon_countdown());
+            self.frame.draw_text_glowed(
+                time_text,
+                text_x,
+                text_y,
+                font_size,
+                colors::icon_countdown(),
+            );
         }
 
         // Stack count in bottom-right corner
@@ -1006,10 +1024,11 @@ impl Overlay for EffectsABOverlay {
 
     fn update_config(&mut self, config: OverlayConfigUpdate) {
         match config {
-            OverlayConfigUpdate::EffectsA(cfg, alpha)
-            | OverlayConfigUpdate::EffectsB(cfg, alpha) => {
+            OverlayConfigUpdate::EffectsA(cfg, alpha, european)
+            | OverlayConfigUpdate::EffectsB(cfg, alpha, european) => {
                 self.set_config(cfg);
                 self.set_background_alpha(alpha);
+                self.european_number_format = european;
             }
             _ => {}
         }

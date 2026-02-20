@@ -102,6 +102,7 @@ pub fn App() -> Element {
 
     // Application settings
     let mut minimize_to_tray = use_signal(|| true);
+    let mut european_number_format = use_signal(|| false);
     let mut app_version = use_signal(String::new);
 
     // Update state
@@ -153,6 +154,7 @@ pub fn App() -> Element {
             retention_days.set(config.log_retention_days);
             hide_small_log_files.set(config.hide_small_log_files);
             minimize_to_tray.set(config.minimize_to_tray);
+            european_number_format.set(config.european_number_format);
             parsely_username.set(config.parsely.username);
             parsely_password.set(config.parsely.password);
             parsely_guild.set(config.parsely.guild);
@@ -164,6 +166,7 @@ pub fn App() -> Element {
             // UI preferences - now in unified state
             ui_state.write().data_explorer.show_only_bosses = config.show_only_bosses;
             ui_state.write().combat_log.show_ids = config.show_log_ids;
+            ui_state.write().european_number_format = config.european_number_format;
         }
 
         app_version.set(api::get_app_version().await);
@@ -1635,6 +1638,30 @@ pub fn App() -> Element {
                                     }
                                 }
                                 p { class: "hint", "When enabled, closing the window hides to system tray instead of quitting." }
+                                div { class: "setting-row",
+                                    label { "European number format" }
+                                    input {
+                                        r#type: "checkbox",
+                                        checked: european_number_format(),
+                                        onchange: move |e| {
+                                            let checked = e.checked();
+                                            european_number_format.set(checked);
+                                            ui_state.write().european_number_format = checked;
+                                            let mut toast = use_toast();
+                                            spawn(async move {
+                                                if let Some(mut cfg) = api::get_config().await {
+                                                    cfg.european_number_format = checked;
+                                                    if let Err(err) = api::update_config(&cfg).await {
+                                                        toast.show(format!("Failed to save settings: {}", err), ToastSeverity::Normal);
+                                                    } else {
+                                                        api::refresh_overlay_settings().await;
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                                p { class: "hint", "Swap decimal point and thousands separator (e.g., 1.50K becomes 1,50K)." }
                             }
 
                             div { class: "settings-section",

@@ -258,7 +258,9 @@ pub async fn refresh_overlay_settings(
 pub async fn preview_overlay_settings(
     settings: OverlaySettings,
     overlay_state: State<'_, SharedOverlayState>,
+    service: State<'_, ServiceHandle>,
 ) -> Result<bool, String> {
+    let european = service.config().await.european_number_format;
     let overlays: Vec<_> = {
         let s = overlay_state.lock().map_err(|e| e.to_string())?;
         s.all_overlays()
@@ -268,7 +270,7 @@ pub async fn preview_overlay_settings(
     };
 
     for (kind, tx) in overlays {
-        let config_update = OverlayManager::create_config_update(kind, &settings);
+        let config_update = OverlayManager::create_config_update(kind, &settings, european);
         let _ = tx.send(OverlayCommand::UpdateConfig(config_update)).await;
     }
 

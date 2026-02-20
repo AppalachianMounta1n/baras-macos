@@ -60,20 +60,8 @@ impl CooldownEntry {
     }
 
     /// Format remaining time
-    pub fn format_time(&self) -> String {
-        if self.remaining_secs <= 0.0 {
-            return "Ready".to_string();
-        }
-        let secs = self.remaining_secs;
-        if secs >= 60.0 {
-            let mins = (secs / 60.0).floor() as u32;
-            let remaining_secs = (secs % 60.0).floor() as u32;
-            format!("{}:{:02}", mins, remaining_secs)
-        } else if secs >= 10.0 {
-            format!("{:.0}s", secs)
-        } else {
-            format!("{:.1}s", secs)
-        }
+    pub fn format_time(&self, european: bool) -> String {
+        baras_types::formatting::format_countdown(self.remaining_secs, "s", "Ready", european)
     }
 
     /// Is the cooldown ready (off cooldown)?
@@ -137,6 +125,7 @@ pub struct CooldownOverlay {
     icon_cache: ScaledIconCache,
     /// Last rendered state for dirty checking: (ability_id, time_string, charges)
     last_rendered: Vec<(u64, String, u8)>,
+    european_number_format: bool,
 }
 
 impl CooldownOverlay {
@@ -157,6 +146,7 @@ impl CooldownOverlay {
             data: CooldownData::default(),
             icon_cache: HashMap::new(),
             last_rendered: Vec::new(),
+            european_number_format: false,
         })
     }
 
@@ -214,7 +204,13 @@ impl CooldownOverlay {
             .entries
             .iter()
             .take(max_display)
-            .map(|e| (e.ability_id, e.format_time(), e.charges))
+            .map(|e| {
+                (
+                    e.ability_id,
+                    e.format_time(self.european_number_format),
+                    e.charges,
+                )
+            })
             .collect();
 
         // Skip render if nothing changed (but always render at least once)
@@ -373,11 +369,16 @@ impl CooldownOverlay {
             if self.config.show_ability_names {
                 // Ability name on top
                 let name_y = text_y - font_size * 0.3;
-                self.frame
-                    .draw_text_glowed(&entry.name, text_x, name_y, font_size, colors::white());
+                self.frame.draw_text_glowed(
+                    &entry.name,
+                    text_x,
+                    name_y,
+                    font_size,
+                    colors::white(),
+                );
 
                 // Countdown below
-                let time_text = entry.format_time();
+                let time_text = entry.format_time(self.european_number_format);
                 let time_y = name_y + font_size + 2.0;
                 self.frame.draw_text_glowed(
                     &time_text,
@@ -400,7 +401,7 @@ impl CooldownOverlay {
                 }
             } else {
                 // Just countdown centered
-                let time_text = entry.format_time();
+                let time_text = entry.format_time(self.european_number_format);
                 let time_color = if entry.is_ready() {
                     ready_text_color
                 } else {
@@ -587,9 +588,10 @@ impl Overlay for CooldownOverlay {
     }
 
     fn update_config(&mut self, config: OverlayConfigUpdate) {
-        if let OverlayConfigUpdate::Cooldowns(cfg, alpha) = config {
+        if let OverlayConfigUpdate::Cooldowns(cfg, alpha, european) = config {
             self.set_config(cfg);
             self.set_background_alpha(alpha);
+            self.european_number_format = european;
         }
     }
 

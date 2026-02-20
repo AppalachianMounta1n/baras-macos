@@ -8,9 +8,10 @@ use tiny_skia::Color;
 use super::{Overlay, OverlayConfigUpdate, OverlayData};
 use crate::frame::OverlayFrame;
 use crate::platform::{OverlayConfig, PlatformError};
-use crate::utils::{color_from_rgba, format_number, truncate_name};
+use crate::utils::{color_from_rgba, truncate_name};
 use crate::widgets::colors;
 use crate::widgets::{Footer, Header, ProgressBar};
+use baras_types::formatting;
 
 /// Entry in a DPS/HPS metric
 #[derive(Debug, Clone)]
@@ -118,6 +119,8 @@ pub struct MetricOverlay {
     font_scale: f32,
     /// Global dynamic background setting for metrics
     dynamic_background: bool,
+    /// Use European number formatting (swap `.` and `,`)
+    european_number_format: bool,
 }
 
 impl MetricOverlay {
@@ -149,6 +152,7 @@ impl MetricOverlay {
             show_class_icons,
             font_scale: font_scale.clamp(1.0, 2.0),
             dynamic_background,
+            european_number_format: false,
         })
     }
 
@@ -407,14 +411,26 @@ impl MetricOverlay {
             if show_per_second && show_total {
                 // Both: total in center, rate on right
                 bar = bar
-                    .with_center_text(format_number(entry.total_value))
-                    .with_right_text(format_number(entry.value));
+                    .with_center_text(formatting::format_compact(
+                        entry.total_value,
+                        self.european_number_format,
+                    ))
+                    .with_right_text(formatting::format_compact(
+                        entry.value,
+                        self.european_number_format,
+                    ));
             } else if show_per_second {
                 // Rate only (default): rate on right
-                bar = bar.with_right_text(format_number(entry.value));
+                bar = bar.with_right_text(formatting::format_compact(
+                    entry.value,
+                    self.european_number_format,
+                ));
             } else if show_total {
                 // Total only: total on right
-                bar = bar.with_right_text(format_number(entry.total_value));
+                bar = bar.with_right_text(formatting::format_compact(
+                    entry.total_value,
+                    self.european_number_format,
+                ));
             }
             // If neither, just show name (no values)
 
@@ -459,17 +475,18 @@ impl MetricOverlay {
 
         // Draw footer using Footer widget
         if self.appearance.show_footer {
+            let eu = self.european_number_format;
             let footer = if show_per_second && show_total {
                 // Both enabled: show total sum in center, rate sum on right
-                Footer::new(format_number(rate_sum))
-                    .with_secondary(format_number(total_sum))
+                Footer::new(formatting::format_compact(rate_sum, eu))
+                    .with_secondary(formatting::format_compact(total_sum, eu))
                     .with_color(font_color)
             } else if show_per_second {
                 // Rate only: show rate sum on right
-                Footer::new(format_number(rate_sum)).with_color(font_color)
+                Footer::new(formatting::format_compact(rate_sum, eu)).with_color(font_color)
             } else if show_total {
                 // Total only: show total sum on right
-                Footer::new(format_number(total_sum)).with_color(font_color)
+                Footer::new(formatting::format_compact(total_sum, eu)).with_color(font_color)
             } else {
                 // Neither: empty footer (just separator)
                 Footer::new("").with_color(font_color)
@@ -513,6 +530,7 @@ impl Overlay for MetricOverlay {
             show_icons,
             font_scale,
             dynamic_bg,
+            european,
         ) = config
         {
             self.set_appearance(appearance);
@@ -523,6 +541,7 @@ impl Overlay for MetricOverlay {
             self.set_show_class_icons(show_icons);
             self.set_font_scale(font_scale);
             self.set_dynamic_background(dynamic_bg);
+            self.european_number_format = european;
         }
     }
 

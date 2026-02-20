@@ -12,8 +12,9 @@ use tiny_skia::Color;
 use super::{Overlay, OverlayConfigUpdate, OverlayData};
 use crate::frame::OverlayFrame;
 use crate::platform::{OverlayConfig, PlatformError};
-use crate::utils::{color_from_rgba, format_duration_short, format_number, truncate_name};
+use crate::utils::{color_from_rgba, format_duration_short, truncate_name};
 use crate::widgets::{colors, Footer, ProgressBar};
+use baras_types::formatting;
 
 /// Data for the challenges overlay
 #[derive(Debug, Clone, Default)]
@@ -110,6 +111,7 @@ pub struct ChallengeOverlay {
     data: ChallengeData,
     background_alpha: u8,
     config: ChallengeOverlayConfig,
+    european_number_format: bool,
 }
 
 impl ChallengeOverlay {
@@ -127,6 +129,7 @@ impl ChallengeOverlay {
             data: ChallengeData::default(),
             background_alpha,
             config,
+            european_number_format: false,
         })
     }
 
@@ -531,39 +534,40 @@ impl ChallengeOverlay {
                 .with_text_color(font_color);
 
             // Use per-challenge columns setting
+            let eu = self.european_number_format;
             match challenge.columns {
                 ChallengeColumns::TotalPercent => {
                     // 2-column: total | percent
                     bar = bar
-                        .with_center_text(format_number(player.value))
-                        .with_right_text(format!("{:.1}%", player.percent));
+                        .with_center_text(formatting::format_compact(player.value, eu))
+                        .with_right_text(formatting::format_pct(player.percent as f64, eu));
                 }
                 ChallengeColumns::TotalPerSecond => {
                     // 2-column: total | per_second
                     let per_sec_val = player.per_second.map(|ps| ps as i64).unwrap_or(0);
                     bar = bar
-                        .with_center_text(format_number(player.value))
-                        .with_right_text(format_number(per_sec_val));
+                        .with_center_text(formatting::format_compact(player.value, eu))
+                        .with_right_text(formatting::format_compact(per_sec_val, eu));
                 }
                 ChallengeColumns::PerSecondPercent => {
                     // 2-column: per_second | percent
                     let per_sec_val = player.per_second.map(|ps| ps as i64).unwrap_or(0);
                     bar = bar
-                        .with_center_text(format_number(per_sec_val))
-                        .with_right_text(format!("{:.1}%", player.percent));
+                        .with_center_text(formatting::format_compact(per_sec_val, eu))
+                        .with_right_text(formatting::format_pct(player.percent as f64, eu));
                 }
                 ChallengeColumns::TotalOnly => {
                     // Single column: just total
-                    bar = bar.with_right_text(format_number(player.value));
+                    bar = bar.with_right_text(formatting::format_compact(player.value, eu));
                 }
                 ChallengeColumns::PerSecondOnly => {
                     // Single column: just per_second
                     let per_sec_val = player.per_second.map(|ps| ps as i64).unwrap_or(0);
-                    bar = bar.with_right_text(format_number(per_sec_val));
+                    bar = bar.with_right_text(formatting::format_compact(per_sec_val, eu));
                 }
                 ChallengeColumns::PercentOnly => {
                     // Single column: just percent
-                    bar = bar.with_right_text(format!("{:.1}%", player.percent));
+                    bar = bar.with_right_text(formatting::format_pct(player.percent as f64, eu));
                 }
             }
 
@@ -602,32 +606,34 @@ impl ChallengeOverlay {
             .sum();
 
         // Use Footer widget for consistent alignment with metric overlays
+        let eu = self.european_number_format;
         let footer = match challenge.columns {
             ChallengeColumns::TotalPercent => {
                 // 2-column: total | 100%
                 Footer::new("100%".to_string())
-                    .with_secondary(format_number(total_sum))
+                    .with_secondary(formatting::format_compact(total_sum, eu))
                     .with_color(font_color)
             }
             ChallengeColumns::TotalPerSecond => {
                 // 2-column: total | per_second
-                Footer::new(format_number(total_per_sec as i64))
-                    .with_secondary(format_number(total_sum))
+                Footer::new(formatting::format_compact(total_per_sec as i64, eu))
+                    .with_secondary(formatting::format_compact(total_sum, eu))
                     .with_color(font_color)
             }
             ChallengeColumns::PerSecondPercent => {
                 // 2-column: per_second | 100%
                 Footer::new("100%".to_string())
-                    .with_secondary(format_number(total_per_sec as i64))
+                    .with_secondary(formatting::format_compact(total_per_sec as i64, eu))
                     .with_color(font_color)
             }
             ChallengeColumns::TotalOnly => {
                 // Single column: just total
-                Footer::new(format_number(total_sum)).with_color(font_color)
+                Footer::new(formatting::format_compact(total_sum, eu)).with_color(font_color)
             }
             ChallengeColumns::PerSecondOnly => {
                 // Single column: just per_second
-                Footer::new(format_number(total_per_sec as i64)).with_color(font_color)
+                Footer::new(formatting::format_compact(total_per_sec as i64, eu))
+                    .with_color(font_color)
             }
             ChallengeColumns::PercentOnly => {
                 // Single column: 100%
@@ -659,9 +665,10 @@ impl Overlay for ChallengeOverlay {
     }
 
     fn update_config(&mut self, config: OverlayConfigUpdate) {
-        if let OverlayConfigUpdate::Challenge(challenge_config, alpha) = config {
+        if let OverlayConfigUpdate::Challenge(challenge_config, alpha, european) = config {
             self.set_config(challenge_config);
             self.set_background_alpha(alpha);
+            self.european_number_format = european;
         }
     }
 
