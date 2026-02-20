@@ -847,7 +847,7 @@ end_trigger = { type = "boss_hp_below", hp_percent = 10.0, selector = [
 ] }
 
 [[boss.phases]]
-id = "apex_photogensis"
+id = "apex_phase_1"
 name = "Apex Phase 1"
 trigger = { type = "phase_ended", phase_id = "apex_transformer" }
 end_trigger = { type = "any_of", conditions = [
@@ -858,6 +858,7 @@ end_trigger = { type = "any_of", conditions = [
 id = "apex_main_2"
 name = "Apex Phase 2"
 trigger = { type = "phase_ended", phase_id = "apex_phase_1" }
+
 [[boss.phases]]
 id = "apex_burn"
 name = "Burn"
@@ -895,7 +896,7 @@ name = "1st Acid"
 display_text = "Acid Blast"
 duration_secs = 10.0
 color = [0, 250, 9, 255]
-difficulties = ["master"]
+difficulties = ["veteran", "master"]
 enabled = true
 show_at_secs = 8.0
 display_target = "timers_a"
@@ -1062,7 +1063,7 @@ name = "1st Mass Target"
 display_text = "Mass Target Lock"
 duration_secs = 60.0
 color = [255, 128, 0, 255]
-difficulties = ["story", "veteran", "master"]
+difficulties = ["veteran", "master"]
 enabled = true
 display_target = "timers_a"
 
@@ -1283,7 +1284,7 @@ name = "1st Rockets"
 display_text = "Rockets"
 duration_secs = 16.0
 color = [250, 250, 0, 255]
-difficulties = ["story", "veteran", "master"]
+difficulties = ["veteran", "master"]
 enabled = true
 display_target = "timers_a"
 
@@ -1301,7 +1302,7 @@ id = "apex_vanguard_rockets"
 name = "Rockets"
 duration_secs = 24.0
 color = [250, 250, 0, 255]
-difficulties = ["story", "veteran", "master"]
+difficulties = ["veteran", "master"]
 enabled = true
 show_at_secs = 8.0
 display_target = "timers_a"
@@ -1314,7 +1315,7 @@ target = "any"
 
 [boss.timer.cancel_trigger]
 type = "ability_cast"
-abilities = []
+abilities = [4297784794546176]
 source = "any"
 target = "any"
 
