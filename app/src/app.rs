@@ -1662,6 +1662,10 @@ pub fn App() -> Element {
                                     }
                                 }
                                 p { class: "hint", "Swap decimal point and thousands separator (e.g., 1.50K becomes 1,50K)." }
+                                p { class: "hint hint-warning",
+                                    i { class: "fa-solid fa-triangle-exclamation" }
+                                    strong { " Editor inputs still use '.' for decimals." }
+                                }
                             }
 
                             div { class: "settings-section",
