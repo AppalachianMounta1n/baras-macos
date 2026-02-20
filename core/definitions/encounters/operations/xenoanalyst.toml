@@ -59,3 +59,13 @@ trigger = { type = "ability_cast", abilities = [
 duration_secs = 90
 color = [30, 133, 25, 255]
 difficulties = ["story", "veteran"]
+
+[[boss.timer]]
+id = "environmental_awareness_test"
+name = "Environmental Awareness Test"
+trigger = { type = "ability_cast", abilities = [
+  3190159973548032,
+] }
+duration_secs = 30
+color = [31, 33, 255, 255]
+difficulties = ["story", "veteran"]
